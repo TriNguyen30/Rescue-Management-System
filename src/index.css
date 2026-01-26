@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+    font-family: "Roboto", sans-serif;
+
+    /* fonts */
+    --fs-200: 14px;
+    --fs-300: 20px;
+    --fs-400: 22px;
+    --fs-500: 32px;
+    --lh-1: 1;
+    --lh-1-1: 1.1;
+    --lh-1-4: 1.4;
+
+    /* colors */
+    --bkg: 248 80% 98%;
+    --muted: 248 15.7% 80%;
+    --text: 246 76% 4.9%;
+    --accent: 245 75% 54.5%;
+    --accent2: 40 98.2% 43.7%;
+
+    /* utils */
+    --space-sm: clamp(0.4rem, 1.5vw, 0.8rem);
+    --space-md: clamp(1rem, 2.5vw, 1.4rem);
+    --space-lg: clamp(2rem, 4vw, 2.2rem);
+    --content: 50ch;
+    --round-sm: 4px;
+    --round-md: 10px;
+    --round-lg: 15px;
+    --round-full: 100vmax;
+}
+
+html {
+    scroll-behavior: smooth;
+}
