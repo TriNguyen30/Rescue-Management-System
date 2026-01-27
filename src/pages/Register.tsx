@@ -8,9 +8,9 @@ import {
   ArrowRight,
   User,
   Phone,
+  Ambulance,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import BonSaiImage from "@/assets/image/BonSaiImage.png";
 
 export default function Register() {
   const [activeTab, setActiveTab] = useState("register");
@@ -37,11 +37,11 @@ export default function Register() {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Green Background */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-green-500 to-green-700 p-12 flex-col justify-between relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-500 to-blue-700 p-12 flex-col justify-between relative overflow-hidden">
         {/* Decorative leaf pattern */}
         <div className="absolute inset-0 opacity-10">
           <img
-            src={BonSaiImage}
+            src="https://images2.thanhnien.vn/528068263637045248/2024/9/10/afp2024091036fx9yxv2highresnigeriaflood-1725980984689946350501.jpg"
             alt="BonSai"
             className="w-full h-full object-cover"
           />
@@ -51,8 +51,8 @@ export default function Register() {
           <div className="flex items-center justify-center"></div>
           <div>
             <div className="flex items-center gap-2">
-              <Leaf className="w-6 h-6" />
-              <span className="text-2xl font-bold">Green Space</span>
+              <Ambulance className="w-6 h-6" />
+              <span className="text-2xl font-bold">RESCUE AID</span>
             </div>
           </div>
         </div>
@@ -60,18 +60,18 @@ export default function Register() {
         {/* Main Content */}
         <div className="relative z-10">
           <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
-            Mang thiên nhiên vào
+            Cùng nhau
             <br />
-            không gian của bạn
+            cứu sống những mảnh đời
           </h1>
           <div className="w-30 h-2 bg-white mb-6 rounded-full" />
           <p className="text-green-50 text-lg max-w-md">
-            @ 2025 Cửa hàng cây cảnh BonSai. Bảo lưu mọi quyền
+            Hãy tham gia cùng chúng tôi trong hành trình cứu trợ và hỗ trợ những
           </p>
         </div>
 
         {/* Background Image Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-green-600/50 to-green-800/50 mix-blend-multiply"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/50 to-blue-800/50 mix-blend-multiply"></div>
       </div>
 
       {/* Right Panel - Register Form */}
@@ -79,30 +79,29 @@ export default function Register() {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-            <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
-              <Leaf className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+              <Ambulance className="w-6 h-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-gray-900">
-              Green Space
-            </span>
+            <span className="text-2xl font-bold text-gray-900">RESCUE AID</span>
           </div>
 
           {/* Tabs */}
           <div className="flex border-b border-gray-200 mb-8">
             <button
-              onClick={() => { setActiveTab("login")
+              onClick={() => {
+                setActiveTab("login");
                 navigate("/login");
               }}
               className={`flex-1 pb-4 text-center font-semibold relative transition-colors
       ${
         activeTab === "login"
-          ? "text-green-600"
+          ? "text-blue-500"
           : "text-gray-400 hover:text-gray-600"
       }`}
             >
               Đăng nhập
               {activeTab === "login" && (
-                <span className="absolute left-0 bottom-0 w-full h-1 bg-green-500 rounded-full" />
+                <span className="absolute left-0 bottom-0 w-full h-1 bg-blue-500 rounded-full" />
               )}
             </button>
 
@@ -114,13 +113,13 @@ export default function Register() {
               className={`flex-1 pb-4 text-center font-semibold relative transition-colors
       ${
         activeTab === "register"
-          ? "text-green-600"
+          ? "text-blue-500"
           : "text-gray-400 hover:text-gray-600"
       }`}
             >
               Đăng ký
               {activeTab === "register" && (
-                <span className="absolute left-0 bottom-0 w-full h-1 bg-green-500 rounded-full" />
+                <span className="absolute left-0 bottom-0 w-full h-1 bg-blue-500 rounded-full" />
               )}
             </button>
           </div>
@@ -143,7 +142,7 @@ export default function Register() {
                     handleInputChange("fullName", e.target.value)
                   }
                   placeholder="Nguyễn Văn A"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                 />
               </div>
             </div>
@@ -162,7 +161,7 @@ export default function Register() {
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   placeholder="Nhập email của bạn"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                 />
               </div>
             </div>
@@ -181,7 +180,7 @@ export default function Register() {
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                   placeholder="Nhập số điện thoại của bạn"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                 />
               </div>
             </div>
@@ -201,8 +200,13 @@ export default function Register() {
                   onChange={(e) =>
                     handleInputChange("password", e.target.value)
                   }
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      handleSubmit();
+                    }
+                  }}
                   placeholder="Nhập mật khẩu của bạn"
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                 />
                 <button
                   type="button"
@@ -221,7 +225,7 @@ export default function Register() {
             {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] shadow-lg shadow-green-500/30 mt-6"
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] shadow-lg shadow-green-500/30 mt-6"
             >
               Đăng ký
               <ArrowRight className="w-5 h-5" />
@@ -236,7 +240,7 @@ export default function Register() {
           </div>
 
           {/* Social Login */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid">
             <button className="flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition">
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -258,14 +262,14 @@ export default function Register() {
               </svg>
               <span className="text-sm font-medium text-gray-700">Google</span>
             </button>
-            <button className="flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition">
+            {/* <button className="flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition">
               <svg className="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
               </svg>
               <span className="text-sm font-medium text-gray-700">
                 Facebook
               </span>
-            </button>
+            </button> */}
           </div>
         </div>
       </div>
