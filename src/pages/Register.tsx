@@ -11,6 +11,7 @@ import {
   Ambulance,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Logo from "@/assets/image/Logo.png"
 
 export default function Register() {
   const [activeTab, setActiveTab] = useState("register");
@@ -47,13 +48,15 @@ export default function Register() {
           />
         </div>
         {/* Logo */}
-        <div className="flex items-center gap-3 text-white relative z-10">
+        <div className="flex items-center text-white relative z-10">
           <div className="flex items-center justify-center"></div>
-          <div>
-            <div className="flex items-center gap-2">
-              <Ambulance className="w-6 h-6" />
-              <span className="text-2xl font-bold">RESCUE AID</span>
-            </div>
+          <div className="flex items-center">
+            <img
+              src={Logo}
+              alt="Logo"
+              className="w-35 h-auto transition-transform hover:scale-110"
+            />
+            <span className="text-2xl font-bold">CHUNG TAY LƯỢT VŨ</span>
           </div>
         </div>
 
@@ -71,7 +74,7 @@ export default function Register() {
         </div>
 
         {/* Background Image Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/50 to-blue-800/50 mix-blend-multiply"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/500 to-blue-800/500 mix-blend-multiply"></div>
       </div>
 
       {/* Right Panel - Register Form */}
@@ -79,10 +82,14 @@ export default function Register() {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-              <Ambulance className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-gray-900">RESCUE AID</span>
+            <img
+              src={Logo}
+              alt="Logo"
+              className="w-24 h-auto transition-transform hover:scale-110"
+            />
+            <span className="text-2xl font-bold text-gray-900">
+              Tech for Humanity
+            </span>
           </div>
 
           {/* Tabs */}
