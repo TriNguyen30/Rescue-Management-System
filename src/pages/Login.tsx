@@ -11,6 +11,7 @@ import {
   Phone
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Logo from "@/assets/image/Logo.png"
 export default function Login() {
   const [activeTab, setActiveTab] = useState("login");
   const [showPassword, setShowPassword] = useState(false);
@@ -49,9 +50,13 @@ export default function Login() {
           </div>
 
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <Ambulance className="w-6 h-6" />
-            <span className="text-2xl font-bold">RESCUE AID</span>
+          <div className="flex items-center">
+            <img
+              src={Logo}
+              alt="Logo"
+              className="w-35 h-auto transition-transform hover:scale-110"
+            />
+            <span className="text-2xl font-bold">CHUNG TAY LƯỢT VŨ</span>
           </div>
         </div>
 
@@ -69,7 +74,7 @@ export default function Login() {
         </div>
 
         {/* Background Image Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/50 to-blue-800/50 mix-blend-multiply pointer-events-none z-0"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/500 to-blue-800/500 mix-blend-multiply pointer-events-none z-0"></div>
       </div>
 
       {/* Right Panel - Login Form */}
@@ -77,11 +82,13 @@ export default function Login() {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-              <Ambulance className="w-6 h-6 text-white" />
-            </div>
+            <img
+              src={Logo}
+              alt="Logo"
+              className="w-24 h-auto transition-transform hover:scale-110"
+            />
             <span className="text-2xl font-bold text-gray-900">
-              RESCUE AID
+              Tech for Humanity
             </span>
           </div>
 

@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
 import { axiosConfig } from "@/config/axios.config";
 
 export const axiosInstance: AxiosInstance = axios.create(axiosConfig);
