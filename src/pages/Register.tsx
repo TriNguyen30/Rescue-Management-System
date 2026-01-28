@@ -56,7 +56,7 @@ export default function Register() {
               alt="Logo"
               className="w-35 h-auto transition-transform hover:scale-110"
             />
-            <span className="text-2xl font-bold">CHUNG TAY LƯỢT VŨ</span>
+            <span className="text-2xl font-bold">CHUNG TAY VƯỢT LŨ</span>
           </div>
         </div>
 
@@ -69,7 +69,8 @@ export default function Register() {
           </h1>
           <div className="w-30 h-2 bg-white mb-6 rounded-full" />
           <p className="text-green-50 text-lg max-w-md">
-            Hãy tham gia cùng chúng tôi trong hành trình cứu trợ và hỗ trợ những
+            Hãy tham gia cùng chúng tôi trong hành trình cứu trợ và hỗ trợ những người
+            bị ảnh hưởng bởi thiên tai lũ lụt.
           </p>
         </div>
 
