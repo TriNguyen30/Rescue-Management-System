@@ -89,7 +89,7 @@ export default function Register() {
               className="w-24 h-auto transition-transform hover:scale-110"
             />
             <span className="text-2xl font-bold text-gray-900">
-              Tech for Humanity
+              CHUNG TAY VƯỢT LŨ
             </span>
           </div>
 
