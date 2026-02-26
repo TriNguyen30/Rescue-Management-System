@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Leaf,
   Mail,
   Lock,
   Eye,
@@ -8,20 +7,22 @@ import {
   ArrowRight,
   User,
   Phone,
-  Ambulance,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Logo from "@/assets/image/Logo.png"
+import Logo from "@/assets/image/Logo.png";
+import { register } from "@/services/auth.service";
 
 export default function Register() {
   const [activeTab, setActiveTab] = useState("register");
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
+    username: "",
     email: "",
     phone: "",
     password: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleInputChange = (field: string, value: any) => {
@@ -31,8 +32,36 @@ export default function Register() {
     }));
   };
 
-  const handleSubmit = () => {
-    console.log("Register submitted:", formData);
+  const handleSubmit = async () => {
+    if (!formData.fullName || !formData.username || !formData.password) {
+      alert("Vui lòng nhập đầy đủ họ tên, tên đăng nhập và mật khẩu.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await register({
+        username: formData.username,
+        password: formData.password,
+        fullName: formData.fullName,
+        phone: formData.phone,
+        roles: ["Citizen"],
+      });
+
+      if (!response.data.isSuccess) {
+        alert(response.data.message || "Đăng ký thất bại.");
+        return;
+      }
+
+      alert("Đăng ký thành công! Vui lòng đăng nhập.");
+      navigate("/login");
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.";
+      alert(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -141,7 +170,7 @@ export default function Register() {
             </p>
           </div>
 
-          {/* Register Form */}
+            {/* Register Form */}
           <div className="space-y-5">
             {/* Full Name Input */}
             <div>
@@ -159,6 +188,25 @@ export default function Register() {
                     handleInputChange("fullName", e.target.value)
                   }
                   placeholder="Nguyễn Văn A"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                />
+              </div>
+            </div>
+
+            {/* Username Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tên đăng nhập
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <User className="w-5 h-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => handleInputChange("username", e.target.value)}
+                  placeholder="Tên đăng nhập"
                   className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                 />
               </div>
@@ -242,9 +290,10 @@ export default function Register() {
             {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] shadow-lg shadow-green-500/30 mt-6"
+              disabled={isLoading}
+              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] shadow-lg shadow-green-500/30 mt-6"
             >
-              Đăng ký
+              {isLoading ? "Đang xử lý..." : "Đăng ký"}
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>

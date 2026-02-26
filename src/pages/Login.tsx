@@ -1,26 +1,51 @@
 import React, { useState } from "react";
-import {
-  Leaf,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  ArrowLeft,
-  Ambulance,
-  Phone
-} from "lucide-react";
+import { Lock, Eye, EyeOff, ArrowRight, ArrowLeft, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Logo from "@/assets/image/Logo.png"
+import Logo from "@/assets/image/Logo.png";
+import { login } from "@/services/auth.service";
+import { useAppDispatch } from "@/store/hooks";
+import { setToken, setUser } from "@/store/slices/authSlice";
+
 export default function Login() {
   const [activeTab, setActiveTab] = useState("login");
   const [showPassword, setShowPassword] = useState(false);
-  const [phone, setPhone] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
-  const handleSubmit = () => {
-    console.log("Login submitted:", { phone, password });
+  const handleSubmit = async () => {
+    if (!username || !password) {
+      alert("Vui lòng nhập tên đăng nhập và mật khẩu.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await login({
+        username,
+        password,
+      });
+
+      if (!response.data.isSuccess) {
+        alert(response.data.message || "Đăng nhập thất bại.");
+        return;
+      }
+
+      const { token, user } = response.data.data;
+      dispatch(setToken(token));
+      dispatch(setUser(user));
+
+      alert("Đăng nhập thành công!");
+      navigate("/");
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại.";
+      alert(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -141,20 +166,20 @@ export default function Login() {
 
           {/* Login Form */}
           <div className="space-y-6">
-            {/* Email Input */}
+            {/* Username Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Số điện thoại
+                Tên đăng nhập
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Phone className="w-5 h-5 text-gray-400" />
+                  <User className="w-5 h-5 text-gray-400" />
                 </div>
                 <input
                   type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Nhập số điện thoại của bạn"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Nhập tên đăng nhập của bạn"
                   className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                 />
               </div>
@@ -198,9 +223,10 @@ export default function Login() {
             {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] shadow-lg shadow-green-500/30"
+              disabled={isLoading}
+              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] shadow-lg shadow-green-500/30"
             >
-              Đăng nhập
+              {isLoading ? "Đang xử lý..." : "Đăng nhập"}
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>

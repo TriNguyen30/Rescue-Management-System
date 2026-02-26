@@ -5,6 +5,7 @@ export interface ApiResponse<T> {
   errors: string[] | null;
   statusCode: number;
 }
+
 export interface AuthUser {
   id: string;
   username: string;
@@ -12,6 +13,11 @@ export interface AuthUser {
   roles: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: AuthUser;
 }
 
 export interface LoginPayload {
@@ -26,5 +32,3 @@ export interface RegisterPayload {
   phone: string;
   roles: string[];
 }
-
-

@@ -1,10 +1,15 @@
 import { axiosInstance } from "@/lib/axios";
-import type { LoginPayload, RegisterPayload } from "@/types/api";
+import type {
+  ApiResponse,
+  AuthResponse,
+  LoginPayload,
+  RegisterPayload,
+} from "@/types/api";
 
 export const login = (payload: LoginPayload) => {
-    return axiosInstance.post("/auth/login", payload);
+  return axiosInstance.post<ApiResponse<AuthResponse>>("/auth/login", payload);
 };
 
 export const register = (payload: RegisterPayload) => {
-    return axiosInstance.post("/auth/register", payload);
-}
+  return axiosInstance.post("/auth/register", payload);
+};
