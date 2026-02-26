@@ -6,7 +6,7 @@ export default function AppLayout() {
     <div>
       <Navbar />
       <Outlet/>
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }
