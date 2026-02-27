@@ -76,7 +76,7 @@ export default function Navbar() {
             </NavLink>
 
             <NavLink
-              to="/tips"
+              to="/contact"
               className={({ isActive }) =>
                 `px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
                   ? "bg-blue-100 text-blue-700"

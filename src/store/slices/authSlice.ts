@@ -6,6 +6,13 @@ interface AuthState {
   user: AuthUser | null;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  fullName?: string;
+  role?: string;
+}
+
 const storedToken = localStorage.getItem("token");
 const storedUser = localStorage.getItem("user");
 
