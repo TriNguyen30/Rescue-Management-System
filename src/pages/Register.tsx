@@ -289,7 +289,7 @@ export default function Register() {
             </div>
 
             {/* Role Select */}
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Vai trò
               </label>
@@ -307,7 +307,7 @@ export default function Register() {
                   <option value="ADMIN">ADMIN</option>
                 </select>
               </div>
-            </div>
+            </div> */}
 
             {/* Submit Button */}
             <button

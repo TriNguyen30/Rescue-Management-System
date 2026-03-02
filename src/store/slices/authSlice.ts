@@ -4,6 +4,7 @@ import type { AuthUser } from "@/types/api";
 interface AuthState {
   token: string | null;
   user: AuthUser | null;
+  role: string | null;
 }
 
 export interface User {
@@ -15,10 +16,12 @@ export interface User {
 
 const storedToken = localStorage.getItem("token");
 const storedUser = localStorage.getItem("user");
+const storedRole = localStorage.getItem("role");
 
 const initialState: AuthState = {
   token: storedToken,
   user: storedUser ? (JSON.parse(storedUser) as AuthUser) : null,
+  role: storedRole as string | null,
 };
 
 const authSlice = createSlice({
@@ -41,14 +44,24 @@ const authSlice = createSlice({
         localStorage.removeItem("user");
       }
     },
+    setRole(state, action: PayloadAction<string | null>) {
+      state.role = action.payload;
+      if (action.payload) {
+        localStorage.setItem("role", action.payload);
+      } else {
+        localStorage.removeItem("role");
+      }
+    },
     logout(state) {
       state.token = null;
       state.user = null;
+      state.role = null;
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("role");
     },
   },
 });
 
-export const { setToken, setUser, logout } = authSlice.actions;
+export const { setToken, setUser, setRole, logout } = authSlice.actions;
 export default authSlice.reducer;

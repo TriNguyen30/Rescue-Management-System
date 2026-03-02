@@ -10,13 +10,13 @@ export interface AuthUser {
   id: string;
   username: string;
   email: string;
-  roles: string[];
+  role: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface AuthResponse {
-  token: string;
+  access_token: string;
   user: AuthUser;
 }
 

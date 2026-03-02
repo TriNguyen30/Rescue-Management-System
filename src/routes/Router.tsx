@@ -6,6 +6,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Contact from "@/pages/Contact";
 import ProtectedRoute from "./ProtectedRoute";
+import AdminDashboard from "@/pages/AdminDashboard";
 
 export default function AppRoutes() {
   return (
@@ -21,7 +22,7 @@ export default function AppRoutes() {
         path="/admin"
         element={
           <ProtectedRoute requireAdmin>
-            <div>Admin Page</div>
+            <AdminDashboard />
           </ProtectedRoute>
         }
       />
