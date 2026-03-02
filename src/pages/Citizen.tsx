@@ -697,14 +697,17 @@ const inputStyle = (err) => ({
 const styles = {
   screen: {
     minHeight: "100vh",
-    background:
-      "linear-gradient(160deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%)",
+    background: "#ffffff",
     padding: "24px 16px 60px",
     fontFamily: "'Be Vietnam Pro', sans-serif",
   },
   header: {
     maxWidth: 680,
     margin: "0 auto 20px",
+    padding: "18px 20px 16px",
+    borderRadius: 24,
+    background: "#1d4ed8",
+    boxShadow: "0 20px 45px rgba(15,23,42,0.45)",
     animation: "fadeInUp 0.5s ease both",
   },
   headerInner: {
@@ -783,11 +786,12 @@ const styles = {
   },
   card: {
     maxWidth: 680,
-    margin: "0 auto",
+    margin: "-12px auto 0",
     background: "#ffffff",
     borderRadius: 20,
     overflow: "hidden",
-    boxShadow: "0 25px 60px rgba(0,0,0,0.4)",
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 18px 40px rgba(15,23,42,0.16)",
     animation: "fadeInUp 0.6s ease 0.1s both",
   },
   section: { padding: "20px 24px" },
@@ -980,7 +984,7 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    boxShadow: "0 25px 60px rgba(0,0,0,0.4)",
+    boxShadow: "0 22px 45px rgba(15,23,42,0.2)",
     animation: "fadeInUp 0.5s ease both",
   },
   resultTitle: {

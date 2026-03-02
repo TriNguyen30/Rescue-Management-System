@@ -1,12 +1,20 @@
-import { Bell, Menu, X, ChevronDown } from "lucide-react";
+import { Bell, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, NavLink } from "react-router";
-import DropdownMenu from "@/components/ui/Dropdown";
 import Logo from "@/assets/image/Logo.png";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { logout } from "@/store/slices/authSlice";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate("/");
+  };
 
   return (
     <header
@@ -104,17 +112,31 @@ export default function Navbar() {
               </span>
             </button>
 
-            {/* Auth Button */}
-            <button
-              onClick={() => navigate("/login")}
-              className="hidden md:inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:opacity-90 hover:-translate-y-px active:translate-y-0"
-              style={{
-                background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                boxShadow: "0 4px 12px rgba(59,130,246,0.35)",
-              }}
-            >
-              Đăng nhập
-            </button>
+            {/* Auth Section */}
+            {user ? (
+              <div className="hidden md:flex items-center gap-3">
+                <div className="px-3 py-1.5 rounded-full bg-blue-50 text-xs font-medium text-blue-700">
+                  {user.username}
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-blue-700 border border-blue-200 bg-white hover:bg-blue-50 transition-all duration-200"
+                >
+                  Đăng xuất
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => navigate("/login")}
+                className="hidden md:inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:opacity-90 hover:-translate-y-px active:translate-y-0"
+                style={{
+                  background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                  boxShadow: "0 4px 12px rgba(59,130,246,0.35)",
+                }}
+              >
+                Đăng nhập
+              </button>
+            )}
 
             {/* Mobile Toggle */}
             <button
@@ -166,15 +188,30 @@ export default function Navbar() {
             Liên hệ
           </button>
           <div className="pt-2 border-t border-blue-100 mt-1">
-            <button
-              onClick={() => navigate("/login")}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition"
-              style={{
-                background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
-              }}
-            >
-              Đăng nhập / Đăng ký
-            </button>
+            {user ? (
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setMobileOpen(false);
+                }}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-blue-700 bg-white border border-blue-200 hover:bg-blue-50 transition"
+              >
+                Đăng xuất
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  navigate("/login");
+                  setMobileOpen(false);
+                }}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition"
+                style={{
+                  background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
+                }}
+              >
+                Đăng nhập / Đăng ký
+              </button>
+            )}
           </div>
         </div>
       </div>
