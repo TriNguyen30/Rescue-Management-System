@@ -28,16 +28,18 @@ export default function Login() {
         password,
       });
 
-      if (!response.data.isSuccess) {
-        alert(response.data.message || "Đăng nhập thất bại.");
+      const apiResponse: any = response.data;
+      const isSuccess =
+        apiResponse?.isSuccess ?? apiResponse?.success ?? true;
+      if (!isSuccess) {
+        alert(apiResponse?.message || "Đăng nhập thất bại.");
         return;
       }
 
-      const { token, user } = response.data.data;
+      const payload = apiResponse?.data ?? apiResponse;
+      const { token, user } = payload;
       dispatch(setToken(token));
       dispatch(setUser(user));
-
-      alert("Đăng nhập thành công!");
       navigate("/");
     } catch (error: any) {
       const message =
