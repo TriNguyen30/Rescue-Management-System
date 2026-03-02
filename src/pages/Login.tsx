@@ -47,7 +47,11 @@ export default function Login() {
       dispatch(setRole(role));
 
       const isAdmin = role?.toUpperCase() === "ADMIN";
-      navigate(isAdmin ? "/admin" : "/");
+      const isManager = role?.toUpperCase() === "MANAGER";
+      const isCoordinator = role?.toUpperCase() === "COORDINATOR";
+      const isRescueTeam = role?.toUpperCase() === "RESCUE_TEAM";
+      navigate(isAdmin ? "/admin" : isManager ? "/manager" : isCoordinator ? "/coordinator" : isRescueTeam ? "/rescue-team" : "/");
+      
     } catch (error: any) {
       const message =
         error?.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại.";

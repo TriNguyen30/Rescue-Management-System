@@ -7,6 +7,9 @@ import Register from "@/pages/Register";
 import Contact from "@/pages/Contact";
 import ProtectedRoute from "./ProtectedRoute";
 import AdminDashboard from "@/pages/AdminDashboard";
+import ManagerDashboard from "@/pages/ManagerDashboard";
+import CoordinatorDashboard from "@/pages/CoordinatorDashboard";
+import RescueTeamDashboard from "@/pages/RescueTeamDashboard";
 
 export default function AppRoutes() {
   return (
@@ -23,6 +26,30 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute requireAdmin>
             <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager"
+        element={
+          <ProtectedRoute requireManager>
+            <ManagerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/coordinator"
+        element={
+          <ProtectedRoute requireCoordinator>
+            <CoordinatorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/rescue-team"
+        element={
+          <ProtectedRoute requireRescueTeam>
+            <RescueTeamDashboard />
           </ProtectedRoute>
         }
       />
