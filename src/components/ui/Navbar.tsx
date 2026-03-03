@@ -13,7 +13,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     dispatch(logout());
-    navigate("/");
+    navigate("/login");
   };
 
   return (
@@ -120,7 +120,7 @@ export default function Navbar() {
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-blue-700 border border-blue-200 bg-white hover:bg-blue-50 transition-all duration-200"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-blue-700 border border-blue-200 bg-white hover:bg-blue-50 transition-all duration-200 cursor-pointer"
                 >
                   Đăng xuất
                 </button>
@@ -128,7 +128,7 @@ export default function Navbar() {
             ) : (
               <button
                 onClick={() => navigate("/login")}
-                className="hidden md:inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:opacity-90 hover:-translate-y-px active:translate-y-0"
+                className="hidden md:inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:opacity-90 hover:-translate-y-px active:translate-y-0 cursor-pointer"
                 style={{
                   background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                   boxShadow: "0 4px 12px rgba(59,130,246,0.35)",
