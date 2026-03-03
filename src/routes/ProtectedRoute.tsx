@@ -9,16 +9,18 @@ type ProtectedRouteProps = {
 
 export default function ProtectedRoute({
   children,
-  requireAdmin,
+  requireAdmin = false,
 }: ProtectedRouteProps) {
   const { token, user } = useAppSelector((state) => state.auth);
 
+  // Chưa đăng nhập
   if (!token || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (requireAdmin && !user.admin) {
-    return <Navigate to="/admin" replace />;
+  // Check quyền ADMIN
+  if (requireAdmin && user.role !== "ADMIN") {
+    return <Navigate to="/" replace />;
   }
 
   return children;

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Logo from "@/assets/image/Logo.png";
 import { login } from "@/services/auth.service";
 import { useAppDispatch } from "@/store/hooks";
-import { setToken, setUser } from "@/store/slices/authSlice";
+import { setToken, setUser, setRole } from "@/store/slices/authSlice";
 
 export default function Login() {
   const [activeTab, setActiveTab] = useState("login");
@@ -28,17 +28,26 @@ export default function Login() {
         password,
       });
 
-      if (!response.data.isSuccess) {
-        alert(response.data.message || "Đăng nhập thất bại.");
+      const apiResponse: any = response.data;
+      const isSuccess =
+        apiResponse?.isSuccess ?? apiResponse?.success ?? true;
+      if (!isSuccess) {
+        alert(apiResponse?.message || "Đăng nhập thất bại.");
         return;
       }
 
-      const { token, user } = response.data.data;
+      const payload = apiResponse?.data ?? apiResponse;
+
+      const token = payload.access_token;
+      const user = payload.user;
+      const role = user?.role;
+
       dispatch(setToken(token));
       dispatch(setUser(user));
+      dispatch(setRole(role));
 
-      alert("Đăng nhập thành công!");
-      navigate("/");
+      const isAdmin = role?.toUpperCase() === "ADMIN";
+      navigate(isAdmin ? "/admin" : "/");
     } catch (error: any) {
       const message =
         error?.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại.";
@@ -123,11 +132,10 @@ export default function Login() {
             <button
               onClick={() => setActiveTab("login")}
               className={`flex-1 pb-4 text-center font-semibold relative transition-colors
-      ${
-        activeTab === "login"
-          ? "text-blue-500"
-          : "text-gray-400 hover:text-gray-600"
-      }`}
+      ${activeTab === "login"
+                  ? "text-blue-500"
+                  : "text-gray-400 hover:text-gray-600"
+                }`}
             >
               Đăng nhập
               {activeTab === "login" && (
@@ -141,11 +149,10 @@ export default function Login() {
                 navigate("/register");
               }}
               className={`flex-1 pb-4 text-center font-semibold relative transition-colors
-      ${
-        activeTab === "register"
-          ? "text-blue-500"
-          : "text-gray-400 hover:text-gray-600"
-      }`}
+      ${activeTab === "register"
+                  ? "text-blue-500"
+                  : "text-gray-400 hover:text-gray-600"
+                }`}
             >
               Đăng ký
               {activeTab === "register" && (

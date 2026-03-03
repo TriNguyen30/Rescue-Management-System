@@ -5,6 +5,8 @@ import Map from "@/pages/Map";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Contact from "@/pages/Contact";
+import ProtectedRoute from "./ProtectedRoute";
+import AdminDashboard from "@/pages/AdminDashboard";
 
 export default function AppRoutes() {
   return (
@@ -16,6 +18,14 @@ export default function AppRoutes() {
       <Route path="/Contact" element={<Contact/>} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }

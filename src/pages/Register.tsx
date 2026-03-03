@@ -21,6 +21,7 @@ export default function Register() {
     email: "",
     phone: "",
     password: "",
+    role: "CITIZEN",
   });
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ export default function Register() {
         password: formData.password,
         fullName: formData.fullName,
         phone: formData.phone,
-        roles: ["Citizen"],
+        roles: [formData.role],
       });
 
       if (!response.data.isSuccess) {
@@ -286,6 +287,27 @@ export default function Register() {
                 </button>
               </div>
             </div>
+
+            {/* Role Select */}
+            {/* <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vai trò
+              </label>
+              <div className="relative">
+                <select
+                  title="Vai trò"
+                  value={formData.role}
+                  onChange={(e) => handleInputChange("role", e.target.value)}
+                  className="w-full pl-4 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-white"
+                >
+                  <option value="CITIZEN">CITIZEN</option>
+                  <option value="RESCUE_TEAM">RESCUE_TEAM</option>
+                  <option value="COORDINATOR">COORDINATOR</option>
+                  <option value="MANAGER">MANAGER</option>
+                  <option value="ADMIN">ADMIN</option>
+                </select>
+              </div>
+            </div> */}
 
             {/* Submit Button */}
             <button
