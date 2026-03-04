@@ -63,8 +63,8 @@ export default function Navbar() {
               <img src={Logo} alt="Logo" className="w-7 h-7 object-contain" />
             </div>
             <div className="leading-none">
-              <span className="block text-[10px] font-bold tracking-widest text-blue-400 uppercase">Chung Tay</span>
-              <span className="block text-sm font-extrabold text-gray-900 tracking-tight">Vượt Lũ</span>
+              <span className="block text-[10px] font-bold tracking-widest text-blue-400 uppercase">Rescue</span>
+              <span className="block text-sm font-extrabold text-gray-900 tracking-tight">AID</span>
             </div>
           </div>
 
@@ -119,7 +119,7 @@ export default function Navbar() {
                         </div>
                         <div className="leading-tight min-w-0">
                           <p className="text-sm font-semibold text-gray-900 truncate">{user.fullName || user.username}</p>
-                          <p className="text-xs text-gray-400">@{user.username}</p>
+                          {/* <p className="text-xs text-gray-400">@{user.username}</p> */}
                         </div>
                       </div>
                       <span className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium">
