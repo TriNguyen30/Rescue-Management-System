@@ -12,6 +12,7 @@ import CoordinatorDashboard from "@/pages/CoordinatorDashboard";
 import RescueTeamDashboard from "@/pages/RescueTeamDashboard";
 import InventoryManagement from "@/pages/InventoryManagement";
 import AdminDashboard from "@/pages/AdminDashboard";
+import VehicleManagement from "@/pages/VehicleManagement";
 
 export default function AppRoutes() {
   return (
@@ -52,6 +53,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute requireManager>
             <InventoryManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/vehicle"
+        element={
+          <ProtectedRoute requireManager>
+            <VehicleManagement />
           </ProtectedRoute>
         }
       />

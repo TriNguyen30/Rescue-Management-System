@@ -222,7 +222,7 @@ export default function InventoryManagement() {
                             {search && (
                                 <button
                                     onClick={() => setSearch("")}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
@@ -365,7 +365,7 @@ export default function InventoryManagement() {
                                 </div>
                                 <button
                                     onClick={() => setModalOpen(false)}
-                                    className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                                    className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
