@@ -2,7 +2,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "strict": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "noEmitOnError": false
   },
   "files": [],
   "references": [
