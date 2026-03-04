@@ -6,10 +6,12 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Contact from "@/pages/Contact";
 import ProtectedRoute from "./ProtectedRoute";
-import AdminDashboard from "@/pages/AdminDashboard";
+import UserManagement from "@/pages/UserManagement";
 import ManagerDashboard from "@/pages/ManagerDashboard";
 import CoordinatorDashboard from "@/pages/CoordinatorDashboard";
 import RescueTeamDashboard from "@/pages/RescueTeamDashboard";
+import InventoryManagement from "@/pages/InventoryManagement";
+import AdminDashboard from "@/pages/AdminDashboard";
 
 export default function AppRoutes() {
   return (
@@ -30,10 +32,26 @@ export default function AppRoutes() {
         }
       />
       <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute requireAdmin>
+            <UserManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/manager"
         element={
           <ProtectedRoute requireManager>
             <ManagerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/inventories"
+        element={
+          <ProtectedRoute requireManager>
+            <InventoryManagement />
           </ProtectedRoute>
         }
       />
