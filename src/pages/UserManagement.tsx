@@ -11,6 +11,7 @@ import {
   changePassword,
 } from "@/services/user.service";
 import { User, UpdateUserPayload, ChangePasswordPayload } from "@/types/user";
+import { AdminLayout } from "@/components/ui/AdminSidebar";
 
 const ROLES = ["CITIZEN", "RESCUE_TEAM", "COORDINATOR", "MANAGER", "ADMIN"];
 
@@ -274,118 +275,120 @@ export default function AdminUserDashboard() {
   const stats = ROLES.map((r) => ({ role: r, count: users.filter((u) => u.role === r).length }));
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <AdminLayout>
+      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Quản lý người dùng</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Tổng cộng {users.length} tài khoản trong hệ thống</p>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Quản lý người dùng</h1>
+              <p className="text-sm text-gray-400 mt-0.5">Tổng cộng {users.length} tài khoản trong hệ thống</p>
+            </div>
+            <button onClick={fetchUsers} disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm self-start cursor-pointer">
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              Làm mới
+            </button>
           </div>
-          <button onClick={fetchUsers} disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm self-start">
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            Làm mới
-          </button>
-        </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {stats.map(({ role, count }) => {
-            const meta = ROLE_META[role];
-            return (
-              <button key={role} onClick={() => setRoleFilter(roleFilter === role ? "ALL" : role)}
-                className={`p-4 rounded-2xl border text-left transition-all ${roleFilter === role ? `${meta.bg} ${meta.color} border-current shadow-sm` : "bg-white border-gray-100 hover:border-gray-200 text-gray-700"}`}>
-                <p className="text-2xl font-bold">{count}</p>
-                <p className="text-xs font-medium mt-0.5 truncate">{role}</p>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Table Card */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          {/* Toolbar */}
-          <div className="flex flex-col sm:flex-row gap-3 p-4 border-b border-gray-100">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input value={search} onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm theo tên, username, số điện thoại..."
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
-              {search && (
-                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  <X className="w-4 h-4" />
+          {/* Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {stats.map(({ role, count }) => {
+              const meta = ROLE_META[role];
+              return (
+                <button key={role} onClick={() => setRoleFilter(roleFilter === role ? "ALL" : role)}
+                  className={`p-4 rounded-2xl border text-left transition-all ${roleFilter === role ? `${meta.bg} ${meta.color} border-current shadow-sm` : "bg-white border-gray-100 hover:border-gray-200 text-gray-700"}`}>
+                  <p className="text-2xl font-bold">{count}</p>
+                  <p className="text-xs font-medium mt-0.5 truncate">{role}</p>
                 </button>
-              )}
-            </div>
-            <div className="relative">
-              <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}
-                className="pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition">
-                <option value="ALL">Tất cả vai trò</option>
-                {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
+              );
+            })}
           </div>
 
-          {/* Table */}
-          {loading ? (
-            <div className="flex items-center justify-center gap-3 py-20 text-gray-400">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="text-sm">Đang tải dữ liệu...</span>
+          {/* Table Card */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row gap-3 p-4 border-b border-gray-100">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input value={search} onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Tìm theo tên, username, số điện thoại..."
+                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
+                {search && (
+                  <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}
+                  className="pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer">
+                  <option value="ALL">Tất cả vai trò</option>
+                  {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
             </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-red-500">
-              <AlertTriangle className="w-8 h-8" />
-              <p className="text-sm">{error}</p>
-              <button onClick={fetchUsers} className="text-xs text-blue-500 hover:underline">Thử lại</button>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-20 text-gray-400">
-              <Users className="w-10 h-10 text-gray-200" />
-              <p className="text-sm">Không tìm thấy người dùng nào</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Người dùng</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Mã</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Điện thoại</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vai trò</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Ngày tạo</th>
-                    <th className="px-4 py-3 w-20"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {filtered.map((user) => (
-                    <UserRow key={user.id || user.username} user={user} onEdit={setEditUser} onDelete={setDeleteTarget} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
 
-          {/* Footer */}
-          {!loading && !error && filtered.length > 0 && (
-            <div className="px-4 py-3 border-t border-gray-100 text-xs text-gray-400">
-              Hiển thị {filtered.length} / {users.length} người dùng
-            </div>
-          )}
+            {/* Table */}
+            {loading ? (
+              <div className="flex items-center justify-center gap-3 py-20 text-gray-400">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">Đang tải dữ liệu...</span>
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-20 text-red-500">
+                <AlertTriangle className="w-8 h-8" />
+                <p className="text-sm">{error}</p>
+                <button onClick={fetchUsers} className="text-xs text-blue-500 hover:underline">Thử lại</button>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-20 text-gray-400">
+                <Users className="w-10 h-10 text-gray-200" />
+                <p className="text-sm">Không tìm thấy người dùng nào</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Người dùng</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Mã</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Điện thoại</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vai trò</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Ngày tạo</th>
+                      <th className="px-4 py-3 w-20"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filtered.map((user) => (
+                      <UserRow key={user.id || user.username} user={user} onEdit={setEditUser} onDelete={setDeleteTarget} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Footer */}
+            {!loading && !error && filtered.length > 0 && (
+              <div className="px-4 py-3 border-t border-gray-100 text-xs text-gray-400">
+                Hiển thị {filtered.length} / {users.length} người dùng
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Modals */}
-      {editUser && (
-        <EditModal user={editUser} onClose={() => setEditUser(null)}
-          onSaved={(updated) => setUsers((prev) => prev.map((u) => u.id === updated.id ? updated : u))} />
-      )}
-      {deleteTarget && (
-        <DeleteConfirm user={deleteTarget} onClose={() => setDeleteTarget(null)}
-          onDeleted={(id) => setUsers((prev) => prev.filter((u) => u.id !== id))} />
-      )}
-    </div>
+        {/* Modals */}
+        {editUser && (
+          <EditModal user={editUser} onClose={() => setEditUser(null)}
+            onSaved={(updated) => setUsers((prev) => prev.map((u) => u.id === updated.id ? updated : u))} />
+        )}
+        {deleteTarget && (
+          <DeleteConfirm user={deleteTarget} onClose={() => setDeleteTarget(null)}
+            onDeleted={(id) => setUsers((prev) => prev.filter((u) => u.id !== id))} />
+        )}
+      </div>
+    </AdminLayout>
   );
 }

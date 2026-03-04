@@ -6,7 +6,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Contact from "@/pages/Contact";
 import ProtectedRoute from "./ProtectedRoute";
-import AdminDashboard from "@/pages/AdminDashboard";
+import UserManagement from "@/pages/UserManagement";
 import ManagerDashboard from "@/pages/ManagerDashboard";
 import CoordinatorDashboard from "@/pages/CoordinatorDashboard";
 import RescueTeamDashboard from "@/pages/RescueTeamDashboard";
@@ -25,7 +25,15 @@ export default function AppRoutes() {
         path="/admin"
         element={
           <ProtectedRoute requireAdmin>
-            <AdminDashboard />
+            <UserManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute requireAdmin>
+            <UserManagement />
           </ProtectedRoute>
         }
       />
