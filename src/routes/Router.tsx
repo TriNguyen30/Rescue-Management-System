@@ -10,6 +10,8 @@ import UserManagement from "@/pages/UserManagement";
 import ManagerDashboard from "@/pages/ManagerDashboard";
 import CoordinatorDashboard from "@/pages/CoordinatorDashboard";
 import RescueTeamDashboard from "@/pages/RescueTeamDashboard";
+import InventoryManagement from "@/pages/InventoryManagement";
+import AdminDashboard from "@/pages/AdminDashboard";
 
 export default function AppRoutes() {
   return (
@@ -25,7 +27,7 @@ export default function AppRoutes() {
         path="/admin"
         element={
           <ProtectedRoute requireAdmin>
-            <UserManagement />
+            <AdminDashboard />
           </ProtectedRoute>
         }
       />
@@ -42,6 +44,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute requireManager>
             <ManagerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/inventories"
+        element={
+          <ProtectedRoute requireManager>
+            <InventoryManagement />
           </ProtectedRoute>
         }
       />

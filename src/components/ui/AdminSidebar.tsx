@@ -73,8 +73,8 @@ function NavBadge({ value }: { value: number | string }) {
 
 // ── Main Sidebar ──────────────────────────────────────────────────────────────
 export default function AdminSidebar({
-    activePage = "users",
-    onNavigate,
+    // activePage = "users",
+    // onNavigate,
     adminName = "Trần Quản Trị",
     adminRole = "ADMIN",
     adminInitials = "TQ",
@@ -334,16 +334,10 @@ export default function AdminSidebar({
 
 // ── Layout Wrapper (optional usage example) ───────────────────────────────────
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-    const [activePage, setActivePage] = useState("users");
 
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden">
             <AdminSidebar
-                activePage={activePage}
-                onNavigate={setActivePage}
-                adminName="Trần Quản Trị"
-                adminRole="ADMIN"
-                adminInitials="TQ"
             />
             <main className="flex-1 overflow-y-auto">
                 {children}

@@ -18,6 +18,8 @@ import {
     HeartPulse,
     Menu,
     X,
+    ToolCase,
+    CarFront
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -49,11 +51,12 @@ const NAV_ITEMS: NavItem[] = [
     { key: "alerts", label: "Cảnh báo", icon: <AlertTriangle className="w-4 h-4" />, path: "/admin/alerts", badge: 3 },
     { key: "broadcasts", label: "Phát sóng", icon: <Radio className="w-4 h-4" />, path: "/admin/broadcasts" },
 
-    { key: "users", label: "Người dùng", icon: <Users className="w-4 h-4" />, path: "/admin/users", section: "Quản lý" },
-    { key: "rescue-teams", label: "Đội cứu hộ", icon: <HeartPulse className="w-4 h-4" />, path: "/admin/rescue-teams" },
-    { key: "requests", label: "Yêu cầu cứu hộ", icon: <Bell className="w-4 h-4" />, path: "/admin/requests", badge: 12 },
-    { key: "reports", label: "Báo cáo", icon: <FileText className="w-4 h-4" />, path: "/admin/reports" },
-    { key: "analytics", label: "Thống kê", icon: <BarChart3 className="w-4 h-4" />, path: "/admin/analytics", section: "Phân tích" },
+    // { key: "users", label: "Người dùng", icon: <Users className="w-4 h-4" />, path: "/admin/users"},
+    { key: "rescue-teams", label: "Đội cứu hộ", icon: <HeartPulse className="w-4 h-4" />, path: "/manager/rescue-teams", section: "Quản lý" },
+    { key: "inventories", label: "Vật phẩm", icon: <ToolCase className="w-4 h-4" />, path: "/manager/inventories" },
+    { key: "vehicle", label: "Phương tiện", icon: <CarFront className="w-4 h-4" />, path: "/manager/vehicle" },
+    // { key: "requests", label: "Yêu cầu cứu hộ", icon: <Bell className="w-4 h-4" />, path: "/admin/requests", badge: 12 },
+    // { key: "reports", label: "Báo cáo", icon: <FileText className="w-4 h-4" />, path: "/admin/reports" },
     { key: "settings", label: "Cài đặt", icon: <Settings className="w-4 h-4" />, path: "/admin/settings", section: "Hệ thống" },
 ];
 
@@ -74,8 +77,8 @@ function NavBadge({ value }: { value: number | string }) {
 
 // ── Main Sidebar ──────────────────────────────────────────────────────────────
 export default function ManagerSidebar({
-    activePage = "users",
-    onNavigate,
+    // activePage = "users",
+    // onNavigate,
     adminName = "Trần Quản Trị",
     adminRole = "ADMIN",
     adminInitials = "TQ",
@@ -125,12 +128,12 @@ export default function ManagerSidebar({
                 {!collapsed && (
                     <div className="overflow-hidden">
                         <p className="text-sm font-extrabold text-gray-900 leading-tight truncate">Rescue AID</p>
-                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Admin Panel</p>
+                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Manager Panel</p>
                     </div>
                 )}
                 <button
                     onClick={() => setCollapsed((v) => !v)}
-                    className={`ml-auto p-1 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors shrink-0 ${collapsed ? "hidden" : ""}`}
+                    className={`ml-auto p-1 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors shrink-0 cursor-pointer ${collapsed ? "hidden" : ""}`}
                 >
                     <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -140,7 +143,7 @@ export default function ManagerSidebar({
             {collapsed && (
                 <button
                     onClick={() => setCollapsed(false)}
-                    className="mx-auto mt-2 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"
+                    className="mx-auto mt-2 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors cursor-pointer"
                 >
                     <ChevronRight className="w-4 h-4" />
                 </button>
@@ -261,7 +264,7 @@ export default function ManagerSidebar({
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-sm font-extrabold text-gray-900 leading-tight">Rescue AID</p>
-                                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Admin Panel</p>
+                                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Manager Panel</p>
                                 </div>
                                 <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
                                     <X className="w-4 h-4" />
@@ -335,16 +338,14 @@ export default function ManagerSidebar({
 
 // ── Layout Wrapper (optional usage example) ───────────────────────────────────
 export function ManagerLayout({ children }: { children: React.ReactNode }) {
-    const [activePage, setActivePage] = useState("users");
+    // const [activePage, setActivePage] = useState("users");
 
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden">
-            <AdminSidebar
-                activePage={activePage}
-                onNavigate={setActivePage}
-                adminName="Trần Quản Trị"
-                adminRole="ADMIN"
-                adminInitials="TQ"
+            <ManagerSidebar
+                // adminName="Trần Quản Trị"
+                // adminRole="ADMIN"
+                // adminInitials="TQ"
             />
             <main className="flex-1 overflow-y-auto">
                 {children}
