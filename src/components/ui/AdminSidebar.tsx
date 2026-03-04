@@ -231,7 +231,7 @@ export default function AdminSidebar({
     return (
         <>
             {/* Desktop sidebar */}
-            <div className="hidden md:flex h-screen sticky top-0 shrink-0">
+            <div className="hidden md:flex sticky top-0 h-screen shrink-0 overflow-hidden">
                 {sidebarContent}
             </div>
 
@@ -334,12 +334,10 @@ export default function AdminSidebar({
 
 // ── Layout Wrapper (optional usage example) ───────────────────────────────────
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-
     return (
-        <div className="flex h-screen bg-gray-50 overflow-hidden">
-            <AdminSidebar
-            />
-            <main className="flex-1 overflow-y-auto">
+        <div className="flex min-h-screen bg-gray-50">
+            <AdminSidebar />
+            <main className="flex-1 overflow-y-auto overflow-x-hidden">
                 {children}
             </main>
         </div>

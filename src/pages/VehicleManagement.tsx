@@ -34,7 +34,7 @@ const STATUS_LABELS: Record<string, string> = {
   AVAILABLE: "Sẵn sàng",
   IN_USE: "Đang hoạt động",
   MAINTENANCE: "Bảo trì",
-  OUT_OF_SERVICE: "Ngừng hoạt động",
+  BROKEN: "Hư hỏng",
 };
 
 const STATUS_COLORS: Record<
@@ -56,10 +56,10 @@ const STATUS_COLORS: Record<
     text: "text-amber-700",
     dot: "bg-amber-500",
   },
-  OUT_OF_SERVICE: {
-    bg: "bg-gray-50 border-gray-100",
-    text: "text-gray-600",
-    dot: "bg-gray-400",
+  BROKEN: {
+    bg: "bg-red-50 border-red-100",
+    text: "text-red-700",
+    dot: "bg-red-500",
   },
 };
 
@@ -203,7 +203,7 @@ export default function VehicleManagement() {
               <button
                 onClick={fetchVehicles}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
               >
                 <Loader2
                   className={`w-4 h-4 ${
@@ -214,7 +214,7 @@ export default function VehicleManagement() {
               </button>
               <button
                 onClick={handleOpenModal}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-xl shadow-sm transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-xl shadow-sm transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 Thêm phương tiện
@@ -270,7 +270,7 @@ export default function VehicleManagement() {
               {search && (
                 <button
                   onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -284,7 +284,7 @@ export default function VehicleManagement() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="pl-3 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition"
+                  className="pl-3 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer"
                 >
                   <option value="ALL">Tất cả</option>
                   {statuses.map((s) => (
@@ -418,7 +418,7 @@ export default function VehicleManagement() {
                 </div>
                 <button
                   onClick={() => setModalOpen(false)}
-                  className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -474,7 +474,7 @@ export default function VehicleManagement() {
                       <option value="AVAILABLE">Sẵn sàng</option>
                       <option value="IN_USE">Đang hoạt động</option>
                       <option value="MAINTENANCE">Bảo trì</option>
-                      <option value="OUT_OF_SERVICE">Ngừng hoạt động</option>
+                      <option value="BROKEN">Hư hỏng</option>
                     </select>
                   </div>
                 </div>
@@ -499,11 +499,11 @@ export default function VehicleManagement() {
                   </div>
                 )}
 
-                <div className="flex justify-end gap-3 pt-2">
+                <div className="flex justify-end gap-3 pt-2 cursor-pointer">
                   <button
                     type="button"
                     onClick={() => setModalOpen(false)}
-                    className="px-4 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                    className="px-4 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
                     disabled={submitting}
                   >
                     Hủy
@@ -511,7 +511,7 @@ export default function VehicleManagement() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 rounded-xl transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 rounded-xl transition-colors cursor-pointer"
                   >
                     {submitting ? (
                       <>
