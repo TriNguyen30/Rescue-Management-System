@@ -1,59 +1,106 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { Formik, Form, Field } from "formik";
+import * as Yup from "yup";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, User, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Logo from "@/assets/image/Logo.png";
 import { register } from "@/services/auth.service";
 
+const USERNAME_MIN_LENGTH = 3;
+const PASSWORD_MIN_LENGTH = 6;
+const FULLNAME_MIN_LENGTH = 2;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^[\d\s\-+()]*$/;
+
+const registerSchema = Yup.object().shape({
+  fullName: Yup.string()
+    .required("Vui lòng nhập họ và tên.")
+    .min(FULLNAME_MIN_LENGTH, `Họ và tên phải có ít nhất ${FULLNAME_MIN_LENGTH} ký tự.`),
+  username: Yup.string()
+    .required("Vui lòng nhập tên đăng nhập.")
+    .min(USERNAME_MIN_LENGTH, `Tên đăng nhập phải có ít nhất ${USERNAME_MIN_LENGTH} ký tự.`),
+  email: Yup.string()
+    .trim()
+    .test("email-format", "Vui lòng nhập đúng định dạng email.", (value) => !value || EMAIL_REGEX.test(value)),
+  phone: Yup.string()
+    .trim()
+    .test("phone-format", "Số điện thoại chỉ được chứa chữ số và ký tự + - ( ).", (value) => !value || PHONE_REGEX.test(value)),
+  password: Yup.string()
+    .required("Vui lòng nhập mật khẩu.")
+    .min(PASSWORD_MIN_LENGTH, `Mật khẩu phải có ít nhất ${PASSWORD_MIN_LENGTH} ký tự.`),
+  role: Yup.string().required(),
+});
+
+type RegisterValues = {
+  fullName: string;
+  username: string;
+  email: string;
+  phone: string;
+  password: string;
+  role: string;
+};
+
+const initialValues: RegisterValues = {
+  fullName: "",
+  username: "",
+  email: "",
+  phone: "",
+  password: "",
+  role: "CITIZEN",
+};
+
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: "",
-    username: "",
-    email: "",
-    phone: "",
-    password: "",
-    role: "CITIZEN",
-  });
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleSubmit = async (values: RegisterValues) => {
+    setSubmitError(null);
+    setSubmitSuccess(null);
 
-  const handleSubmit = async () => {
-    if (!formData.fullName || !formData.username || !formData.password) {
-      alert("Vui lòng nhập đầy đủ họ tên, tên đăng nhập và mật khẩu.");
-      return;
-    }
     try {
       setIsLoading(true);
       const response = await register({
-        username: formData.username,
-        password: formData.password,
-        fullName: formData.fullName,
-        phone: formData.phone,
-        roles: [formData.role],
+        username: values.username.trim(),
+        password: values.password,
+        fullName: values.fullName.trim(),
+        phone: values.phone.trim(),
+        roles: [values.role],
       });
       if (!response.data.isSuccess) {
-        alert(response.data.message || "Đăng ký thất bại.");
+        setSubmitError(
+          response.data.message ||
+            "Không thể tạo tài khoản. Vui lòng kiểm tra lại thông tin và thử lại."
+        );
         return;
       }
-      alert("Đăng ký thành công! Vui lòng đăng nhập.");
-      navigate("/login");
+      setSubmitSuccess("Tài khoản đã được tạo thành công. Bạn có thể đăng nhập ngay bây giờ.");
+      setTimeout(() => navigate("/login"), 1500);
     } catch (error: any) {
-      alert(error?.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.");
+      setSubmitError(
+        error?.response?.data?.message ||
+          "Không thể đăng ký. Vui lòng kiểm tra kết nối và thông tin rồi thử lại."
+      );
     } finally {
       setIsLoading(false);
     }
   };
+
+  const fields: { label: string; field: keyof RegisterValues; type: string; placeholder: string; icon: React.ReactNode }[] = [
+    { label: "Họ và tên", field: "fullName", type: "text", placeholder: "Nguyễn Văn A", icon: <User className="w-4 h-4 text-gray-400" /> },
+    { label: "Tên đăng nhập", field: "username", type: "text", placeholder: "Tên đăng nhập", icon: <User className="w-4 h-4 text-gray-400" /> },
+    { label: "Email", field: "email", type: "email", placeholder: "Nhập email của bạn", icon: <Mail className="w-4 h-4 text-gray-400" /> },
+    { label: "Số điện thoại", field: "phone", type: "tel", placeholder: "Nhập số điện thoại", icon: <Phone className="w-4 h-4 text-gray-400" /> },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <button
           onClick={() => navigate("/")}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-8 cursor-pointer" 
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-8 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Quay lại trang chủ
@@ -62,7 +109,7 @@ export default function Register() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="flex flex-col items-center mb-8">
             <img src={Logo} alt="Logo" className="w-16 h-auto mb-3" />
-            <h1 className="text-xl font-bold text-gray-800 tracking-wide">CHUNG TAY VƯỢT LŨ</h1>
+            <h1 className="text-xl font-bold text-gray-800 tracking-wide">RESCUE AID</h1>
           </div>
 
           <div className="flex border-b border-gray-200 mb-8">
@@ -83,61 +130,94 @@ export default function Register() {
             <p className="text-sm text-gray-400">Vui lòng điền thông tin bên dưới để đăng ký.</p>
           </div>
 
-          <div className="space-y-4">
-            {[
-              { label: "Họ và tên", field: "fullName", type: "text", placeholder: "Nguyễn Văn A", icon: <User className="w-4 h-4 text-gray-400" /> },
-              { label: "Tên đăng nhập", field: "username", type: "text", placeholder: "Tên đăng nhập", icon: <User className="w-4 h-4 text-gray-400" /> },
-              { label: "Email", field: "email", type: "email", placeholder: "Nhập email của bạn", icon: <Mail className="w-4 h-4 text-gray-400" /> },
-              { label: "Số điện thoại", field: "phone", type: "tel", placeholder: "Nhập số điện thoại", icon: <Phone className="w-4 h-4 text-gray-400" /> },
-            ].map(({ label, field, type, placeholder, icon }) => (
-              <div key={field}>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">{icon}</div>
-                  <input
-                    type={type}
-                    value={formData[field as keyof typeof formData]}
-                    onChange={(e) => handleInputChange(field, e.target.value)}
-                    placeholder={placeholder}
-                    className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 focus:bg-white"
-                  />
-                </div>
-              </div>
-            ))}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <Lock className="w-4 h-4 text-gray-400" />
-                </div>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSubmit()}
-                  placeholder="Nhập mật khẩu"
-                  className="w-full pl-10 pr-10 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 focus:bg-white"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              onClick={handleSubmit}
-              disabled={isLoading}
-              className="w-full mt-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all"
+          {submitError && (
+            <div
+              role="alert"
+              className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700"
             >
-              {isLoading ? "Đang xử lý..." : "Đăng ký"}
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+              {submitError}
+            </div>
+          )}
+          {submitSuccess && (
+            <div
+              role="status"
+              className="mb-4 p-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700"
+            >
+              {submitSuccess}
+            </div>
+          )}
+
+          <Formik
+            initialValues={initialValues}
+            validationSchema={registerSchema}
+            onSubmit={handleSubmit}
+          >
+            {({ errors, touched }) => (
+              <Form className="space-y-4">
+                {fields.map(({ label, field, type, placeholder, icon }) => (
+                  <div key={field}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">{icon}</div>
+                      <Field
+                        name={field}
+                        type={type}
+                        placeholder={placeholder}
+                        className={`w-full pl-10 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 focus:bg-white ${
+                          errors[field] && touched[field] ? "border-red-400" : "border-gray-200"
+                        }`}
+                        aria-describedby={errors[field] && touched[field] ? `${field}-error` : undefined}
+                      />
+                    </div>
+                    {errors[field] && touched[field] && (
+                      <p id={`${field}-error`} className="mt-1 text-sm text-red-600">
+                        {errors[field]}
+                      </p>
+                    )}
+                  </div>
+                ))}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <Lock className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <Field
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Nhập mật khẩu"
+                      className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 focus:bg-white ${
+                        errors.password && touched.password ? "border-red-400" : "border-gray-200"
+                      }`}
+                      aria-describedby={errors.password && touched.password ? "password-error" : undefined}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {errors.password && touched.password && (
+                    <p id="password-error" className="mt-1 text-sm text-red-600">
+                      {errors.password}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full mt-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all"
+                >
+                  {isLoading ? "Đang xử lý..." : "Đăng ký"}
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </Form>
+            )}
+          </Formik>
         </div>
       </div>
     </div>
