@@ -148,7 +148,7 @@ export default function Navbar() {
             ) : (
               <button
                 onClick={() => navigate("/login")}
-                className="hidden md:inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 transition-colors"
+                className="hidden md:inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 transition-colors cursor-pointer"
               >
                 Đăng nhập
               </button>
