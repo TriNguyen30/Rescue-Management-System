@@ -27,10 +27,20 @@ export const createInventoryItem = async (payload: CreateInventoryItemPayload): 
 
 export const updateInventoryItem = async (id: string, payload: UpdateInventoryItemPayload): Promise<InventoryItem> => {
     try {
-        const response = await axiosInstance.put<InventoryItem>(`/inventories/${id}`, payload);
+        const response = await axiosInstance.patch<InventoryItem>(`/inventories/${id}`, payload);
         return response.data;
     } catch (error) {
         console.error("Error updating inventory item:", error);
         throw error;
     }
 };
+
+export const updateInventoryStock = async (id: string, amount: number): Promise<InventoryItem> => {
+    try {
+        const response = await axiosInstance.patch<InventoryItem>(`/inventories/${id}/stock`, { amount });
+        return response.data;
+    } catch (error) {
+        console.error("Error updating inventory stock:", error);
+        throw error;
+    }
+}
