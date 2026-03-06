@@ -25,3 +25,7 @@ export interface UpdateInventoryItemPayload {
     category?: string;
     description?: string;
 }
+
+export interface UpdateInventoryStockPayload {
+    amount: number;
+}

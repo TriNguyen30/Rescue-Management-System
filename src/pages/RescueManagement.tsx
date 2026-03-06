@@ -14,7 +14,9 @@ import {
   AlertTriangle,
   MapPin,
   Calendar,
-  Eye
+  Eye,
+  Edit3,
+  Check,
 } from "lucide-react";
 import { ManagerLayout } from "@/components/ui/ManagerSidebar";
 import {
@@ -26,6 +28,7 @@ import { reverseGeocode } from "@/services/geocode.service";
 import type {
   RescueTeam,
   CreateRescueTeamPayload,
+  UpdateRescueTeamPayload,
   RescueTeamStatus,
 } from "@/types/rescue-teams";
 
@@ -70,22 +73,207 @@ const STATUS_COLORS: Record<
   },
 };
 
+// ── Edit Rescue Team Modal ────────────────────────────────────────────────────
+function EditRescueTeamModal({
+  team,
+  onClose,
+  onSaved,
+}: {
+  team: RescueTeam;
+  onClose: () => void;
+  onSaved: (updated: RescueTeam) => void;
+}) {
+  const [teamName, setTeamName] = useState(team.teamName || "");
+  const [leaderId, setLeaderId] = useState(
+    typeof team.leaderId === "object" ? team.leaderId?._id ?? "" : team.leaderId ?? ""
+  );
+  const [memberIds, setMemberIds] = useState(
+    team.members?.map((m) => m._id).join(", ") ?? ""
+  );
+  const [vehicleIds, setVehicleIds] = useState(
+    team.vehicles?.map((v) => v._id).join(", ") ?? ""
+  );
+  const [status, setStatus] = useState<RescueTeamStatus>(team.status);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSave = async () => {
+    if (!teamName.trim()) { setError("Tên đội không được để trống."); return; }
+    if (!leaderId.trim()) { setError("Vui lòng nhập ID đội trưởng."); return; }
+
+    setSaving(true);
+    setError("");
+    try {
+      const members = memberIds.split(",").map((s) => s.trim()).filter(Boolean);
+      const vehicles = vehicleIds.split(",").map((s) => s.trim()).filter(Boolean);
+
+      const payload: UpdateRescueTeamPayload = {
+        teamName: teamName.trim(),
+        leaderId: leaderId.trim(),
+        members,
+        vehicles,
+        status,
+      };
+
+      const updated = await updateRescueTeam(team._id!, payload);
+      onSaved(updated);
+      onClose();
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Cập nhật đội cứu hộ thất bại.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div>
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
+              Chỉnh sửa đội cứu hộ
+            </p>
+            <h3 className="text-lg font-bold text-gray-900">{team.teamName}</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Đóng"
+            className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-4">
+          {/* Team name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Tên đội cứu hộ
+            </label>
+            <input
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              placeholder="VD: Đội cứu hộ Q1"
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+            />
+          </div>
+
+          {/* Leader ID */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              ID đội trưởng
+            </label>
+            <input
+              value={leaderId}
+              onChange={(e) => setLeaderId(e.target.value)}
+              placeholder="Nhập ID người dùng đội trưởng"
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+            />
+          </div>
+
+          {/* Member IDs */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              ID thành viên{" "}
+              <span className="text-gray-400 font-normal">(cách nhau bởi dấu phẩy)</span>
+            </label>
+            <textarea
+              value={memberIds}
+              onChange={(e) => setMemberIds(e.target.value)}
+              placeholder="VD: 65f1..., 65f2..., 65f3..."
+              className="w-full min-h-[70px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-y"
+            />
+          </div>
+
+          {/* Vehicle IDs */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              ID phương tiện{" "}
+              <span className="text-gray-400 font-normal">(cách nhau bởi dấu phẩy)</span>
+            </label>
+            <textarea
+              value={vehicleIds}
+              onChange={(e) => setVehicleIds(e.target.value)}
+              placeholder="VD: 65f1..., 65f2..."
+              className="w-full min-h-[70px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-y"
+            />
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Trạng thái
+            </label>
+            <div className="relative">
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as RescueTeamStatus)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer"
+              >
+                <option value="AVAILABLE">Sẵn sàng</option>
+                <option value="BUSY">Đang bận</option>
+                <option value="OFFLINE">Ngoại tuyến</option>
+              </select>
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-xl">
+              <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="flex-1 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer disabled:opacity-60"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+              {saving ? "Đang lưu..." : "Lưu thay đổi"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function RescueManagement() {
   const [teams, setTeams] = useState<RescueTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<RescueTeamStatus | "ALL">(
-    "ALL"
-  );
+  const [statusFilter, setStatusFilter] = useState<RescueTeamStatus | "ALL">("ALL");
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<FormState>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
-  const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>({});
   const [selectedTeam, setSelectedTeam] = useState<RescueTeam | null>(null);
+  const [editTeam, setEditTeam] = useState<RescueTeam | null>(null);
   const [locationAddress, setLocationAddress] = useState<string | null>(null);
   const [locationAddressLoading, setLocationAddressLoading] = useState(false);
   const [updatingLocation, setUpdatingLocation] = useState(false);
@@ -99,20 +287,15 @@ export default function RescueManagement() {
       setTeams(data || []);
     } catch (e: any) {
       setError(
-        e?.response?.data?.message ||
-          e?.message ||
-          "Không thể tải danh sách đội cứu hộ."
+        e?.response?.data?.message || e?.message || "Không thể tải danh sách đội cứu hộ."
       );
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchTeams();
-  }, [fetchTeams]);
+  useEffect(() => { fetchTeams(); }, [fetchTeams]);
 
-  // Fetch real address when detail modal opens and team has coordinates
   useEffect(() => {
     if (!selectedTeam?.currentLocation?.coordinates?.length) {
       setLocationAddress(null);
@@ -142,120 +325,60 @@ export default function RescueManagement() {
         !q ||
         t.teamName.toLowerCase().includes(q) ||
         t.leaderId?.fullName?.toLowerCase().includes(q) ||
-        t.members?.some((m) =>
-          m.fullName?.toLowerCase().includes(q)
-        ) ||
-        t.vehicles?.some((v) =>
-          v.plateNumber?.toLowerCase().includes(q)
-        );
-
-      const matchStatus =
-        statusFilter === "ALL" || t.status === statusFilter;
-
+        t.members?.some((m) => m.fullName?.toLowerCase().includes(q)) ||
+        t.vehicles?.some((v) => v.plateNumber?.toLowerCase().includes(q));
+      const matchStatus = statusFilter === "ALL" || t.status === statusFilter;
       return matchSearch && matchStatus;
     });
   }, [teams, search, statusFilter]);
 
-  const availableCount = useMemo(
-    () => teams.filter((t) => t.status === "AVAILABLE").length,
-    [teams]
-  );
+  const availableCount = useMemo(() => teams.filter((t) => t.status === "AVAILABLE").length, [teams]);
+  const busyCount = useMemo(() => teams.filter((t) => t.status === "BUSY").length, [teams]);
 
-  const busyCount = useMemo(
-    () => teams.filter((t) => t.status === "BUSY").length,
-    [teams]
-  );
-
-  const handleOpenModal = () => {
-    setForm(initialForm);
-    setFormError("");
-    setModalOpen(true);
-  };
-
-  const handleChange = (field: keyof FormState, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleOpenModal = () => { setForm(initialForm); setFormError(""); setModalOpen(true); };
+  const handleChange = (field: keyof FormState, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
+    if (!form.teamName.trim()) { setFormError("Vui lòng nhập tên đội cứu hộ."); return; }
+    if (!form.leaderId.trim()) { setFormError("Vui lòng nhập ID đội trưởng."); return; }
 
-    if (!form.teamName.trim()) {
-      setFormError("Vui lòng nhập tên đội cứu hộ.");
-      return;
-    }
-    if (!form.leaderId.trim()) {
-      setFormError("Vui lòng nhập ID đội trưởng.");
-      return;
-    }
-
-    const members = form.memberIds
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const vehicles = form.vehicleIds
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-
+    const members = form.memberIds.split(",").map((s) => s.trim()).filter(Boolean);
+    const vehicles = form.vehicleIds.split(",").map((s) => s.trim()).filter(Boolean);
     const payload: CreateRescueTeamPayload = {
       teamName: form.teamName.trim(),
       leaderId: form.leaderId.trim(),
       members,
       vehicles,
     };
-
     setSubmitting(true);
     try {
       const created = await createRescueTeam(payload);
       setTeams((prev) => [created, ...prev]);
       setModalOpen(false);
     } catch (e: any) {
-      setFormError(
-        e?.response?.data?.message ||
-          e?.message ||
-          "Không thể tạo đội cứu hộ mới."
-      );
+      setFormError(e?.response?.data?.message || e?.message || "Không thể tạo đội cứu hộ mới.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleUpdateStatus = async (
-    team: RescueTeam,
-    nextStatus: RescueTeamStatus
-  ) => {
+  const handleUpdateStatus = async (team: RescueTeam, nextStatus: RescueTeamStatus) => {
     const id = team._id;
-    if (!id) return;
-
+    if (!id || team.status === nextStatus) return;
     const prevStatus = team.status;
-    if (prevStatus === nextStatus) return;
-
     setError("");
-    setTeams((prev) =>
-      prev.map((t) => (t._id === id ? { ...t, status: nextStatus } : t))
-    );
+    setTeams((prev) => prev.map((t) => (t._id === id ? { ...t, status: nextStatus } : t)));
     setUpdatingStatus((prev) => ({ ...prev, [id]: true }));
-
     try {
       const updated = await updateRescueTeam(id, { status: nextStatus });
-      setTeams((prev) =>
-        prev.map((t) => (t._id === id ? { ...t, ...updated } : t))
-      );
+      setTeams((prev) => prev.map((t) => (t._id === id ? { ...t, ...updated } : t)));
     } catch (e: any) {
-      setTeams((prev) =>
-        prev.map((t) => (t._id === id ? { ...t, status: prevStatus } : t))
-      );
-      setError(
-        e?.response?.data?.message ||
-          e?.message ||
-          "Không thể cập nhật trạng thái đội cứu hộ."
-      );
+      setTeams((prev) => prev.map((t) => (t._id === id ? { ...t, status: prevStatus } : t)));
+      setError(e?.response?.data?.message || e?.message || "Không thể cập nhật trạng thái đội cứu hộ.");
     } finally {
-      setUpdatingStatus((prev) => {
-        const { [id]: _removed, ...rest } = prev;
-        return rest;
-      });
+      setUpdatingStatus((prev) => { const { [id]: _removed, ...rest } = prev; return rest; });
     }
   };
 
@@ -272,12 +395,8 @@ export default function RescueManagement() {
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          const updated = await updateRescueTeam(team._id!, {
-            currentLocation: `${longitude},${latitude}`,
-          });
-          setTeams((prev) =>
-            prev.map((t) => (t._id === team._id ? { ...t, ...updated } : t))
-          );
+          const updated = await updateRescueTeam(team._id!, { currentLocation: `${longitude},${latitude}` });
+          setTeams((prev) => prev.map((t) => (t._id === team._id ? { ...t, ...updated } : t)));
           setSelectedTeam((prev) => (prev?._id === team._id ? { ...prev, ...updated } : prev));
           setLocationAddress(null);
           setLocationAddressLoading(true);
@@ -287,9 +406,7 @@ export default function RescueManagement() {
             .finally(() => setLocationAddressLoading(false));
         } catch (e: unknown) {
           const err = e as { response?: { data?: { message?: string } }; message?: string };
-          const msg =
-            err?.response?.data?.message || (err as Error)?.message || "Không thể cập nhật vị trí.";
-          setLocationError(msg);
+          setLocationError(err?.response?.data?.message || (err as Error)?.message || "Không thể cập nhật vị trí.");
         } finally {
           setUpdatingLocation(false);
         }
@@ -313,26 +430,19 @@ export default function RescueManagement() {
                 <LifeBuoy className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Quản lý đội cứu hộ
-                </h1>
+                <h1 className="text-2xl font-bold text-gray-900">Quản lý đội cứu hộ</h1>
                 <p className="text-sm text-gray-400 mt-0.5">
                   Theo dõi đội cứu hộ, nhân sự, phương tiện và trạng thái sẵn sàng
                 </p>
               </div>
             </div>
-
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={fetchTeams}
                 disabled={loading}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
               >
-                <Loader2
-                  className={`w-4 h-4 ${
-                    loading ? "animate-spin" : "text-gray-400"
-                  }`}
-                />
+                <Loader2 className={`w-4 h-4 ${loading ? "animate-spin" : "text-gray-400"}`} />
                 Làm mới
               </button>
               <button
@@ -362,9 +472,7 @@ export default function RescueManagement() {
               </div>
               <div>
                 <p className="text-xs text-gray-400">Đội sẵn sàng</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {availableCount}
-                </p>
+                <p className="text-xl font-bold text-gray-900">{availableCount}</p>
               </div>
             </div>
             <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
@@ -393,7 +501,6 @@ export default function RescueManagement() {
                   type="button"
                   onClick={() => setSearch("")}
                   aria-label="Xóa tìm kiếm"
-                  title="Xóa tìm kiếm"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
@@ -401,24 +508,17 @@ export default function RescueManagement() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400 hidden sm:inline">
-                Lọc theo trạng thái
-              </span>
+              <span className="text-xs text-gray-400 hidden sm:inline">Lọc theo trạng thái</span>
               <div className="relative">
                 <select
                   value={statusFilter}
-                  onChange={(e) =>
-                    setStatusFilter(e.target.value as RescueTeamStatus | "ALL")
-                  }
+                  onChange={(e) => setStatusFilter(e.target.value as RescueTeamStatus | "ALL")}
                   aria-label="Lọc theo trạng thái"
-                  title="Lọc theo trạng thái"
                   className="pl-3 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer"
                 >
                   <option value="ALL">Tất cả</option>
                   {statuses.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABELS[s] || s}
-                    </option>
+                    <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>
                   ))}
                 </select>
               </div>
@@ -430,119 +530,69 @@ export default function RescueManagement() {
             {loading ? (
               <div className="flex items-center justify-center gap-3 py-20 text-gray-400">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm">
-                  Đang tải danh sách đội cứu hộ...
-                </span>
+                <span className="text-sm">Đang tải danh sách đội cứu hộ...</span>
               </div>
             ) : error ? (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-red-500 px-4 text-center">
                 <AlertTriangle className="w-8 h-8" />
                 <p className="text-sm">{error}</p>
-                <button
-                  onClick={fetchTeams}
-                  className="text-xs text-emerald-500 hover:underline"
-                >
-                  Thử lại
-                </button>
+                <button onClick={fetchTeams} className="text-xs text-emerald-500 hover:underline">Thử lại</button>
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-gray-400">
                 <LifeBuoy className="w-10 h-10 text-gray-200" />
-                <p className="text-sm">
-                  Chưa có đội cứu hộ nào phù hợp bộ lọc.
-                </p>
+                <p className="text-sm">Chưa có đội cứu hộ nào phù hợp bộ lọc.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/60">
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Tên đội
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Đội trưởng
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                        Thành viên
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                        Phương tiện
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                        Vị trí
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Trạng thái
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                        Cập nhật
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
-                        Hành động
-                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tên đội</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Đội trưởng</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Thành viên</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Phương tiện</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Vị trí</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Cập nhật</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">Hành động</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {filtered.map((team) => {
-                      const meta =
-                        STATUS_COLORS[team.status] || STATUS_COLORS.AVAILABLE;
+                      const meta = STATUS_COLORS[team.status] || STATUS_COLORS.AVAILABLE;
                       const id = team._id;
                       const isUpdating = id ? Boolean(updatingStatus[id]) : false;
-
-                      const memberCount = team.members?.length || 0;
-                      const vehicleCount = team.vehicles?.length || 0;
-
                       const coordinates = team.currentLocation?.coordinates;
 
                       return (
-                        <tr
-                          key={team._id}
-                          className="hover:bg-emerald-50/40 transition-colors"
-                        >
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                            {team.teamName}
-                          </td>
+                        <tr key={team._id} className="group hover:bg-emerald-50/40 transition-colors">
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">{team.teamName}</td>
                           <td className="px-4 py-3 text-sm text-gray-700">
                             <div className="flex flex-col">
-                              <span className="font-medium">
-                                {team.leaderId?.fullName || "—"}
-                              </span>
-                              <span className="text-xs text-gray-400">
-                                {team.leaderId?.phone || ""}
-                              </span>
+                              <span className="font-medium">{team.leaderId?.fullName || "—"}</span>
+                              <span className="text-xs text-gray-400">{team.leaderId?.phone || ""}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-700 hidden sm:table-cell">
-                            {memberCount > 0 ? (
-                              <span>
-                                {memberCount} thành viên
-                              </span>
+                            {team.members?.length ? (
+                              <span>{team.members.length} thành viên</span>
                             ) : (
-                              <span className="text-gray-300">
-                                Chưa có thành viên
-                              </span>
+                              <span className="text-gray-300">Chưa có thành viên</span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">
-                            {vehicleCount > 0 ? (
-                              <span>
-                                {vehicleCount} phương tiện
-                              </span>
+                            {team.vehicles?.length ? (
+                              <span>{team.vehicles.length} phương tiện</span>
                             ) : (
-                              <span className="text-gray-300">
-                                Chưa gán phương tiện
-                              </span>
+                              <span className="text-gray-300">Chưa gán phương tiện</span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">
-                            {coordinates && coordinates.length === 2 ? (
+                            {coordinates?.length === 2 ? (
                               <div className="inline-flex items-center gap-1.5">
                                 <MapPin className="w-3.5 h-3.5 text-gray-300" />
-                                <span>
-                                  {coordinates[1].toFixed(4)},{" "}
-                                  {coordinates[0].toFixed(4)}
-                                </span>
+                                <span>{coordinates[1].toFixed(4)}, {coordinates[0].toFixed(4)}</span>
                               </div>
                             ) : (
                               <span className="text-gray-300">—</span>
@@ -550,34 +600,22 @@ export default function RescueManagement() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${meta.bg} ${meta.text}`}
-                              >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full ${meta.dot}`}
-                                />
+                              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${meta.bg} ${meta.text}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
                                 {STATUS_LABELS[team.status] || team.status}
                               </span>
-
                               <div className="relative">
                                 <select
                                   value={team.status}
                                   disabled={!id || isUpdating}
-                                  onChange={(e) =>
-                                    handleUpdateStatus(
-                                      team,
-                                      e.target.value as RescueTeamStatus
-                                    )
-                                  }
+                                  onChange={(e) => handleUpdateStatus(team, e.target.value as RescueTeamStatus)}
                                   className="pl-2 pr-7 py-1 text-[11px] border border-gray-200 rounded-lg bg-gray-50 hover:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                                   aria-label="Cập nhật trạng thái đội"
-                                  title="Cập nhật trạng thái đội"
                                 >
                                   <option value="AVAILABLE">Sẵn sàng</option>
                                   <option value="BUSY">Đang bận</option>
                                   <option value="OFFLINE">Ngoại tuyến</option>
                                 </select>
-
                                 {isUpdating && (
                                   <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 )}
@@ -588,26 +626,34 @@ export default function RescueManagement() {
                             {team.updatedAt || team.createdAt ? (
                               <div className="inline-flex items-center gap-1.5">
                                 <Calendar className="w-3.5 h-3.5 text-gray-300" />
-                                <span>
-                                  {new Date(
-                                    (team.updatedAt || team.createdAt) as string
-                                  ).toLocaleDateString("vi-VN")}
-                                </span>
+                                <span>{new Date((team.updatedAt || team.createdAt) as string).toLocaleDateString("vi-VN")}</span>
                               </div>
                             ) : (
                               <span className="text-gray-300">—</span>
                             )}
                           </td>
+                          {/* ── Actions column ── */}
                           <td className="px-4 py-3 text-right">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedTeam(team)}
-                              aria-label="Xem chi tiết đội"
-                              title="Xem chi tiết đội"
-                              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </button>
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditTeam(team)}
+                                aria-label="Chỉnh sửa đội"
+                                title="Chỉnh sửa đội"
+                                className="p-1.5 rounded-lg hover:bg-emerald-100 text-gray-400 hover:text-emerald-600 transition-colors cursor-pointer"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedTeam(team)}
+                                aria-label="Xem chi tiết đội"
+                                title="Xem chi tiết đội"
+                                className="p-1.5 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -625,132 +671,75 @@ export default function RescueManagement() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div>
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
-                    Đội cứu hộ
-                  </p>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    Thêm đội cứu hộ mới
-                  </h3>
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Đội cứu hộ</p>
+                  <h3 className="text-lg font-bold text-gray-900">Thêm đội cứu hộ mới</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
                   aria-label="Đóng"
-                  title="Đóng"
                   className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
-                    <label
-                      htmlFor="team_name"
-                      className="block text-sm font-medium text-gray-700 mb-1.5"
-                    >
-                      Tên đội cứu hộ
-                    </label>
-                    <input
-                      id="team_name"
-                      value={form.teamName}
-                      onChange={(e) =>
-                        handleChange("teamName", e.target.value)
-                      }
+                    <label htmlFor="team_name" className="block text-sm font-medium text-gray-700 mb-1.5">Tên đội cứu hộ</label>
+                    <input id="team_name" value={form.teamName} onChange={(e) => handleChange("teamName", e.target.value)}
                       className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                      placeholder="VD: Đội cứu hộ Q1"
-                    />
+                      placeholder="VD: Đội cứu hộ Q1" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label
-                      htmlFor="leader_id"
-                      className="block text-sm font-medium text-gray-700 mb-1.5"
-                    >
-                      ID đội trưởng
-                    </label>
-                    <input
-                      id="leader_id"
-                      value={form.leaderId}
-                      onChange={(e) =>
-                        handleChange("leaderId", e.target.value)
-                      }
+                    <label htmlFor="leader_id" className="block text-sm font-medium text-gray-700 mb-1.5">ID đội trưởng</label>
+                    <input id="leader_id" value={form.leaderId} onChange={(e) => handleChange("leaderId", e.target.value)}
                       className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                      placeholder="Nhập ID người dùng đội trưởng"
-                    />
+                      placeholder="Nhập ID người dùng đội trưởng" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label
-                      htmlFor="member_ids"
-                      className="block text-sm font-medium text-gray-700 mb-1.5"
-                    >
-                      ID thành viên (cách nhau bởi dấu phẩy)
-                    </label>
-                    <textarea
-                      id="member_ids"
-                      value={form.memberIds}
-                      onChange={(e) =>
-                        handleChange("memberIds", e.target.value)
-                      }
+                    <label htmlFor="member_ids" className="block text-sm font-medium text-gray-700 mb-1.5">ID thành viên (cách nhau bởi dấu phẩy)</label>
+                    <textarea id="member_ids" value={form.memberIds} onChange={(e) => handleChange("memberIds", e.target.value)}
                       className="w-full min-h-[70px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-y"
-                      placeholder="VD: 65f1..., 65f2..., 65f3..."
-                    />
+                      placeholder="VD: 65f1..., 65f2..., 65f3..." />
                   </div>
                   <div className="sm:col-span-2">
-                    <label
-                      htmlFor="vehicle_ids"
-                      className="block text-sm font-medium text-gray-700 mb-1.5"
-                    >
-                      ID phương tiện (cách nhau bởi dấu phẩy)
-                    </label>
-                    <textarea
-                      id="vehicle_ids"
-                      value={form.vehicleIds}
-                      onChange={(e) =>
-                        handleChange("vehicleIds", e.target.value)
-                      }
+                    <label htmlFor="vehicle_ids" className="block text-sm font-medium text-gray-700 mb-1.5">ID phương tiện (cách nhau bởi dấu phẩy)</label>
+                    <textarea id="vehicle_ids" value={form.vehicleIds} onChange={(e) => handleChange("vehicleIds", e.target.value)}
                       className="w-full min-h-[70px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-y"
-                      placeholder="VD: 65f1..., 65f2..."
-                    />
+                      placeholder="VD: 65f1..., 65f2..." />
                   </div>
                 </div>
-
                 {formError && (
                   <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-xl">
                     <AlertTriangle className="w-4 h-4 shrink-0" /> {formError}
                   </div>
                 )}
-
-                <div className="flex justify-end gap-3 pt-2 cursor-pointer">
-                  <button
-                    type="button"
-                    onClick={() => setModalOpen(false)}
-                    className="px-4 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
-                    disabled={submitting}
-                  >
+                <div className="flex justify-end gap-3 pt-2">
+                  <button type="button" onClick={() => setModalOpen(false)} disabled={submitting}
+                    className="px-4 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer">
                     Hủy
                   </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 rounded-xl transition-colors cursor-pointer"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Đang lưu...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4" />
-                        Lưu đội cứu hộ
-                      </>
-                    )}
+                  <button type="submit" disabled={submitting}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 rounded-xl transition-colors cursor-pointer">
+                    {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Đang lưu...</> : <><Plus className="w-4 h-4" />Lưu đội cứu hộ</>}
                   </button>
                 </div>
               </form>
             </div>
           </div>
+        )}
+
+        {/* Edit Modal */}
+        {editTeam && (
+          <EditRescueTeamModal
+            team={editTeam}
+            onClose={() => setEditTeam(null)}
+            onSaved={(updated) => {
+              setTeams((prev) => prev.map((t) => t._id === updated._id ? updated : t));
+              setEditTeam(null);
+            }}
+          />
         )}
 
         {/* Detail Modal */}
@@ -759,84 +748,57 @@ export default function RescueManagement() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div>
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
-                    Chi tiết đội cứu hộ
-                  </p>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    {selectedTeam.teamName}
-                  </h3>
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Chi tiết đội cứu hộ</p>
+                  <h3 className="text-lg font-bold text-gray-900">{selectedTeam.teamName}</h3>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${
-                      STATUS_COLORS[selectedTeam.status]?.bg ||
-                      STATUS_COLORS.AVAILABLE.bg
-                    } ${
-                      STATUS_COLORS[selectedTeam.status]?.text ||
-                      STATUS_COLORS.AVAILABLE.text
-                    }`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        STATUS_COLORS[selectedTeam.status]?.dot ||
-                        STATUS_COLORS.AVAILABLE.dot
-                      }`}
-                    />
+                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${STATUS_COLORS[selectedTeam.status]?.bg || STATUS_COLORS.AVAILABLE.bg} ${STATUS_COLORS[selectedTeam.status]?.text || STATUS_COLORS.AVAILABLE.text}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[selectedTeam.status]?.dot || STATUS_COLORS.AVAILABLE.dot}`} />
                     {STATUS_LABELS[selectedTeam.status] || selectedTeam.status}
                   </span>
+                  {/* Edit shortcut from detail modal */}
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedTeam(null); setEditTeam(selectedTeam); }}
+                    aria-label="Chỉnh sửa đội"
+                    title="Chỉnh sửa đội"
+                    className="p-2 rounded-xl hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => setSelectedTeam(null)}
                     aria-label="Đóng"
-                    title="Đóng"
                     className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
-
               <div className="p-6 space-y-6">
-                {/* Leader & meta */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Đội trưởng
-                    </h4>
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Đội trưởng</h4>
                     {selectedTeam.leaderId ? (
-                      <div className="p-3 rounded-2xl border border-gray-100 bg-gray-50 flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">
-                            {selectedTeam.leaderId.fullName}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {selectedTeam.leaderId.phone || "—"}
-                          </p>
-                        </div>
+                      <div className="p-3 rounded-2xl border border-gray-100 bg-gray-50">
+                        <p className="text-sm font-semibold text-gray-900">{selectedTeam.leaderId.fullName}</p>
+                        <p className="text-xs text-gray-500">{selectedTeam.leaderId.phone || "—"}</p>
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-400">
-                        Chưa gán đội trưởng.
-                      </p>
+                      <p className="text-sm text-gray-400">Chưa gán đội trưởng.</p>
                     )}
                   </div>
-
                   <div className="space-y-2">
-                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Thông tin chung
-                    </h4>
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Thông tin chung</h4>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
                         <p className="text-xs text-gray-400">Thành viên</p>
-                        <p className="font-semibold text-gray-900">
-                          {selectedTeam.members?.length || 0}
-                        </p>
+                        <p className="font-semibold text-gray-900">{selectedTeam.members?.length || 0}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-400">Phương tiện</p>
-                        <p className="font-semibold text-gray-900">
-                          {selectedTeam.vehicles?.length || 0}
-                        </p>
+                        <p className="font-semibold text-gray-900">{selectedTeam.vehicles?.length || 0}</p>
                       </div>
                       <div className="col-span-2">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -844,39 +806,26 @@ export default function RescueManagement() {
                             <p className="text-xs text-gray-400">Vị trí hiện tại</p>
                             {locationAddressLoading ? (
                               <div className="inline-flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                <span>Đang tải địa chỉ...</span>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Đang tải địa chỉ...</span>
                               </div>
                             ) : locationError ? (
                               <p className="text-xs text-amber-600 mt-0.5">{locationError}</p>
                             ) : locationAddress ? (
                               <div className="inline-flex items-center gap-1.5 text-xs text-gray-700 mt-0.5">
-                                <MapPin className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                                <span>{locationAddress}</span>
+                                <MapPin className="w-3.5 h-3.5 text-gray-300 shrink-0" /><span>{locationAddress}</span>
                               </div>
                             ) : selectedTeam.currentLocation?.coordinates?.length === 2 ? (
                               <div className="inline-flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
                                 <MapPin className="w-3.5 h-3.5 text-gray-300" />
-                                <span>
-                                  {selectedTeam.currentLocation.coordinates[1].toFixed(4)},{" "}
-                                  {selectedTeam.currentLocation.coordinates[0].toFixed(4)}
-                                </span>
+                                <span>{selectedTeam.currentLocation.coordinates[1].toFixed(4)}, {selectedTeam.currentLocation.coordinates[0].toFixed(4)}</span>
                               </div>
                             ) : (
                               <p className="text-xs text-gray-300 mt-0.5">—</p>
                             )}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleUseMyLocation(selectedTeam)}
-                            disabled={updatingLocation}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-100 transition-colors cursor-pointer disabled:opacity-60"
-                          >
-                            {updatingLocation ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <MapPin className="w-3.5 h-3.5" />
-                            )}
+                          <button type="button" onClick={() => handleUseMyLocation(selectedTeam)} disabled={updatingLocation}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-100 transition-colors cursor-pointer disabled:opacity-60">
+                            {updatingLocation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
                             {updatingLocation ? "Đang lấy vị trí..." : "Lấy vị trí hiện tại"}
                           </button>
                         </div>
@@ -884,104 +833,55 @@ export default function RescueManagement() {
                     </div>
                   </div>
                 </div>
-
-                {/* Members */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Thành viên
-                    </h4>
-                    <span className="text-xs text-gray-400">
-                      {selectedTeam.members?.length || 0} người
-                    </span>
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Thành viên</h4>
+                    <span className="text-xs text-gray-400">{selectedTeam.members?.length || 0} người</span>
                   </div>
-                  {selectedTeam.members && selectedTeam.members.length > 0 ? (
+                  {selectedTeam.members?.length ? (
                     <div className="max-h-40 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50/60 divide-y divide-gray-100">
                       {selectedTeam.members.map((m) => (
-                        <div
-                          key={m._id}
-                          className="px-3 py-2 flex items-center justify-between"
-                        >
+                        <div key={m._id} className="px-3 py-2 flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {m.fullName}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {m.phone || "—"}
-                            </p>
+                            <p className="text-sm font-medium text-gray-900">{m.fullName}</p>
+                            <p className="text-xs text-gray-500">{m.phone || "—"}</p>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400">
-                      Chưa có thành viên nào trong đội.
-                    </p>
+                    <p className="text-sm text-gray-400">Chưa có thành viên nào trong đội.</p>
                   )}
                 </div>
-
-                {/* Vehicles */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Phương tiện
-                    </h4>
-                    <span className="text-xs text-gray-400">
-                      {selectedTeam.vehicles?.length || 0} phương tiện
-                    </span>
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Phương tiện</h4>
+                    <span className="text-xs text-gray-400">{selectedTeam.vehicles?.length || 0} phương tiện</span>
                   </div>
-                  {selectedTeam.vehicles && selectedTeam.vehicles.length > 0 ? (
+                  {selectedTeam.vehicles?.length ? (
                     <div className="max-h-40 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50/60 divide-y divide-gray-100">
                       {selectedTeam.vehicles.map((v) => (
-                        <div
-                          key={v._id}
-                          className="px-3 py-2 flex items-center justify-between"
-                        >
+                        <div key={v._id} className="px-3 py-2 flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-semibold text-gray-900">
-                              {v.plateNumber}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {v.type} • Sức chứa:{" "}
-                              {v.capacity?.toLocaleString("vi-VN")}
-                            </p>
+                            <p className="text-sm font-semibold text-gray-900">{v.plateNumber}</p>
+                            <p className="text-xs text-gray-500">{v.type} • Sức chứa: {v.capacity?.toLocaleString("vi-VN")}</p>
                           </div>
-                          <span className="text-[11px] text-gray-500">
-                            {v.status}
-                          </span>
+                          <span className="text-[11px] text-gray-500">{v.status}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400">
-                      Chưa gán phương tiện cho đội.
-                    </p>
+                    <p className="text-sm text-gray-400">Chưa gán phương tiện cho đội.</p>
                   )}
                 </div>
-
-                {/* Dates */}
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400 border-t border-gray-100 pt-3">
                   <div className="inline-flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-gray-300" />
-                    <span>
-                      Tạo lúc:{" "}
-                      {selectedTeam.createdAt
-                        ? new Date(selectedTeam.createdAt).toLocaleString(
-                            "vi-VN"
-                          )
-                        : "—"}
-                    </span>
+                    <span>Tạo lúc: {selectedTeam.createdAt ? new Date(selectedTeam.createdAt).toLocaleString("vi-VN") : "—"}</span>
                   </div>
                   <div className="inline-flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-gray-300" />
-                    <span>
-                      Cập nhật:{" "}
-                      {selectedTeam.updatedAt
-                        ? new Date(selectedTeam.updatedAt).toLocaleString(
-                            "vi-VN"
-                          )
-                        : "—"}
-                    </span>
+                    <span>Cập nhật: {selectedTeam.updatedAt ? new Date(selectedTeam.updatedAt).toLocaleString("vi-VN") : "—"}</span>
                   </div>
                 </div>
               </div>
