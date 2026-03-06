@@ -1,0 +1,994 @@
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  LifeBuoy,
+  Users,
+  Search,
+  Plus,
+  X,
+  Loader2,
+  AlertTriangle,
+  MapPin,
+  Calendar,
+  Eye
+} from "lucide-react";
+import { ManagerLayout } from "@/components/ui/ManagerSidebar";
+import {
+  getRescueTeams,
+  createRescueTeam,
+  updateRescueTeam,
+} from "@/services/rescue-team.service";
+import { reverseGeocode } from "@/services/geocode.service";
+import type {
+  RescueTeam,
+  CreateRescueTeamPayload,
+  RescueTeamStatus,
+} from "@/types/rescue-teams";
+
+type FormState = {
+  teamName: string;
+  leaderId: string;
+  memberIds: string;
+  vehicleIds: string;
+};
+
+const initialForm: FormState = {
+  teamName: "",
+  leaderId: "",
+  memberIds: "",
+  vehicleIds: "",
+};
+
+const STATUS_LABELS: Record<RescueTeamStatus, string> = {
+  AVAILABLE: "Sẵn sàng",
+  BUSY: "Đang bận",
+  OFFLINE: "Ngoại tuyến",
+};
+
+const STATUS_COLORS: Record<
+  RescueTeamStatus,
+  { bg: string; text: string; dot: string }
+> = {
+  AVAILABLE: {
+    bg: "bg-emerald-50 border-emerald-100",
+    text: "text-emerald-700",
+    dot: "bg-emerald-500",
+  },
+  BUSY: {
+    bg: "bg-blue-50 border-blue-100",
+    text: "text-blue-700",
+    dot: "bg-blue-500",
+  },
+  OFFLINE: {
+    bg: "bg-gray-50 border-gray-200",
+    text: "text-gray-700",
+    dot: "bg-gray-400",
+  },
+};
+
+export default function RescueManagement() {
+  const [teams, setTeams] = useState<RescueTeam[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<RescueTeamStatus | "ALL">(
+    "ALL"
+  );
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [selectedTeam, setSelectedTeam] = useState<RescueTeam | null>(null);
+  const [locationAddress, setLocationAddress] = useState<string | null>(null);
+  const [locationAddressLoading, setLocationAddressLoading] = useState(false);
+  const [updatingLocation, setUpdatingLocation] = useState(false);
+  const [locationError, setLocationError] = useState("");
+
+  const fetchTeams = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await getRescueTeams();
+      setTeams(data || []);
+    } catch (e: any) {
+      setError(
+        e?.response?.data?.message ||
+          e?.message ||
+          "Không thể tải danh sách đội cứu hộ."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTeams();
+  }, [fetchTeams]);
+
+  // Fetch real address when detail modal opens and team has coordinates
+  useEffect(() => {
+    if (!selectedTeam?.currentLocation?.coordinates?.length) {
+      setLocationAddress(null);
+      setLocationAddressLoading(false);
+      return;
+    }
+    const [lon, lat] = selectedTeam.currentLocation.coordinates;
+    setLocationAddressLoading(true);
+    setLocationAddress(null);
+    setLocationError("");
+    reverseGeocode(lat, lon)
+      .then(setLocationAddress)
+      .catch(() => setLocationError("Không thể tải địa chỉ."))
+      .finally(() => setLocationAddressLoading(false));
+  }, [selectedTeam?._id, selectedTeam?.currentLocation?.coordinates]);
+
+  const statuses = useMemo<RescueTeamStatus[]>(() => {
+    const set = new Set<RescueTeamStatus>();
+    teams.forEach((t) => t.status && set.add(t.status));
+    return Array.from(set);
+  }, [teams]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return teams.filter((t) => {
+      const matchSearch =
+        !q ||
+        t.teamName.toLowerCase().includes(q) ||
+        t.leaderId?.fullName?.toLowerCase().includes(q) ||
+        t.members?.some((m) =>
+          m.fullName?.toLowerCase().includes(q)
+        ) ||
+        t.vehicles?.some((v) =>
+          v.plateNumber?.toLowerCase().includes(q)
+        );
+
+      const matchStatus =
+        statusFilter === "ALL" || t.status === statusFilter;
+
+      return matchSearch && matchStatus;
+    });
+  }, [teams, search, statusFilter]);
+
+  const availableCount = useMemo(
+    () => teams.filter((t) => t.status === "AVAILABLE").length,
+    [teams]
+  );
+
+  const busyCount = useMemo(
+    () => teams.filter((t) => t.status === "BUSY").length,
+    [teams]
+  );
+
+  const handleOpenModal = () => {
+    setForm(initialForm);
+    setFormError("");
+    setModalOpen(true);
+  };
+
+  const handleChange = (field: keyof FormState, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+
+    if (!form.teamName.trim()) {
+      setFormError("Vui lòng nhập tên đội cứu hộ.");
+      return;
+    }
+    if (!form.leaderId.trim()) {
+      setFormError("Vui lòng nhập ID đội trưởng.");
+      return;
+    }
+
+    const members = form.memberIds
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const vehicles = form.vehicleIds
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const payload: CreateRescueTeamPayload = {
+      teamName: form.teamName.trim(),
+      leaderId: form.leaderId.trim(),
+      members,
+      vehicles,
+    };
+
+    setSubmitting(true);
+    try {
+      const created = await createRescueTeam(payload);
+      setTeams((prev) => [created, ...prev]);
+      setModalOpen(false);
+    } catch (e: any) {
+      setFormError(
+        e?.response?.data?.message ||
+          e?.message ||
+          "Không thể tạo đội cứu hộ mới."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateStatus = async (
+    team: RescueTeam,
+    nextStatus: RescueTeamStatus
+  ) => {
+    const id = team._id;
+    if (!id) return;
+
+    const prevStatus = team.status;
+    if (prevStatus === nextStatus) return;
+
+    setError("");
+    setTeams((prev) =>
+      prev.map((t) => (t._id === id ? { ...t, status: nextStatus } : t))
+    );
+    setUpdatingStatus((prev) => ({ ...prev, [id]: true }));
+
+    try {
+      const updated = await updateRescueTeam(id, { status: nextStatus });
+      setTeams((prev) =>
+        prev.map((t) => (t._id === id ? { ...t, ...updated } : t))
+      );
+    } catch (e: any) {
+      setTeams((prev) =>
+        prev.map((t) => (t._id === id ? { ...t, status: prevStatus } : t))
+      );
+      setError(
+        e?.response?.data?.message ||
+          e?.message ||
+          "Không thể cập nhật trạng thái đội cứu hộ."
+      );
+    } finally {
+      setUpdatingStatus((prev) => {
+        const { [id]: _removed, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+
+  const handleUseMyLocation = (team: RescueTeam) => {
+    if (!team._id) return;
+    setLocationError("");
+    setUpdatingLocation(true);
+    if (!navigator.geolocation) {
+      setLocationError("Trình duyệt không hỗ trợ lấy vị trí.");
+      setUpdatingLocation(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const updated = await updateRescueTeam(team._id!, {
+            currentLocation: `${longitude},${latitude}`,
+          });
+          setTeams((prev) =>
+            prev.map((t) => (t._id === team._id ? { ...t, ...updated } : t))
+          );
+          setSelectedTeam((prev) => (prev?._id === team._id ? { ...prev, ...updated } : prev));
+          setLocationAddress(null);
+          setLocationAddressLoading(true);
+          reverseGeocode(latitude, longitude)
+            .then(setLocationAddress)
+            .catch(() => setLocationError("Không thể tải địa chỉ."))
+            .finally(() => setLocationAddressLoading(false));
+        } catch (e: unknown) {
+          const err = e as { response?: { data?: { message?: string } }; message?: string };
+          const msg =
+            err?.response?.data?.message || (err as Error)?.message || "Không thể cập nhật vị trí.";
+          setLocationError(msg);
+        } finally {
+          setUpdatingLocation(false);
+        }
+      },
+      () => {
+        setLocationError("Không lấy được vị trí. Kiểm tra quyền truy cập vị trí.");
+        setUpdatingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  return (
+    <ManagerLayout>
+      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                <LifeBuoy className="w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Quản lý đội cứu hộ
+                </h1>
+                <p className="text-sm text-gray-400 mt-0.5">
+                  Theo dõi đội cứu hộ, nhân sự, phương tiện và trạng thái sẵn sàng
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={fetchTeams}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
+              >
+                <Loader2
+                  className={`w-4 h-4 ${
+                    loading ? "animate-spin" : "text-gray-400"
+                  }`}
+                />
+                Làm mới
+              </button>
+              <button
+                onClick={handleOpenModal}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-sm transition-colors cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Thêm đội cứu hộ
+              </button>
+            </div>
+          </div>
+
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <LifeBuoy className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Tổng số đội</p>
+                <p className="text-xl font-bold text-gray-900">{teams.length}</p>
+              </div>
+            </div>
+            <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Đội sẵn sàng</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {availableCount}
+                </p>
+              </div>
+            </div>
+            <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <Loader2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Đang xử lý nhiệm vụ</p>
+                <p className="text-xl font-bold text-gray-900">{busyCount}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Tìm theo tên đội, đội trưởng, thành viên hoặc biển số xe..."
+                className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  aria-label="Xóa tìm kiếm"
+                  title="Xóa tìm kiếm"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400 hidden sm:inline">
+                Lọc theo trạng thái
+              </span>
+              <div className="relative">
+                <select
+                  value={statusFilter}
+                  onChange={(e) =>
+                    setStatusFilter(e.target.value as RescueTeamStatus | "ALL")
+                  }
+                  aria-label="Lọc theo trạng thái"
+                  title="Lọc theo trạng thái"
+                  className="pl-3 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer"
+                >
+                  <option value="ALL">Tất cả</option>
+                  {statuses.map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABELS[s] || s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {loading ? (
+              <div className="flex items-center justify-center gap-3 py-20 text-gray-400">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">
+                  Đang tải danh sách đội cứu hộ...
+                </span>
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-red-500 px-4 text-center">
+                <AlertTriangle className="w-8 h-8" />
+                <p className="text-sm">{error}</p>
+                <button
+                  onClick={fetchTeams}
+                  className="text-xs text-emerald-500 hover:underline"
+                >
+                  Thử lại
+                </button>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-gray-400">
+                <LifeBuoy className="w-10 h-10 text-gray-200" />
+                <p className="text-sm">
+                  Chưa có đội cứu hộ nào phù hợp bộ lọc.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/60">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Tên đội
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Đội trưởng
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                        Thành viên
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                        Phương tiện
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                        Vị trí
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Trạng thái
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                        Cập nhật
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
+                        Hành động
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filtered.map((team) => {
+                      const meta =
+                        STATUS_COLORS[team.status] || STATUS_COLORS.AVAILABLE;
+                      const id = team._id;
+                      const isUpdating = id ? Boolean(updatingStatus[id]) : false;
+
+                      const memberCount = team.members?.length || 0;
+                      const vehicleCount = team.vehicles?.length || 0;
+
+                      const coordinates = team.currentLocation?.coordinates;
+
+                      return (
+                        <tr
+                          key={team._id}
+                          className="hover:bg-emerald-50/40 transition-colors"
+                        >
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+                            {team.teamName}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700">
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {team.leaderId?.fullName || "—"}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {team.leaderId?.phone || ""}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700 hidden sm:table-cell">
+                            {memberCount > 0 ? (
+                              <span>
+                                {memberCount} thành viên
+                              </span>
+                            ) : (
+                              <span className="text-gray-300">
+                                Chưa có thành viên
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">
+                            {vehicleCount > 0 ? (
+                              <span>
+                                {vehicleCount} phương tiện
+                              </span>
+                            ) : (
+                              <span className="text-gray-300">
+                                Chưa gán phương tiện
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">
+                            {coordinates && coordinates.length === 2 ? (
+                              <div className="inline-flex items-center gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-gray-300" />
+                                <span>
+                                  {coordinates[1].toFixed(4)},{" "}
+                                  {coordinates[0].toFixed(4)}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${meta.bg} ${meta.text}`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${meta.dot}`}
+                                />
+                                {STATUS_LABELS[team.status] || team.status}
+                              </span>
+
+                              <div className="relative">
+                                <select
+                                  value={team.status}
+                                  disabled={!id || isUpdating}
+                                  onChange={(e) =>
+                                    handleUpdateStatus(
+                                      team,
+                                      e.target.value as RescueTeamStatus
+                                    )
+                                  }
+                                  className="pl-2 pr-7 py-1 text-[11px] border border-gray-200 rounded-lg bg-gray-50 hover:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                                  aria-label="Cập nhật trạng thái đội"
+                                  title="Cập nhật trạng thái đội"
+                                >
+                                  <option value="AVAILABLE">Sẵn sàng</option>
+                                  <option value="BUSY">Đang bận</option>
+                                  <option value="OFFLINE">Ngoại tuyến</option>
+                                </select>
+
+                                {isUpdating && (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell">
+                            {team.updatedAt || team.createdAt ? (
+                              <div className="inline-flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-gray-300" />
+                                <span>
+                                  {new Date(
+                                    (team.updatedAt || team.createdAt) as string
+                                  ).toLocaleDateString("vi-VN")}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedTeam(team)}
+                              aria-label="Xem chi tiết đội"
+                              title="Xem chi tiết đội"
+                              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Create Modal */}
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div>
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
+                    Đội cứu hộ
+                  </p>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Thêm đội cứu hộ mới
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  aria-label="Đóng"
+                  title="Đóng"
+                  className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label
+                      htmlFor="team_name"
+                      className="block text-sm font-medium text-gray-700 mb-1.5"
+                    >
+                      Tên đội cứu hộ
+                    </label>
+                    <input
+                      id="team_name"
+                      value={form.teamName}
+                      onChange={(e) =>
+                        handleChange("teamName", e.target.value)
+                      }
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                      placeholder="VD: Đội cứu hộ Q1"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label
+                      htmlFor="leader_id"
+                      className="block text-sm font-medium text-gray-700 mb-1.5"
+                    >
+                      ID đội trưởng
+                    </label>
+                    <input
+                      id="leader_id"
+                      value={form.leaderId}
+                      onChange={(e) =>
+                        handleChange("leaderId", e.target.value)
+                      }
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                      placeholder="Nhập ID người dùng đội trưởng"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label
+                      htmlFor="member_ids"
+                      className="block text-sm font-medium text-gray-700 mb-1.5"
+                    >
+                      ID thành viên (cách nhau bởi dấu phẩy)
+                    </label>
+                    <textarea
+                      id="member_ids"
+                      value={form.memberIds}
+                      onChange={(e) =>
+                        handleChange("memberIds", e.target.value)
+                      }
+                      className="w-full min-h-[70px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-y"
+                      placeholder="VD: 65f1..., 65f2..., 65f3..."
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label
+                      htmlFor="vehicle_ids"
+                      className="block text-sm font-medium text-gray-700 mb-1.5"
+                    >
+                      ID phương tiện (cách nhau bởi dấu phẩy)
+                    </label>
+                    <textarea
+                      id="vehicle_ids"
+                      value={form.vehicleIds}
+                      onChange={(e) =>
+                        handleChange("vehicleIds", e.target.value)
+                      }
+                      className="w-full min-h-[70px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-y"
+                      placeholder="VD: 65f1..., 65f2..."
+                    />
+                  </div>
+                </div>
+
+                {formError && (
+                  <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-xl">
+                    <AlertTriangle className="w-4 h-4 shrink-0" /> {formError}
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-2 cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="px-4 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
+                    disabled={submitting}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 rounded-xl transition-colors cursor-pointer"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Đang lưu...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Lưu đội cứu hộ
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Detail Modal */}
+        {selectedTeam && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div>
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
+                    Chi tiết đội cứu hộ
+                  </p>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {selectedTeam.teamName}
+                  </h3>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${
+                      STATUS_COLORS[selectedTeam.status]?.bg ||
+                      STATUS_COLORS.AVAILABLE.bg
+                    } ${
+                      STATUS_COLORS[selectedTeam.status]?.text ||
+                      STATUS_COLORS.AVAILABLE.text
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        STATUS_COLORS[selectedTeam.status]?.dot ||
+                        STATUS_COLORS.AVAILABLE.dot
+                      }`}
+                    />
+                    {STATUS_LABELS[selectedTeam.status] || selectedTeam.status}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTeam(null)}
+                    aria-label="Đóng"
+                    title="Đóng"
+                    className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Leader & meta */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Đội trưởng
+                    </h4>
+                    {selectedTeam.leaderId ? (
+                      <div className="p-3 rounded-2xl border border-gray-100 bg-gray-50 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {selectedTeam.leaderId.fullName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {selectedTeam.leaderId.phone || "—"}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">
+                        Chưa gán đội trưởng.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Thông tin chung
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs text-gray-400">Thành viên</p>
+                        <p className="font-semibold text-gray-900">
+                          {selectedTeam.members?.length || 0}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Phương tiện</p>
+                        <p className="font-semibold text-gray-900">
+                          {selectedTeam.vehicles?.length || 0}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div>
+                            <p className="text-xs text-gray-400">Vị trí hiện tại</p>
+                            {locationAddressLoading ? (
+                              <div className="inline-flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <span>Đang tải địa chỉ...</span>
+                              </div>
+                            ) : locationError ? (
+                              <p className="text-xs text-amber-600 mt-0.5">{locationError}</p>
+                            ) : locationAddress ? (
+                              <div className="inline-flex items-center gap-1.5 text-xs text-gray-700 mt-0.5">
+                                <MapPin className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                                <span>{locationAddress}</span>
+                              </div>
+                            ) : selectedTeam.currentLocation?.coordinates?.length === 2 ? (
+                              <div className="inline-flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
+                                <MapPin className="w-3.5 h-3.5 text-gray-300" />
+                                <span>
+                                  {selectedTeam.currentLocation.coordinates[1].toFixed(4)},{" "}
+                                  {selectedTeam.currentLocation.coordinates[0].toFixed(4)}
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-300 mt-0.5">—</p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleUseMyLocation(selectedTeam)}
+                            disabled={updatingLocation}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-100 transition-colors cursor-pointer disabled:opacity-60"
+                          >
+                            {updatingLocation ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <MapPin className="w-3.5 h-3.5" />
+                            )}
+                            {updatingLocation ? "Đang lấy vị trí..." : "Lấy vị trí hiện tại"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Members */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Thành viên
+                    </h4>
+                    <span className="text-xs text-gray-400">
+                      {selectedTeam.members?.length || 0} người
+                    </span>
+                  </div>
+                  {selectedTeam.members && selectedTeam.members.length > 0 ? (
+                    <div className="max-h-40 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50/60 divide-y divide-gray-100">
+                      {selectedTeam.members.map((m) => (
+                        <div
+                          key={m._id}
+                          className="px-3 py-2 flex items-center justify-between"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {m.fullName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {m.phone || "—"}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400">
+                      Chưa có thành viên nào trong đội.
+                    </p>
+                  )}
+                </div>
+
+                {/* Vehicles */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Phương tiện
+                    </h4>
+                    <span className="text-xs text-gray-400">
+                      {selectedTeam.vehicles?.length || 0} phương tiện
+                    </span>
+                  </div>
+                  {selectedTeam.vehicles && selectedTeam.vehicles.length > 0 ? (
+                    <div className="max-h-40 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50/60 divide-y divide-gray-100">
+                      {selectedTeam.vehicles.map((v) => (
+                        <div
+                          key={v._id}
+                          className="px-3 py-2 flex items-center justify-between"
+                        >
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {v.plateNumber}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {v.type} • Sức chứa:{" "}
+                              {v.capacity?.toLocaleString("vi-VN")}
+                            </p>
+                          </div>
+                          <span className="text-[11px] text-gray-500">
+                            {v.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400">
+                      Chưa gán phương tiện cho đội.
+                    </p>
+                  )}
+                </div>
+
+                {/* Dates */}
+                <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400 border-t border-gray-100 pt-3">
+                  <div className="inline-flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-gray-300" />
+                    <span>
+                      Tạo lúc:{" "}
+                      {selectedTeam.createdAt
+                        ? new Date(selectedTeam.createdAt).toLocaleString(
+                            "vi-VN"
+                          )
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-gray-300" />
+                    <span>
+                      Cập nhật:{" "}
+                      {selectedTeam.updatedAt
+                        ? new Date(selectedTeam.updatedAt).toLocaleString(
+                            "vi-VN"
+                          )
+                        : "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </ManagerLayout>
+  );
+}

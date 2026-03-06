@@ -18,10 +18,14 @@ export interface CreateVehicleItemPayload {
     assignedTeam?: string;
 }
 
-export interface UpdateInventoryItemPayload {
+export interface UpdateVehicleItemPayload {
     plateNumber?: string;
     type?: string;
     capacity?: number;
     status?: string;
     assignedTeam?: string;
+}
+
+export interface UpdateVehicleStatusPayload {
+    status: string;
 }
