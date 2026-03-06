@@ -9,7 +9,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import UserManagement from "@/pages/UserManagement";
 import ManagerDashboard from "@/pages/ManagerDashboard";
 import CoordinatorDashboard from "@/pages/CoordinatorDashboard";
-import RescueTeamDashboard from "@/pages/RescueTeamDashboard";
+import RescueManagement from "@/pages/RescueManagement";
 import InventoryManagement from "@/pages/InventoryManagement";
 import AdminDashboard from "@/pages/AdminDashboard";
 import VehicleManagement from "@/pages/VehicleManagement";
@@ -65,6 +65,14 @@ export default function AppRoutes() {
         }
       />
       <Route
+        path="/manager/rescue-teams"
+        element={
+          <ProtectedRoute requireManager>
+            <RescueManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/coordinator"
         element={
           <ProtectedRoute requireCoordinator>
@@ -72,14 +80,14 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
+      {/* <Route
         path="/rescue-team"
         element={
           <ProtectedRoute requireRescueTeam>
             <RescueTeamDashboard />
           </ProtectedRoute>
         }
-      />
+      /> */}
     </Routes>
   );
 }

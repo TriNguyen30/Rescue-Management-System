@@ -10,7 +10,11 @@ import {
   Hash,
   Calendar,
 } from "lucide-react";
-import { getVehicles, createVehicle } from "@/services/vehicle.service";
+import {
+  getVehicles,
+  createVehicle,
+  updateVehicleStatus,
+} from "@/services/vehicle.service";
 import { VehicleItem, CreateVehicleItemPayload } from "@/types/vehicle";
 import { ManagerLayout } from "@/components/ui/ManagerSidebar";
 
@@ -73,6 +77,9 @@ export default function VehicleManagement() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>(
+    {}
+  );
 
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
@@ -166,6 +173,41 @@ export default function VehicleManagement() {
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleUpdateStatus = async (vehicle: VehicleItem, nextStatus: string) => {
+    const id = vehicle.id || vehicle._id;
+    if (!id) return;
+
+    const prevStatus = vehicle.status;
+    if (prevStatus === nextStatus) return;
+
+    setError("");
+    setVehicles((prev) =>
+      prev.map((v) => ((v.id || v._id) === id ? { ...v, status: nextStatus } : v))
+    );
+    setUpdatingStatus((prev) => ({ ...prev, [id]: true }));
+
+    try {
+      const updated = await updateVehicleStatus(id, { status: nextStatus });
+      setVehicles((prev) =>
+        prev.map((v) => ((v.id || v._id) === id ? { ...v, ...updated } : v))
+      );
+    } catch (e: any) {
+      setVehicles((prev) =>
+        prev.map((v) => ((v.id || v._id) === id ? { ...v, status: prevStatus } : v))
+      );
+      setError(
+        e?.response?.data?.message ||
+          e?.message ||
+          "Không thể cập nhật trạng thái phương tiện."
+      );
+    } finally {
+      setUpdatingStatus((prev) => {
+        const { [id]: _removed, ...rest } = prev;
+        return rest;
+      });
     }
   };
 
@@ -269,7 +311,10 @@ export default function VehicleManagement() {
               />
               {search && (
                 <button
+                  type="button"
                   onClick={() => setSearch("")}
+                  aria-label="Xóa tìm kiếm"
+                  title="Xóa tìm kiếm"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
@@ -284,6 +329,8 @@ export default function VehicleManagement() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
+                  aria-label="Lọc theo trạng thái"
+                  title="Lọc theo trạng thái"
                   className="pl-3 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer"
                 >
                   <option value="ALL">Tất cả</option>
@@ -350,6 +397,8 @@ export default function VehicleManagement() {
                   <tbody className="divide-y divide-gray-50">
                     {filtered.map((v) => {
                       const meta = STATUS_COLORS[v.status] || STATUS_COLORS.AVAILABLE;
+                      const id = (v.id || v._id) as string | undefined;
+                      const isUpdating = id ? Boolean(updatingStatus[id]) : false;
                       return (
                         <tr
                           key={v.id || v._id}
@@ -365,14 +414,38 @@ export default function VehicleManagement() {
                             {v.capacity?.toLocaleString("vi-VN")}
                           </td>
                           <td className="px-4 py-3 hidden sm:table-cell">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${meta.bg} ${meta.text}`}
-                            >
+                            <div className="flex items-center gap-2">
                               <span
-                                className={`w-1.5 h-1.5 rounded-full ${meta.dot}`}
-                              />
-                              {STATUS_LABELS[v.status] || v.status}
-                            </span>
+                                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${meta.bg} ${meta.text}`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${meta.dot}`}
+                                />
+                                {STATUS_LABELS[v.status] || v.status}
+                              </span>
+
+                              <div className="relative">
+                                <select
+                                  value={v.status}
+                                  disabled={!id || isUpdating}
+                                  onChange={(e) =>
+                                    handleUpdateStatus(v, e.target.value)
+                                  }
+                                  className="pl-2 pr-7 py-1 text-[11px] border border-gray-200 rounded-lg bg-gray-50 hover:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                                  aria-label="Cập nhật trạng thái"
+                                  title="Cập nhật trạng thái"
+                                >
+                                  <option value="AVAILABLE">Sẵn sàng</option>
+                                  <option value="IN_USE">Đang hoạt động</option>
+                                  <option value="MAINTENANCE">Bảo trì</option>
+                                  <option value="BROKEN">Hư hỏng</option>
+                                </select>
+
+                                {isUpdating && (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                )}
+                              </div>
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">
                             {v.assignedTeam || (
@@ -417,7 +490,10 @@ export default function VehicleManagement() {
                   </h3>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setModalOpen(false)}
+                  aria-label="Đóng"
+                  title="Đóng"
                   className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
@@ -427,10 +503,14 @@ export default function VehicleManagement() {
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label
+                      htmlFor="vehicle_plateNumber"
+                      className="block text-sm font-medium text-gray-700 mb-1.5"
+                    >
                       Biển số xe
                     </label>
                     <input
+                      id="vehicle_plateNumber"
                       value={form.plateNumber}
                       onChange={(e) =>
                         handleChange("plateNumber", e.target.value)
@@ -440,10 +520,14 @@ export default function VehicleManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label
+                      htmlFor="vehicle_type"
+                      className="block text-sm font-medium text-gray-700 mb-1.5"
+                    >
                       Loại xe
                     </label>
                     <input
+                      id="vehicle_type"
                       value={form.type}
                       onChange={(e) => handleChange("type", e.target.value)}
                       className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
@@ -451,10 +535,14 @@ export default function VehicleManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label
+                      htmlFor="vehicle_capacity"
+                      className="block text-sm font-medium text-gray-700 mb-1.5"
+                    >
                       Sức chứa (người / kg)
                     </label>
                     <input
+                      id="vehicle_capacity"
                       type="number"
                       min={0}
                       value={form.capacity}
@@ -463,10 +551,14 @@ export default function VehicleManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label
+                      htmlFor="vehicle_status"
+                      className="block text-sm font-medium text-gray-700 mb-1.5"
+                    >
                       Trạng thái
                     </label>
                     <select
+                      id="vehicle_status"
                       value={form.status}
                       onChange={(e) => handleChange("status", e.target.value)}
                       className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
@@ -480,10 +572,14 @@ export default function VehicleManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label
+                    htmlFor="vehicle_assignedTeam"
+                    className="block text-sm font-medium text-gray-700 mb-1.5"
+                  >
                     Đội phụ trách
                   </label>
                   <input
+                    id="vehicle_assignedTeam"
                     value={form.assignedTeam}
                     onChange={(e) =>
                       handleChange("assignedTeam", e.target.value)
