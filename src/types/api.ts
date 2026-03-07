@@ -11,6 +11,7 @@ export interface AuthUser {
   username: string;
   email: string;
   role: string;
+  phone: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,6 +23,7 @@ export interface AuthResponse {
 
 export interface LoginPayload {
   username: string;
+  phone: string;
   password: string;
 }
 

@@ -23,6 +23,7 @@ import {
   getRescueTeams,
   createRescueTeam,
   updateRescueTeam,
+  updateRescueTeamLocation,
 } from "@/services/rescue-team.service";
 import { reverseGeocode } from "@/services/geocode.service";
 import type {
@@ -395,7 +396,7 @@ export default function RescueManagement() {
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          const updated = await updateRescueTeam(team._id!, { currentLocation: `${longitude},${latitude}` });
+          const updated = await updateRescueTeamLocation(team._id!, latitude, longitude);
           setTeams((prev) => prev.map((t) => (t._id === team._id ? { ...t, ...updated } : t)));
           setSelectedTeam((prev) => (prev?._id === team._id ? { ...prev, ...updated } : prev));
           setLocationAddress(null);

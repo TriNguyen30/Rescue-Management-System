@@ -49,6 +49,11 @@ export interface RescueTeam {
     updatedAt: string;
 }
 
+export interface UpdateRescueTeamLocationPayload {
+    latitude: number;
+    longitude: number;
+}
+
 export interface CreateRescueTeamPayload {
     teamName: string;
     leaderId: string;
