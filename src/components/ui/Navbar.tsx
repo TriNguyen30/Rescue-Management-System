@@ -1,7 +1,7 @@
 import { Bell, Menu, X, LogOut, User, ChevronDown, Shield } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, NavLink } from "react-router";
-import Logo from "@/assets/image/Logo.png";
+import Logo from "@/assets/image/LogoV2.png";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
 
@@ -59,12 +59,12 @@ export default function Navbar() {
 
           {/* Logo */}
           <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => navigate("/")}>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-105">
-              <img src={Logo} alt="Logo" className="w-7 h-7 object-contain" />
+            <div className="flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-105">
+              <img src={Logo} alt="Logo" className="w-12 h-12 object-contain" />
             </div>
             <div className="leading-none">
-              <span className="block text-[10px] font-bold tracking-widest text-blue-400 uppercase">Rescue</span>
-              <span className="block text-sm font-extrabold text-gray-900 tracking-tight">AID</span>
+              <span className="block text-[10px] font-bold tracking-widest text-blue-400 uppercase">Rescue AID</span>
+              {/* <span className="block text-sm font-extrabold text-gray-900 tracking-tight">AID</span> */}
             </div>
           </div>
 

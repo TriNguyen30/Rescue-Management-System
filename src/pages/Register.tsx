@@ -3,7 +3,7 @@ import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, User, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Logo from "@/assets/image/Logo.png";
+import Logo from "@/assets/image/LogoV2.png";
 import { register } from "@/services/auth.service";
 
 const USERNAME_MIN_LENGTH = 3;
