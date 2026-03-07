@@ -17,17 +17,10 @@ export interface CreateUserPayload {
   isActive: boolean;
 }
 
-export interface UpdateUserPayload {
-  username: string;
-  fullName: string;
-  phone: string;
-  avatar: string | null;
-}
-
 export interface UpdateUserRolesPayload {
-  id: string;
-  _id: string;  
   role: string;
+  id?: string;
+  _id?: string;
 }
 
 export interface ChangePasswordPayload {

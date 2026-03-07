@@ -20,12 +20,12 @@ import {
 import {
   getUsers,
   deleteUser,
-  updateUser,
   updateUserRole,
   changePassword,
 } from "@/services/user.service";
-import { User, UpdateUserPayload, ChangePasswordPayload } from "@/types/user";
+import { User, ChangePasswordPayload } from "@/types/user";
 import { AdminLayout } from "@/components/ui/AdminSidebar";
+import { useToast } from "@/components/ui/Toast";
 
 const ROLES = ["CITIZEN", "RESCUE_TEAM", "COORDINATOR", "MANAGER", "ADMIN"];
 
@@ -81,9 +81,8 @@ function EditModal({
   onClose: () => void;
   onSaved: (u: User) => void;
 }) {
+  const { success, error: toastError } = useToast();
   const [tab, setTab] = useState<"info" | "password">("info");
-  const [fullName, setFullName] = useState(user.fullName || "");
-  const [phone, setPhone] = useState(user.phone || "");
   const [role, setRole] = useState(user.role || "CITIZEN");
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -94,19 +93,22 @@ function EditModal({
     setSaving(true);
     setError("");
     try {
-      // Update profile fields (fullName, phone)
-      const profilePayload: UpdateUserPayload = { fullName, phone };
-      let updated = await updateUser(profilePayload);
-
-      // Update role separately via dedicated endpoint only if changed
       if (role !== user.role) {
-        updated = await updateUserRole(user.id, { role });
+        const updated = await updateUserRole(user.id, { role });
+        onSaved(updated);
+        success(
+          "Vai trò đã được cập nhật",
+          `${user.fullName || user.username} → ${role}`,
+        );
+      } else {
+        onSaved({ ...user });
+        success("Không có thay đổi nào được lưu");
       }
-
-      onSaved(updated);
       onClose();
     } catch (e: any) {
-      setError(e?.response?.data?.message || "Cập nhật thất bại.");
+      const msg = e?.response?.data?.message || "Cập nhật thất bại.";
+      setError(msg);
+      toastError("Cập nhật thất bại", msg);
     } finally {
       setSaving(false);
     }
@@ -120,11 +122,13 @@ function EditModal({
     setSaving(true);
     setError("");
     try {
-      const payload: ChangePasswordPayload = { oldPassword, newPassword };
-      await changePassword(payload);
+      await changePassword({ oldPassword, newPassword } as ChangePasswordPayload);
+      success("Đổi mật khẩu thành công", "Mật khẩu đã được cập nhật.");
       onClose();
     } catch (e: any) {
-      setError(e?.response?.data?.message || "Đổi mật khẩu thất bại.");
+      const msg = e?.response?.data?.message || "Đổi mật khẩu thất bại.";
+      setError(msg);
+      toastError("Đổi mật khẩu thất bại", msg);
     } finally {
       setSaving(false);
     }
@@ -158,7 +162,10 @@ function EditModal({
                 setTab(t);
                 setError("");
               }}
-              className={`py-3 mr-6 text-sm font-semibold border-b-2 transition-colors ${tab === t ? "border-blue-500 text-blue-600" : "border-transparent text-gray-400 hover:text-gray-600"}`}
+              className={`py-3 mr-6 text-sm font-semibold border-b-2 transition-colors ${tab === t
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-400 hover:text-gray-600"
+                }`}
             >
               {t === "info" ? "Thông tin" : "Mật khẩu"}
             </button>
@@ -173,9 +180,9 @@ function EditModal({
                   Họ và tên
                 </label>
                 <input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                  disabled
+                  value={user.fullName || ""}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none bg-gray-50 cursor-not-allowed text-gray-400"
                 />
               </div>
               <div>
@@ -183,9 +190,9 @@ function EditModal({
                   Số điện thoại
                 </label>
                 <input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                  disabled
+                  value={user.phone || ""}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none bg-gray-50 cursor-not-allowed text-gray-400"
                 />
               </div>
               <div>
@@ -274,6 +281,7 @@ function DeleteConfirm({
   onClose: () => void;
   onDeleted: (id: string) => void;
 }) {
+  const { success, error: toastError } = useToast();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
 
@@ -283,9 +291,15 @@ function DeleteConfirm({
     try {
       await deleteUser(user.id);
       onDeleted(user.id);
+      success(
+        "Đã xóa người dùng",
+        `${user.fullName || user.username} đã bị xóa khỏi hệ thống.`,
+      );
       onClose();
     } catch (e: any) {
-      setError(e?.response?.data?.message || "Xóa thất bại.");
+      const msg = e?.response?.data?.message || "Xóa thất bại.";
+      setError(msg);
+      toastError("Xóa thất bại", msg);
     } finally {
       setDeleting(false);
     }
@@ -378,9 +392,7 @@ function UserRow({
       <td className="px-4 py-3 hidden md:table-cell">
         <div className="flex items-center gap-1.5 text-sm text-gray-500">
           <Hash className="w-3.5 h-3.5 text-gray-300" />
-          <span className="font-mono text-xs">
-            {user.userCode || user.id || "—"}
-          </span>
+          <span className="font-mono text-xs">{user.userCode || "—"}</span>
         </div>
       </td>
       <td className="px-4 py-3 hidden sm:table-cell">
@@ -424,6 +436,7 @@ function UserRow({
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function AdminUserDashboard() {
+  const { error: toastError, info } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -439,9 +452,10 @@ export default function AdminUserDashboard() {
       const data = await getUsers();
       setUsers(data);
     } catch (e: any) {
-      setError(
-        e?.response?.data?.message || "Không thể tải danh sách người dùng.",
-      );
+      const msg =
+        e?.response?.data?.message || "Không thể tải danh sách người dùng.";
+      setError(msg);
+      toastError("Tải dữ liệu thất bại", msg);
     } finally {
       setLoading(false);
     }
@@ -450,6 +464,11 @@ export default function AdminUserDashboard() {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  const handleRefresh = async () => {
+    await fetchUsers();
+    info("Đã làm mới", "Danh sách người dùng đã được cập nhật.");
+  };
 
   const filtered = users.filter((u) => {
     const matchRole = roleFilter === "ALL" || u.role === roleFilter;
@@ -486,7 +505,7 @@ export default function AdminUserDashboard() {
               </div>
             </div>
             <button
-              onClick={fetchUsers}
+              onClick={handleRefresh}
               disabled={loading}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm self-start cursor-pointer"
             >
@@ -506,7 +525,10 @@ export default function AdminUserDashboard() {
                   onClick={() =>
                     setRoleFilter(roleFilter === role ? "ALL" : role)
                   }
-                  className={`p-4 rounded-2xl border text-left transition-all ${roleFilter === role ? `${meta.bg} ${meta.color} border-current shadow-sm` : "bg-white border-gray-100 hover:border-gray-200 text-gray-700"}`}
+                  className={`p-4 rounded-2xl border text-left transition-all ${roleFilter === role
+                      ? `${meta.bg} ${meta.color} border-current shadow-sm`
+                      : "bg-white border-gray-100 hover:border-gray-200 text-gray-700"
+                    }`}
                 >
                   <p className="text-2xl font-bold">{count}</p>
                   <p className="text-xs font-medium mt-0.5 truncate">{role}</p>

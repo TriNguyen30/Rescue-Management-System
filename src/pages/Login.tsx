@@ -70,9 +70,9 @@ export default function Login() {
       const r = role?.toUpperCase();
       navigate(
         r === "ADMIN"
-          ? "/admin"
+          ? "/admin/users"
           : r === "MANAGER"
-            ? "/manager"
+            ? "/manager/rescue-teams"
             : r === "COORDINATOR"
               ? "/coordinator"
               : r === "RESCUE_TEAM"
