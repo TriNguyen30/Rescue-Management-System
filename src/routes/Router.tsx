@@ -13,6 +13,7 @@ import RescueManagement from "@/pages/RescueManagement";
 import InventoryManagement from "@/pages/InventoryManagement";
 import AdminDashboard from "@/pages/AdminDashboard";
 import VehicleManagement from "@/pages/VehicleManagement";
+import RescueMap from "@/pages/RescueMap";
 
 export default function AppRoutes() {
   return (
@@ -69,6 +70,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute requireManager>
             <RescueManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/rescue-map"
+        element={
+          <ProtectedRoute requireManager>
+            <RescueMap />
           </ProtectedRoute>
         }
       />

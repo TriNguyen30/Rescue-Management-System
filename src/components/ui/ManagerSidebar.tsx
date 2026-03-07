@@ -24,6 +24,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
+import Logo from "@/assets/image/LogoV2.png";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface NavItem {
@@ -47,7 +48,7 @@ interface AdminSidebarProps {
 // ── Nav Config ────────────────────────────────────────────────────────────────
 const NAV_ITEMS: NavItem[] = [
     { key: "dashboard", label: "Tổng quan", icon: <LayoutDashboard className="w-4 h-4" />, path: "/admin/dashboard", section: "Chính" },
-    { key: "rescue-map", label: "Bản đồ cứu hộ", icon: <Map className="w-4 h-4" />, path: "/admin/rescue-map", badge: "LIVE" },
+    { key: "rescue-map", label: "Bản đồ cứu hộ", icon: <Map className="w-4 h-4" />, path: "/manager/rescue-map", badge: "LIVE" },
     { key: "alerts", label: "Cảnh báo", icon: <AlertTriangle className="w-4 h-4" />, path: "/admin/alerts", badge: 3 },
     { key: "broadcasts", label: "Phát sóng", icon: <Radio className="w-4 h-4" />, path: "/admin/broadcasts" },
 
@@ -122,8 +123,8 @@ export default function ManagerSidebar({
         >
             {/* Logo */}
             <div className={`flex items-center gap-3 px-4 py-5 border-b border-gray-100 ${collapsed ? "justify-center px-0" : ""}`}>
-                <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center shrink-0">
-                    <Waves className="w-4 h-4 text-white" />
+                <div className={`w-12 h-12 ${collapsed ? "mx-auto" : ""}`}>
+                    <img src={Logo} alt="Logo" className="w-full h-auto" />
                 </div>
                 {!collapsed && (
                     <div className="overflow-hidden">
@@ -343,9 +344,9 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden">
             <ManagerSidebar
-                // adminName="Trần Quản Trị"
-                // adminRole="ADMIN"
-                // adminInitials="TQ"
+            // adminName="Trần Quản Trị"
+            // adminRole="ADMIN"
+            // adminInitials="TQ"
             />
             <main className="flex-1 overflow-y-auto">
                 {children}
