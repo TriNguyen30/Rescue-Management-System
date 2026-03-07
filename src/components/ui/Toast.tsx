@@ -198,7 +198,7 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
     return (
         <div
             aria-live="polite"
-            className="fixed bottom-200 right-2 z-[9999] flex flex-col gap-2.5 items-end pointer-events-none"
+            className="fixed top-4 right-4 z-[9999] flex flex-col gap-2.5 items-end pointer-events-none"
         >
             {toasts.map((t) => (
                 <div key={t.id} className="pointer-events-auto">

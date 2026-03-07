@@ -17,6 +17,7 @@ import {
 } from "@/services/vehicle.service";
 import { VehicleItem, CreateVehicleItemPayload } from "@/types/vehicle";
 import { ManagerLayout } from "@/components/ui/ManagerSidebar";
+import { useToast } from "@/components/ui/Toast";
 
 type FormState = {
   plateNumber: string;
@@ -80,6 +81,7 @@ export default function VehicleManagement() {
   const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>(
     {}
   );
+  const { success, error: toastError } = useToast();
 
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
@@ -167,10 +169,12 @@ export default function VehicleManagement() {
       const created = await createVehicle(payload);
       setVehicles((prev) => [created, ...prev]);
       setModalOpen(false);
+      success("Phương tiện đã được tạo thành công.");
     } catch (e: any) {
-      setFormError(
-        e?.response?.data?.message || e?.message || "Không thể tạo phương tiện."
-      );
+      const message =
+        e?.response?.data?.message || e?.message || "Không thể tạo phương tiện.";
+      setFormError(message);
+      toastError(message);
     } finally {
       setSubmitting(false);
     }
@@ -194,15 +198,17 @@ export default function VehicleManagement() {
       setVehicles((prev) =>
         prev.map((v) => ((v.id || v._id) === id ? { ...v, ...updated } : v))
       );
+      success("Cập nhật trạng thái phương tiện thành công.");
     } catch (e: any) {
       setVehicles((prev) =>
         prev.map((v) => ((v.id || v._id) === id ? { ...v, status: prevStatus } : v))
       );
-      setError(
+      const message =
         e?.response?.data?.message ||
-          e?.message ||
-          "Không thể cập nhật trạng thái phương tiện."
-      );
+        e?.message ||
+        "Không thể cập nhật trạng thái phương tiện.";
+      setError(message);
+      toastError(message);
     } finally {
       setUpdatingStatus((prev) => {
         const { [id]: _removed, ...rest } = prev;
