@@ -44,3 +44,16 @@ export const getResuceTeamById = async (id: string): Promise<RescueTeam> => {
         throw error;
     }
 };
+
+export const updateRescueTeamLocation = async (id: string, latitude: number, longitude: number): Promise<RescueTeam> => {
+    try {
+        const response = await axiosInstance.patch<RescueTeam>(`/rescue-teams/${id}/location`, {
+            latitude,
+            longitude,
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error updating rescue team location:", { id, latitude, longitude });
+        throw error;
+    }
+}
