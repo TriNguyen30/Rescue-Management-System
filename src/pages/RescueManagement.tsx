@@ -32,6 +32,7 @@ import type {
   UpdateRescueTeamPayload,
   RescueTeamStatus,
 } from "@/types/rescue-teams";
+import { useToast } from "@/components/ui/Toast";
 
 type FormState = {
   teamName: string;
@@ -97,6 +98,7 @@ function EditRescueTeamModal({
   const [status, setStatus] = useState<RescueTeamStatus>(team.status);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { success, error: toastError } = useToast();
 
   const handleSave = async () => {
     if (!teamName.trim()) { setError("Tên đội không được để trống."); return; }
@@ -119,8 +121,10 @@ function EditRescueTeamModal({
       const updated = await updateRescueTeam(team._id!, payload);
       onSaved(updated);
       onClose();
+      success("Đội cứu hộ đã được cập nhật thành công.");
     } catch (e: any) {
       setError(e?.response?.data?.message || "Cập nhật đội cứu hộ thất bại.");
+      toastError(e?.response?.data?.message || e?.message || "Cập nhật đội cứu hộ thất bại.");
     } finally {
       setSaving(false);
     }
@@ -279,6 +283,7 @@ export default function RescueManagement() {
   const [locationAddressLoading, setLocationAddressLoading] = useState(false);
   const [updatingLocation, setUpdatingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
+  const { success, error: toastError } = useToast();
 
   const fetchTeams = useCallback(async () => {
     setLoading(true);

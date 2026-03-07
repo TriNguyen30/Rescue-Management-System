@@ -23,6 +23,7 @@ import {
 } from "@/services/inventory.service";
 import { InventoryItem, CreateInventoryItemPayload, UpdateInventoryItemPayload } from "@/types/inventory";
 import { ManagerLayout } from "@/components/ui/ManagerSidebar";
+import { useToast } from "@/components/ui/Toast";
 
 type FormState = {
     itemName: string;
@@ -57,6 +58,7 @@ function EditInventoryModal({
     const [description, setDescription] = useState(item.description || "");
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const { success, error: toastError } = useToast();
 
     const handleSave = async () => {
         const quantityNumber = Number(quantity);
@@ -77,8 +79,11 @@ function EditInventoryModal({
             const updated = await updateInventoryItem(item.id || item._id!, payload);
             onSaved(updated);
             onClose();
+            success("Vật tư đã được cập nhật thành công.");
         } catch (e: any) {
-            setError(e?.response?.data?.message || "Cập nhật vật tư thất bại.");
+            const message = e?.response?.data?.message || "Cập nhật vật tư thất bại.";
+            setError(message);
+            toastError(message);
         } finally {
             setSaving(false);
         }
@@ -166,6 +171,7 @@ function UpdateStockModal({
     const [amount, setAmount] = useState("");
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const { success, error: toastError } = useToast();
 
     const parsedAmount = Number(amount);
     const isValid = amount.trim() !== "" && Number.isFinite(parsedAmount) && parsedAmount !== 0;
@@ -182,8 +188,11 @@ function UpdateStockModal({
             const updated = await updateInventoryStock(item.id || item._id!, parsedAmount);
             onSaved(updated);
             onClose();
+            success("Cập nhật tồn kho thành công.");
         } catch (e: any) {
-            setError(e?.response?.data?.message || "Cập nhật số lượng thất bại.");
+            const message = e?.response?.data?.message || "Cập nhật số lượng thất bại.";
+            setError(message);
+            toastError(message);
         } finally {
             setSaving(false);
         }
@@ -278,6 +287,7 @@ export default function InventoryManagement() {
     const [formError, setFormError] = useState("");
     const [editItem, setEditItem] = useState<InventoryItem | null>(null);
     const [stockItem, setStockItem] = useState<InventoryItem | null>(null);
+    const { success, error: toastError } = useToast();
 
     const fetchItems = useCallback(async () => {
         setLoading(true);
@@ -336,8 +346,11 @@ export default function InventoryManagement() {
             const created = await createInventoryItem(payload);
             setItems((prev) => [created, ...prev]);
             setModalOpen(false);
+            success("Vật tư đã được tạo thành công.");
         } catch (e: any) {
-            setFormError(e?.response?.data?.message || e?.message || "Không thể tạo vật tư.");
+            const message = e?.response?.data?.message || e?.message || "Không thể tạo vật tư.";
+            setFormError(message);
+            toastError(message);
         } finally {
             setSubmitting(false);
         }
