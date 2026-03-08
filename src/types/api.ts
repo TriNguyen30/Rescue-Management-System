@@ -9,11 +9,12 @@ export interface ApiResponse<T> {
 export interface AuthUser {
   id: string;
   username: string;
-  email: string;
+  email?: string;
+  fullName?: string;
   role: string;
   phone: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AuthResponse {
