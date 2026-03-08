@@ -240,7 +240,7 @@ export default function RescueRequestPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={s.alertDot} />
                         <div>
-                            <h1 style={s.title}>🆘 Gửi Yêu Cầu Cứu Hộ</h1>
+                            <h1 style={s.title}>Gửi Yêu Cầu Cứu Hộ</h1>
                             <p style={s.subtitle}>Chung Tay Vượt Lũ · Hệ thống cứu hộ khẩn cấp</p>
                         </div>
                     </div>
