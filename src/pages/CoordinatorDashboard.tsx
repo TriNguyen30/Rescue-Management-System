@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { AlertCircle, Phone, User, Calendar, MapPin, RefreshCw, Loader2 } from "lucide-react";
 import { getRescueRequests } from "@/services/rescue-coordinator.service";
 import type { RescueRequest } from "@/types/rescue-requests";
@@ -42,6 +43,7 @@ function formatDate(iso: string) {
 }
 
 export default function CoordinatorDashboard() {
+    const navigate = useNavigate();
     const [requests, setRequests] = useState<RescueRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -107,7 +109,11 @@ export default function CoordinatorDashboard() {
                             return (
                                 <div
                                     key={req._id}
-                                    className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => navigate(`/coordinator/requests/${req._id}`)}
+                                    onKeyDown={(e) => e.key === "Enter" && navigate(`/coordinator/requests/${req._id}`)}
+                                    className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                                 >
                                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                                         <div className="flex-1 space-y-3">

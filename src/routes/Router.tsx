@@ -14,6 +14,7 @@ import InventoryManagement from "@/pages/InventoryManagement";
 import AdminDashboard from "@/pages/AdminDashboard";
 import VehicleManagement from "@/pages/VehicleManagement";
 import RescueMap from "@/pages/RescueMap";
+import RequestDetails from "@/pages/RequestDetails";
 
 export default function AppRoutes() {
   return (
@@ -86,6 +87,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute requireCoordinator>
             <CoordinatorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/coordinator/requests/:id"
+        element={
+          <ProtectedRoute requireCoordinator>
+            <RequestDetails />
           </ProtectedRoute>
         }
       />
