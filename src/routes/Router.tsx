@@ -43,6 +43,14 @@ export default function AppRoutes() {
         }
       />
       <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/manager"
         element={
           <ProtectedRoute requireManager>

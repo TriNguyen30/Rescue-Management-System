@@ -47,10 +47,10 @@ interface AdminSidebarProps {
 
 // ── Nav Config ────────────────────────────────────────────────────────────────
 const NAV_ITEMS: NavItem[] = [
-    { key: "dashboard", label: "Tổng quan", icon: <LayoutDashboard className="w-4 h-4" />, path: "/admin/dashboard", section: "Chính" },
+    { key: "dashboard", label: "Tổng quan", icon: <LayoutDashboard className="w-4 h-4" />, path: "/manager/dashboard", section: "Chính" },
     { key: "rescue-map", label: "Bản đồ cứu hộ", icon: <Map className="w-4 h-4" />, path: "/manager/rescue-map", badge: "LIVE" },
-    { key: "alerts", label: "Cảnh báo", icon: <AlertTriangle className="w-4 h-4" />, path: "/admin/alerts", badge: 3 },
-    { key: "broadcasts", label: "Phát sóng", icon: <Radio className="w-4 h-4" />, path: "/admin/broadcasts" },
+    { key: "alerts", label: "Cảnh báo", icon: <AlertTriangle className="w-4 h-4" />, path: "/manager/alerts", badge: 3 },
+    // { key: "broadcasts", label: "Phát sóng", icon: <Radio className="w-4 h-4" />, path: "/admin/broadcasts" },
 
     // { key: "users", label: "Người dùng", icon: <Users className="w-4 h-4" />, path: "/admin/users"},
     { key: "rescue-teams", label: "Đội cứu hộ", icon: <HeartPulse className="w-4 h-4" />, path: "/manager/rescue-teams", section: "Quản lý" },
@@ -58,7 +58,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: "vehicle", label: "Phương tiện", icon: <CarFront className="w-4 h-4" />, path: "/manager/vehicle" },
     // { key: "requests", label: "Yêu cầu cứu hộ", icon: <Bell className="w-4 h-4" />, path: "/admin/requests", badge: 12 },
     // { key: "reports", label: "Báo cáo", icon: <FileText className="w-4 h-4" />, path: "/admin/reports" },
-    { key: "settings", label: "Cài đặt", icon: <Settings className="w-4 h-4" />, path: "/admin/settings", section: "Hệ thống" },
+    { key: "settings", label: "Cài đặt", icon: <Settings className="w-4 h-4" />, path: "/manager/settings", section: "Hệ thống" },
 ];
 
 // ── Badge ─────────────────────────────────────────────────────────────────────

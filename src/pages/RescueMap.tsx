@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { ManagerLayout } from '@/components/ui/ManagerSidebar'
+import { useLocation } from 'react-router-dom'
 
 // ── Fix Leaflet's broken default icon paths when bundled with Vite/Webpack ────
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
@@ -47,11 +48,21 @@ function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function RescueMap() {
-    const [position, setPosition] = useState<Position | null>(null)
+    const location = useLocation()
+    const state = location.state as { lat?: number; lng?: number } | null
+    const [position, setPosition] = useState<Position | null>(
+        state?.lat && state?.lng ? { lat: state.lat, lng: state.lng } : null,
+    )
     const [error, setError] = useState<string | null>(null)
     const [locating, setLocating] = useState(true)
 
     useEffect(() => {
+        // If we already have a position from navigation state, don't re-request geolocation
+        if (position) {
+            setLocating(false)
+            return
+        }
+
         if (!navigator.geolocation) {
             setError('Trình duyệt không hỗ trợ định vị vị trí.')
             setLocating(false)
@@ -70,7 +81,7 @@ export default function RescueMap() {
             },
             { enableHighAccuracy: true, timeout: 10000 },
         )
-    }, [])
+    }, [position])
 
     const center: [number, number] = position
         ? [position.lat, position.lng]
