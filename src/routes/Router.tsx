@@ -15,6 +15,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import VehicleManagement from "@/pages/VehicleManagement";
 import RescueMap from "@/pages/RescueMap";
 import RequestDetails from "@/pages/RequestDetails";
+import RescueTeamDashboard from "@/pages/RescueTeamDashboard";
 
 export default function AppRoutes() {
   return (
@@ -98,14 +99,14 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* <Route
+      <Route
         path="/rescue-team"
         element={
           <ProtectedRoute requireRescueTeam>
             <RescueTeamDashboard />
           </ProtectedRoute>
         }
-      /> */}
+      />
     </Routes>
   );
 }
