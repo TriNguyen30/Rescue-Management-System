@@ -1,3 +1,5 @@
+export type UrgencyLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
 export interface CreateRescueRequestPayload {
     description: string;
     latitude: number;
@@ -16,6 +18,17 @@ export interface GeoPoint {
     coordinates: [number, number]; // [longitude, latitude]
 }
 
+export interface SupplyItemDto {
+    inventoryId: string;
+    quantity: number;
+}
+
+export interface AssignRequestPayload {
+    teamId: string;
+    vehicleId?: string;
+    supplies?: SupplyItemDto[];
+}
+
 export interface RescueRequest {
     _id: string;
     requestCode: string;
@@ -24,8 +37,11 @@ export interface RescueRequest {
     location: GeoPoint;
     images: string[];
     status: string;
-    assignedTeamId: string | null;
-    urgencyLevel?: string;
+    assignedTeamId?: {
+        _id: string
+        teamName: string
+    }
+    urgencyLevel?: UrgencyLevel;
     createdAt: string;
     updatedAt: string;
 }
