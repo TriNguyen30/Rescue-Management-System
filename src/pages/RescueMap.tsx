@@ -50,19 +50,17 @@ function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }
 export default function RescueMap() {
     const location = useLocation()
     const state = location.state as { lat?: number; lng?: number } | null
-    const [position, setPosition] = useState<Position | null>(
-        state?.lat && state?.lng ? { lat: state.lat, lng: state.lng } : null,
-    )
+
+    // Vị trí đội cứu hộ (truyền từ màn hình trước qua location.state)
+    const rescuePosition: Position | null =
+        state?.lat && state?.lng ? { lat: state.lat, lng: state.lng } : null
+
+    // Vị trí thiết bị hiện tại (geolocation)
+    const [position, setPosition] = useState<Position | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [locating, setLocating] = useState(true)
 
     useEffect(() => {
-        // If we already have a position from navigation state, don't re-request geolocation
-        if (position) {
-            setLocating(false)
-            return
-        }
-
         if (!navigator.geolocation) {
             setError('Trình duyệt không hỗ trợ định vị vị trí.')
             setLocating(false)
@@ -81,13 +79,15 @@ export default function RescueMap() {
             },
             { enableHighAccuracy: true, timeout: 10000 },
         )
-    }, [position])
+    }, [])
 
-    const center: [number, number] = position
-        ? [position.lat, position.lng]
-        : DEFAULT_CENTER
+    const center: [number, number] = rescuePosition
+        ? [rescuePosition.lat, rescuePosition.lng]
+        : position
+            ? [position.lat, position.lng]
+            : DEFAULT_CENTER
 
-    const zoom = position ? 16 : DEFAULT_ZOOM
+    const zoom = rescuePosition || position ? 16 : DEFAULT_ZOOM
 
     return (
         <ManagerLayout>
@@ -119,11 +119,20 @@ export default function RescueMap() {
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
 
-                    {/* Smoothly pan to user location once it's available */}
-                    {position && <ChangeView center={center} zoom={zoom} />}
+                    {/* Smoothly pan to location once it's available */}
+                    {(rescuePosition || position) && <ChangeView center={center} zoom={zoom} />}
+
+                    {rescuePosition && (
+                        <Marker
+                            position={[rescuePosition.lat, rescuePosition.lng]}
+                            icon={userLocationIcon}
+                        >
+                            <Popup>🚑 Vị trí đội cứu hộ</Popup>
+                        </Marker>
+                    )}
 
                     {position && (
-                        <Marker position={center} icon={userLocationIcon}>
+                        <Marker position={[position.lat, position.lng]} icon={userLocationIcon}>
                             <Popup>📍 Vị trí hiện tại của bạn</Popup>
                         </Marker>
                     )}

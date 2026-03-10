@@ -163,8 +163,8 @@ function EditModal({
                 setError("");
               }}
               className={`py-3 mr-6 text-sm font-semibold border-b-2 transition-colors ${tab === t
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-400 hover:text-gray-600"
                 }`}
             >
               {t === "info" ? "Thông tin" : "Mật khẩu"}
@@ -526,8 +526,8 @@ export default function AdminUserDashboard() {
                     setRoleFilter(roleFilter === role ? "ALL" : role)
                   }
                   className={`p-4 rounded-2xl border text-left transition-all ${roleFilter === role
-                      ? `${meta.bg} ${meta.color} border-current shadow-sm`
-                      : "bg-white border-gray-100 hover:border-gray-200 text-gray-700"
+                    ? `${meta.bg} ${meta.color} border-current shadow-sm`
+                    : "bg-white border-gray-100 hover:border-gray-200 text-gray-700"
                     }`}
                 >
                   <p className="text-2xl font-bold">{count}</p>

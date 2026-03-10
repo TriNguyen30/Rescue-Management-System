@@ -91,8 +91,8 @@ export default function Register() {
   const fields: { label: string; field: keyof RegisterValues; type: string; placeholder: string; icon: React.ReactNode }[] = [
     { label: "Họ và tên", field: "fullName", type: "text", placeholder: "Nguyễn Văn A", icon: <User className="w-4 h-4 text-gray-400" /> },
     { label: "Tên đăng nhập", field: "username", type: "text", placeholder: "Tên đăng nhập", icon: <User className="w-4 h-4 text-gray-400" /> },
-    { label: "Email", field: "email", type: "email", placeholder: "Nhập email của bạn", icon: <Mail className="w-4 h-4 text-gray-400" /> },
-    { label: "Số điện thoại", field: "phone", type: "tel", placeholder: "Nhập số điện thoại", icon: <Phone className="w-4 h-4 text-gray-400" /> },
+    { label: "Email (Tùy chọn)", field: "email", type: "email", placeholder: "Nhập email của bạn", icon: <Mail className="w-4 h-4 text-gray-400" /> },
+    { label: "Số điện thoại (Tùy chọn)", field: "phone", type: "tel", placeholder: "Nhập số điện thoại", icon: <Phone className="w-4 h-4 text-gray-400" /> },
   ];
 
   return (
