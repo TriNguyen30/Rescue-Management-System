@@ -1,5 +1,5 @@
 import { axiosInstance } from "@/lib/axios";
-import type { RescueRequest } from "@/types/rescue-requests";
+import type { RescueRequest, UrgencyLevel, AssignRequestPayload } from "@/types/rescue-requests";
 
 /**
  * [Coordinator] Lấy danh sách yêu cầu cứu hộ
@@ -30,6 +30,44 @@ export const getRescueRequestById = async (id: string): Promise<RescueRequest> =
         return data as RescueRequest;
     } catch (error) {
         console.error("Error fetching rescue request:", error);
+        throw error;
+    }
+};
+
+/**
+ * [Coordinator] Xác minh yêu cầu & phân loại mức độ khẩn cấp
+ * PATCH /rescue-requests/:id/verify
+ */
+export const verifyRescueRequest = async (id: string, urgencyLevel: UrgencyLevel): Promise<RescueRequest> => {
+    try {
+        const response = await axiosInstance.patch<RescueRequest | { data: RescueRequest }>(
+            `/rescue-requests/${id}/verify`,
+            { urgencyLevel },
+        );
+        const data = response.data;
+        if (data && typeof data === "object" && "data" in data && data.data) return data.data;
+        return data as RescueRequest;
+    } catch (error) {
+        console.error("Error verifying rescue request:", error);
+        throw error;
+    }
+};
+
+/**
+ * [Coordinator] Điều phối: gán đội, phương tiện, vật tư cho yêu cầu
+ * PATCH /rescue-requests/:id/assign
+ */
+export const assignRescueRequest = async (id: string, payload: AssignRequestPayload): Promise<RescueRequest> => {
+    try {
+        const response = await axiosInstance.patch<RescueRequest | { data: RescueRequest }>(
+            `/rescue-requests/${id}/assign`,
+            payload,
+        );
+        const data = response.data;
+        if (data && typeof data === "object" && "data" in data && data.data) return (data as any).data;
+        return data as RescueRequest;
+    } catch (error) {
+        console.error("Error assigning rescue request:", error);
         throw error;
     }
 };
