@@ -4,6 +4,7 @@ import { getAssignedTasks } from "@/services/rescue-request.service";
 import type { RescueRequest } from "@/types/rescue-requests";
 import { getRescueTeams } from "@/services/rescue-team.service";
 import type { RescueTeam } from "@/types/rescue-teams";
+import { useNavigate } from "react-router-dom";
 import Modal from "@/components/ui/Modal";
 
 function formatDate(iso: string) {
@@ -17,6 +18,7 @@ function formatDate(iso: string) {
 }
 
 export default function RescueTeamDashboard() {
+    const navigate = useNavigate();
     const [teamId, setTeamId] = useState("");
     const [teamName, setTeamName] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -116,7 +118,8 @@ export default function RescueTeamDashboard() {
                             return (
                                 <div
                                     key={task._id}
-                                    className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+                                    className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                    onClick={() => navigate(`/rescue-team/assigned-task/${task._id}`)}
                                 >
                                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                                         <div className="flex-1 space-y-2">

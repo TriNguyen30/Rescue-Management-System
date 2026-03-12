@@ -18,6 +18,7 @@ import RequestDetails from "@/pages/RequestDetails";
 import RescueTeamDashboard from "@/pages/RescueTeamDashboard";
 import CoordinatorLayout from "@/layouts/CoordinatorLayout";
 import RescueTeamLayout from "@/layouts/RescueTeamLayout";
+import AssignedTaskDetails from "@/pages/AssignedTaskDetails";
 
 export default function AppRoutes() {
   return (
@@ -106,6 +107,7 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<RescueTeamDashboard />} />
+        <Route path="assigned-task/:id" element={<AssignedTaskDetails />} />
       </Route>
     </Routes>
   );
