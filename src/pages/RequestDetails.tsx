@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Phone, User, Calendar, MapPin, AlertCircle, Loader2 } from "lucide-react";
-import { getRescueRequestById, verifyRescueRequest, assignRescueRequest } from "@/services/rescue-coordinator.service";
+import { getRescueRequestById, verifyRescueRequest, assignRescueRequest } from "@/services/rescue-request.service";
 import type { RescueRequest, UrgencyLevel, SupplyItemDto } from "@/types/rescue-requests";
 import { API_BASE_URL } from "@/config/env";
 import Modal from "@/components/ui/Modal";

@@ -416,14 +416,14 @@ function UserRow({
         <div className="flex items-center gap-1 justify-end">
           <button
             onClick={() => onEdit(user)}
-            className="p-1.5 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
             title="Chỉnh sửa"
           >
             <Edit3 className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete(user)}
-            className="p-1.5 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
             title="Xóa"
           >
             <Trash2 className="w-4 h-4" />
@@ -525,7 +525,7 @@ export default function AdminUserDashboard() {
                   onClick={() =>
                     setRoleFilter(roleFilter === role ? "ALL" : role)
                   }
-                  className={`p-4 rounded-2xl border text-left transition-all ${roleFilter === role
+                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${roleFilter === role
                     ? `${meta.bg} ${meta.color} border-current shadow-sm`
                     : "bg-white border-gray-100 hover:border-gray-200 text-gray-700"
                     }`}

@@ -54,9 +54,9 @@ const NAV_ITEMS: NavItem[] = [
 
     // { key: "users", label: "Người dùng", icon: <Users className="w-4 h-4" />, path: "/admin/users"},
     { key: "rescue-teams", label: "Đội cứu hộ", icon: <HeartPulse className="w-4 h-4" />, path: "/manager/rescue-teams", section: "Quản lý" },
-    { key: "inventories", label: "Vật phẩm", icon: <ToolCase className="w-4 h-4" />, path: "/manager/inventories" },
+    { key: "inventories", label: "Tồn kho", icon: <ToolCase className="w-4 h-4" />, path: "/manager/inventories" },
     { key: "vehicle", label: "Phương tiện", icon: <CarFront className="w-4 h-4" />, path: "/manager/vehicle" },
-    // { key: "requests", label: "Yêu cầu cứu hộ", icon: <Bell className="w-4 h-4" />, path: "/admin/requests", badge: 12 },
+    { key: "requests", label: "Yêu cầu cứu hộ", icon: <Bell className="w-4 h-4" />, path: "/manager/requests", badge: 12 },
     // { key: "reports", label: "Báo cáo", icon: <FileText className="w-4 h-4" />, path: "/admin/reports" },
     { key: "settings", label: "Cài đặt", icon: <Settings className="w-4 h-4" />, path: "/manager/settings", section: "Hệ thống" },
 ];

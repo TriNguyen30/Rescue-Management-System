@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, Phone, User, Calendar, MapPin, RefreshCw, Loader2 } from "lucide-react";
-import { getRescueRequests } from "@/services/rescue-coordinator.service";
+import { getRescueRequests } from "@/services/rescue-request.service";
 import type { RescueRequest } from "@/types/rescue-requests";
 
 const STATUS_META: Record<string, { label: string; bg: string; color: string }> = {
