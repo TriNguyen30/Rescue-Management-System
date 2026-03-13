@@ -48,7 +48,9 @@ export default function Map() {
   const zoom = position ? 16 : 13
 
   return (
-    <div className="relative w-full h-full">
+    // Use 100dvh (dynamic viewport height) so the map always fills the screen
+    // minus the navbar, with no scroll on this page specifically.
+    <div className="relative w-full" style={{ height: 'calc(100dvh - var(--navbar-height, 64px))' }}>
       {error && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white border border-red-200 text-red-600 text-sm font-medium px-4 py-2 rounded-xl shadow-md pointer-events-none">
           {error}
@@ -66,7 +68,7 @@ export default function Map() {
         {position && <ChangeView center={center} zoom={zoom} />}
         {position && (
           <Marker position={center} icon={userLocationIcon}>
-            <Popup>Vị trí hiện tại của bạn</Popup>
+            <Popup>📍 Vị trí hiện tại của bạn</Popup>
           </Marker>
         )}
       </MapContainer>
