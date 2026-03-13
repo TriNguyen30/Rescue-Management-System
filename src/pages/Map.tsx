@@ -26,6 +26,8 @@ function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }
   return null
 }
 
+
+
 export default function Map() {
   const [position, setPosition] = useState<Position | null>(null)
   const [error, setError] = useState<string | null>(null)

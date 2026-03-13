@@ -20,13 +20,15 @@ import RTRequestManagement from "@/pages/RescueRequestManagement";
 import CoordinatorLayout from "@/layouts/CoordinatorLayout";
 import RescueTeamLayout from "@/layouts/RescueTeamLayout";
 import AssignedTaskDetails from "@/pages/AssignedTaskDetails";
+import UserProfile from "@/pages/UserProfile";
 
 export default function AppRoutes() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/map" element={<Map/>} />
+        <Route path="/map" element={<Map />} />
+        <Route path="/profile" element={<UserProfile />} />
       </Route>
       <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={<Login />} />

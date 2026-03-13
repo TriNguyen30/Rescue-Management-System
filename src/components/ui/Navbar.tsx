@@ -131,13 +131,13 @@ export default function Navbar() {
                     <div className="p-1.5">
                       <button
                         onClick={() => { navigate("/profile"); setProfileOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
                       >
                         <User className="w-4 h-4" /> Hồ sơ cá nhân
                       </button>
                       <button
                         onClick={() => { handleLogout(); setProfileOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 transition-colors"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
                       >
                         <LogOut className="w-4 h-4" /> Đăng xuất
                       </button>
