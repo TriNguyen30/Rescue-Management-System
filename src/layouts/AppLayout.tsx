@@ -1,12 +1,13 @@
 import Navbar from "@/components/ui/Navbar";
 import { Outlet } from "react-router-dom";
-import Footer from "@/components/ui/Footer";
+
 export default function AppLayout() {
   return (
-    <div>
+    <div className="flex flex-col h-screen overflow-hidden">
       <Navbar />
-      <Outlet/>
-      {/* <Footer /> */}
+      <div className="flex-1 overflow-hidden">
+        <Outlet />
+      </div>
     </div>
   );
 }

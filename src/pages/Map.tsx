@@ -13,20 +13,17 @@ const userLocationIcon = L.icon({
   shadowSize: [41, 41],
 })
 
-type Position = {
-  lat: number
-  lng: number
-}
+const DEFAULT_CENTER: [number, number] = [21.0278, 105.8342]
+
+type Position = { lat: number; lng: number }
 
 function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap()
   useEffect(() => {
     map.setView(center, zoom)
-  }, [map, center, zoom])
+  }, [map, center[0], center[1], zoom])
   return null
 }
-
-
 
 export default function Map() {
   const [position, setPosition] = useState<Position | null>(null)
@@ -37,48 +34,38 @@ export default function Map() {
       setError('Trình duyệt không hỗ trợ định vị vị trí.')
       return
     }
-
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setPosition({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        })
-      },
+      (pos) => setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
       (err) => {
         console.error(err)
         setError('Không lấy được vị trí hiện tại. Hãy kiểm tra quyền truy cập vị trí.')
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-      },
+      { enableHighAccuracy: true, timeout: 10000 },
     )
   }, [])
 
+  const center: [number, number] = position ? [position.lat, position.lng] : DEFAULT_CENTER
+  const zoom = position ? 16 : 13
+
   return (
-    <div className="w-full" style={{ height: 'calc(100vh - 64px)' }}>
+    <div className="relative w-full h-full">
       {error && (
-        <div className="p-4 text-sm text-red-600">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white border border-red-200 text-red-600 text-sm font-medium px-4 py-2 rounded-xl shadow-md pointer-events-none">
           {error}
         </div>
       )}
-
       <MapContainer
-        center={position ?? { lat: 21.0278, lng: 105.8342 }} // Hà Nội fallback
-        zoom={position ? 16 : 13}
-        className="w-full h-full"
+        center={center}
+        zoom={zoom}
+        style={{ width: '100%', height: '100%' }}
       >
         <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-
+        {position && <ChangeView center={center} zoom={zoom} />}
         {position && (
-          <ChangeView center={[position.lat, position.lng]} zoom={16} />
-        )}
-
-        {position && (
-          <Marker position={position} icon={userLocationIcon}>
+          <Marker position={center} icon={userLocationIcon}>
             <Popup>Vị trí hiện tại của bạn</Popup>
           </Marker>
         )}
