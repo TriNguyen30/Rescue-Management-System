@@ -38,9 +38,14 @@ export interface RescueRequest {
     images: string[];
     status: string;
     assignedTeamId?: {
-        _id: string
-        teamName: string
-    }
+        _id: string;
+        teamName: string;
+        currentLocation?: GeoPoint;
+        leaderId?: string;
+        members?: string[];
+        vehicles?: string[];
+        status?: string;
+    };
     urgencyLevel?: UrgencyLevel;
     createdAt: string;
     updatedAt: string;
