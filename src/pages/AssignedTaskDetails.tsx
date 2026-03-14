@@ -5,9 +5,9 @@ import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from "react-
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-import { getRescueRequestById } from "@/services/rescue-request.service";
+import { getRescueRequestById, updateRescueRequestStatus } from "@/services/rescue-request.service";
 import { getResuceTeamById } from "@/services/rescue-team.service";
-import type { RescueRequest } from "@/types/rescue-requests";
+import type { RescueRequest, RescueRequestStatus } from "@/types/rescue-requests";
 import type { RescueTeam } from "@/types/rescue-teams";
 import { API_BASE_URL } from "@/config/env";
 
@@ -60,6 +60,9 @@ export default function AssignedTaskDetails() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [updateStatusError, setUpdateStatusError] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<RescueRequestStatus | "">("");
 
   useEffect(() => {
     if (!id) return;
@@ -97,6 +100,28 @@ export default function AssignedTaskDetails() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (request?.status) {
+      setSelectedStatus(request.status as RescueRequestStatus);
+    }
+  }, [request]);
+
+  const handleUpdateStatus = async () => {
+    if (!id || !selectedStatus) return;
+    setUpdatingStatus(true);
+    setUpdateStatusError(null);
+    try {
+      const updated = await updateRescueRequestStatus(id, selectedStatus);
+      setRequest(updated);
+    } catch (e) {
+      setUpdateStatusError(
+        e instanceof Error ? e.message : "Không thể cập nhật tiến độ nhiệm vụ",
+      );
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   const teamPoint = useMemo(() => {
     if (!team?.currentLocation?.coordinates) return null;
@@ -209,6 +234,44 @@ export default function AssignedTaskDetails() {
             <p className="text-gray-700">
               {request.description}
             </p>
+
+            <div className="mt-4 space-y-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase">
+                Cập nhật tiến độ
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                <select
+                  value={selectedStatus}
+                  onChange={(e) =>
+                    setSelectedStatus(e.target.value as RescueRequestStatus | "")
+                  }
+                  className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Chọn trạng thái --</option>
+                  <option value="IN_PROGRESS">Đang thực hiện</option>
+                  <option value="COMPLETED">Hoàn thành</option>
+                  <option value="CANCELLED">Hủy</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={handleUpdateStatus}
+                  disabled={updatingStatus || !selectedStatus}
+                  className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {updatingStatus ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Đang lưu...
+                    </>
+                  ) : (
+                    "Lưu tiến độ"
+                  )}
+                </button>
+              </div>
+              {updateStatusError && (
+                <p className="text-xs text-red-600">{updateStatusError}</p>
+              )}
+            </div>
           </div>
 
           <div className="border rounded-xl p-4 text-sm space-y-2">

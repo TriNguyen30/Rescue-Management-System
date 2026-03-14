@@ -4,6 +4,8 @@ import type {
     RescueRequest,
     UrgencyLevel,
     AssignRequestPayload,
+    RescueRequestStatus,
+    UpdateRescueRequestStatusPayload,
 } from "@/types/rescue-requests";
 
 /**
@@ -87,6 +89,31 @@ export const assignRescueRequest = async (id: string, payload: AssignRequestPayl
         return data as RescueRequest;
     } catch (error) {
         console.error("Error assigning rescue request:", error);
+        throw error;
+    }
+};
+
+/**
+ * [Team] Cập nhật tiến độ yêu cầu cứu hộ được giao
+ * PATCH /rescue-requests/:id/status
+ */
+export const updateRescueRequestStatus = async (
+    id: string,
+    status: RescueRequestStatus,
+): Promise<RescueRequest> => {
+    try {
+        const payload: UpdateRescueRequestStatusPayload = { status };
+        const response = await axiosInstance.patch<RescueRequest | { data: RescueRequest }>(
+            `/rescue-requests/${id}/status`,
+            payload,
+        );
+        const data = response.data;
+        if (data && typeof data === "object" && "data" in (data as any) && (data as any).data) {
+            return (data as any).data;
+        }
+        return data as RescueRequest;
+    } catch (error) {
+        console.error("Error updating rescue request status:", error);
         throw error;
     }
 };
