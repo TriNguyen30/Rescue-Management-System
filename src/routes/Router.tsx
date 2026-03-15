@@ -14,6 +14,11 @@ import InventoryManagement from "@/pages/InventoryManagement";
 import AdminDashboard from "@/pages/AdminDashboard";
 import VehicleManagement from "@/pages/VehicleManagement";
 import RescueMap from "@/pages/RescueMap";
+import RequestDetails from "@/pages/RequestDetails";
+import RescueTeamDashboard from "@/pages/RescueTeamDashboard";
+import CoordinatorLayout from "@/layouts/CoordinatorLayout";
+import RescueTeamLayout from "@/layouts/RescueTeamLayout";
+import AssignedTaskDetails from "@/pages/AssignedTaskDetails";
 
 export default function AppRoutes() {
   return (
@@ -85,18 +90,25 @@ export default function AppRoutes() {
         path="/coordinator"
         element={
           <ProtectedRoute requireCoordinator>
-            <CoordinatorDashboard />
+            <CoordinatorLayout />
           </ProtectedRoute>
         }
-      />
-      {/* <Route
+      >
+        <Route index element={<CoordinatorDashboard />} />
+        <Route path="requests/:id" element={<RequestDetails />} />
+      </Route>
+
+      <Route
         path="/rescue-team"
         element={
           <ProtectedRoute requireRescueTeam>
-            <RescueTeamDashboard />
+            <RescueTeamLayout />
           </ProtectedRoute>
         }
-      /> */}
+      >
+        <Route index element={<RescueTeamDashboard />} />
+        <Route path="assigned-task/:id" element={<AssignedTaskDetails />} />
+      </Route>
     </Routes>
   );
 }
