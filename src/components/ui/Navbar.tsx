@@ -1,4 +1,4 @@
-import { Bell, Menu, X, LogOut, User, ChevronDown, Shield } from "lucide-react";
+import { Bell, Menu, X, LogOut, User, ChevronDown, Shield, ClipboardList } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, NavLink } from "react-router";
 import Logo from "@/assets/image/LogoV2.png";
@@ -134,6 +134,12 @@ export default function Navbar() {
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
                       >
                         <User className="w-4 h-4" /> Hồ sơ cá nhân
+                      </button>
+                      <button
+                        onClick={() => { navigate("/requests-history"); setProfileOpen(false); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                      >
+                        <ClipboardList className="w-4 h-4" /> Lịch sử cầu cứu
                       </button>
                       <button
                         onClick={() => { handleLogout(); setProfileOpen(false); }}

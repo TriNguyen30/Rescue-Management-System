@@ -12,7 +12,7 @@ interface UploadedImage {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function RescueRequestPage() {
-    const { user: citizen } = useAppSelector((state) => state.auth);
+    const { user: citizen, token } = useAppSelector((state) => state.auth);
     const [step, setStep] = useState<"form" | "success" | "error" | "offline">("form");
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [gpsLoading, setGpsLoading] = useState(true);
@@ -29,6 +29,8 @@ export default function RescueRequestPage() {
         lng: null as number | null,
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const canSendRequest = !!citizen && citizen.role === "CITIZEN";
 
     // GPS
     useEffect(() => {
@@ -389,20 +391,30 @@ export default function RescueRequestPage() {
                             width: "100%",
                             fontSize: 16,
                             padding: "16px",
-                            opacity: submitting || gpsLoading ? 0.6 : 1,
+                            opacity: submitting || gpsLoading || !canSendRequest ? 0.6 : 1,
+                            cursor: submitting || gpsLoading || !canSendRequest ? "not-allowed" : "pointer",
                         }}
                         onClick={handleSubmit}
-                        disabled={submitting || gpsLoading}
+                        disabled={submitting || gpsLoading || !canSendRequest}
                     >
                         {submitting ? (
                             <>
                                 <span style={s.spinnerWhite} /> Đang gửi...
                             </>
                         ) : (
-                            "🆘 Gửi yêu cầu cứu hộ"
+                            "Gửi yêu cầu cứu hộ"
                         )}
                     </button>
-                    <p style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", marginTop: 10 }}>Thông tin của bạn được bảo mật và chỉ dùng cho mục đích cứu hộ</p>
+                    {!canSendRequest && (
+                        <p style={{ textAlign: "center", fontSize: 12, color: "#dc2626", marginTop: 8 }}>
+                            {token && citizen
+                                ? "Chỉ tài khoản người dân (CITIZEN) mới có thể gửi yêu cầu cứu hộ."
+                                : "Vui lòng đăng nhập bằng tài khoản người dân (CITIZEN) để gửi yêu cầu cứu hộ."}
+                        </p>
+                    )}
+                    <p style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", marginTop: 10 }}>
+                        Thông tin của bạn được bảo mật và chỉ dùng cho mục đích cứu hộ
+                    </p>
                 </Section>
             </div>
         </Screen>

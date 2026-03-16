@@ -139,3 +139,42 @@ export const getAssignedTasks = async (teamId: string): Promise<RescueRequest[]>
         throw error;
     }
 };
+
+/**
+ * [Citizen] Xem lịch sử yêu cầu cứu hộ của chính mình
+ * GET /rescue-requests/my-requests
+ */
+export const getMyRescueRequests = async (): Promise<RescueRequest[]> => {
+    try {
+        const response = await axiosInstance.get<RescueRequest[] | { data: RescueRequest[] }>(
+            "/rescue-requests/my-requests",
+        );
+        const data = response.data;
+        if (Array.isArray(data)) return data;
+        if (data && typeof data === "object" && "data" in (data as any) && Array.isArray((data as any).data)) {
+            return (data as any).data;
+        }
+        return [];
+    } catch (error) {
+        console.error("Error fetching my rescue requests:", error);
+        throw error;
+    }
+};
+
+/**
+ * [Citizen] Xác nhận đã an toàn (Đóng đơn)
+ * PATCH /rescue-requests/:id/confirm-rescued
+ */
+export const confirmRescuedRescueRequest = async (id: string): Promise<RescueRequest> => {
+    try {
+        const response = await axiosInstance.patch<RescueRequest | { data: RescueRequest }>(
+            `/rescue-requests/${id}/confirm-rescued`,
+        );
+        const data = response.data;
+        if (data && typeof data === "object" && "data" in (data as any) && (data as any).data) return (data as any).data;
+        return data as RescueRequest;
+    } catch (error) {
+        console.error("Error confirming rescued request:", error);
+        throw error;
+    }
+};

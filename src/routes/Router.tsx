@@ -19,6 +19,7 @@ import RescueTeamDashboard from "@/pages/RescueTeamDashboard";
 import CoordinatorLayout from "@/layouts/CoordinatorLayout";
 import RescueTeamLayout from "@/layouts/RescueTeamLayout";
 import AssignedTaskDetails from "@/pages/AssignedTaskDetails";
+import RequestsHistory from "@/pages/RequestsHistory";
 
 export default function AppRoutes() {
   return (
@@ -26,6 +27,7 @@ export default function AppRoutes() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/map" element={<Map/>} />
+        <Route path="/requests-history" element={<RequestsHistory />} />
       </Route>
       <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={<Login />} />
