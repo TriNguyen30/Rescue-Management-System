@@ -25,7 +25,13 @@ interface UploadedImage {
     url: string;
 }
 
-export default function RescueRequestPage() {
+export function RescueRequestPanel({
+    embedded = false,
+    externalLocation,
+}: {
+    embedded?: boolean;
+    externalLocation?: { lat: number; lng: number } | null;
+}) {
     const { user: citizen } = useAppSelector((state) => state.auth);
     const [step, setStep] = useState<"form" | "success" | "error" | "offline">("form");
     const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -45,6 +51,13 @@ export default function RescueRequestPage() {
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
+        // If external location is provided (from map), use it and skip GPS loading
+        if (externalLocation) {
+            setForm((f) => ({ ...f, lat: externalLocation.lat, lng: externalLocation.lng }));
+            setGpsLoading(false);
+            return;
+        }
+
         if (!navigator.geolocation) {
             setForm((f) => ({ ...f, lat: 10.7769, lng: 106.7009 }));
             setGpsLoading(false);
@@ -60,7 +73,8 @@ export default function RescueRequestPage() {
                 setGpsLoading(false);
             }
         );
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [externalLocation?.lat, externalLocation?.lng]);
 
     useEffect(() => {
         const h = () => setIsOnline(navigator.onLine);
@@ -225,11 +239,10 @@ export default function RescueRequestPage() {
     );
 
     // ── MAIN FORM ─────────────────────────────────────────────────────────────
-    return (
-        <PageShell>
+    const content = (
+        <>
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
-                .rescue-root * { font-family: 'DM Sans', sans-serif; box-sizing: border-box; }
+                .rescue-root * { font-family: 'Montserrat', sans-serif; box-sizing: border-box; }
                 .btn-primary { display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:14px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;font-weight:800;font-size:14px;border:none;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(239,68,68,0.25);font-family:'DM Sans',sans-serif; }
                 .btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 24px rgba(239,68,68,0.35);}
                 .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
@@ -435,8 +448,22 @@ export default function RescueRequestPage() {
                 </div>
 
             </div>
+        </>
+    );
+
+    if (embedded) {
+        return content;
+    }
+
+    return (
+        <PageShell>
+            {content}
         </PageShell>
     );
+}
+
+export default function RescueRequestPage() {
+    return <RescueRequestPanel />;
 }
 
 // ── Shells ────────────────────────────────────────────────────────────────────

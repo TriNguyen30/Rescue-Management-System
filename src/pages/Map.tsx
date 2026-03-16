@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-// import { RescueRequestPanel } from '@/pages/Citizen'
+import { RescueRequestPanel } from '@/pages/Citizen'
 
 const userLocationIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -69,7 +69,7 @@ export default function Map() {
     >
       <div className="flex h-full">
         {/* Sidebar: Citizen rescue request form */}
-        <aside className="hidden lg:block w-[440px] shrink-0 border-r border-gray-100 bg-gray-50 overflow-y-auto">
+        <aside className="hidden lg:block w-[450px] shrink-0 border-r border-gray-100 bg-gray-50 overflow-y-auto">
           <div className="p-4">
             <div className="mb-3 rounded-2xl border border-gray-100 bg-white p-3 text-sm text-gray-600">
               <p className="font-semibold text-gray-800">Chọn vị trí trên bản đồ</p>
@@ -92,7 +92,7 @@ export default function Map() {
                 )}
               </div>
             </div>
-            {/* <RescueRequestPanel embedded externalLocation={panelLocation} /> */}
+            <RescueRequestPanel embedded externalLocation={panelLocation} />
           </div>
         </aside>
 
