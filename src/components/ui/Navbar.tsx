@@ -50,6 +50,7 @@ export default function Navbar() {
     { to: "/", label: "Trang chủ" },
     { to: "/map", label: "Bản đồ" },
     { to: "/contact", label: "Liên hệ" },
+    { to: "/donate", label: "Quyên góp" },
   ];
 
   return (
