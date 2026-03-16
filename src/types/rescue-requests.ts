@@ -1,5 +1,12 @@
 export type UrgencyLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
+export type RescueRequestStatus =
+    | "PENDING"
+    | "VERIFIED"
+    | "IN_PROGRESS"
+    | "COMPLETED"
+    | "CANCELLED"
+    
 export interface CreateRescueRequestPayload {
     description: string;
     latitude: number;
@@ -36,12 +43,21 @@ export interface RescueRequest {
     description: string;
     location: GeoPoint;
     images: string[];
-    status: string;
+    status: RescueRequestStatus | string;
     assignedTeamId?: {
-        _id: string
-        teamName: string
-    }
+        _id: string;
+        teamName: string;
+        currentLocation?: GeoPoint;
+        leaderId?: string;
+        members?: string[];
+        vehicles?: string[];
+        status?: string;
+    };
     urgencyLevel?: UrgencyLevel;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface UpdateRescueRequestStatusPayload {
+    status: RescueRequestStatus;
 }
