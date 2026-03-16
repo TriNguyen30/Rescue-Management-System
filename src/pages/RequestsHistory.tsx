@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { AlertCircle, Clock, Loader2, MapPin, ChevronLeft, ChevronRight, X } from "lucide-react";
 
-import { getMyRescueRequests } from "@/services/rescue-request.service";
+import { confirmRescuedRescueRequest, getMyRescueRequests } from "@/services/rescue-request.service";
 import type { RescueRequest } from "@/types/rescue-requests";
 import { API_BASE_URL } from "@/config/env";
 
@@ -129,6 +129,7 @@ export default function RequestsHistory() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [lightbox, setLightbox] = useState<LightboxState | null>(null);
+    const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -264,6 +265,30 @@ export default function RequestsHistory() {
                                             <span>{lat.toFixed(4)}, {lng.toFixed(4)}</span>
                                         </span>
                                     </div>
+
+                                    {(req.status === "ASSIGNED" || req.status === "IN_PROGRESS" || req.status === "PENDING") && (
+                                        <div className="pt-2">
+                                            <button
+                                                onClick={async () => {
+                                                    if (confirmingId) return;
+                                                    setConfirmingId(req._id);
+                                                    try {
+                                                        const updated = await confirmRescuedRescueRequest(req._id);
+                                                        setItems((prev) => prev.map((x) => (x._id === req._id ? updated : x)));
+                                                        alert("Đã xác nhận an toàn");
+                                                    } catch (e) {
+                                                        alert(e instanceof Error ? e.message : "Không thể xác nhận an toàn");
+                                                    } finally {
+                                                        setConfirmingId(null);
+                                                    }
+                                                }}
+                                                disabled={confirmingId === req._id}
+                                                className="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-sm font-semibold px-3 py-2 transition-colors"
+                                            >
+                                                {confirmingId === req._id ? "Đang xác nhận..." : "Xác nhận đã an toàn"}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
