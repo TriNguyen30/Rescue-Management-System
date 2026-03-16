@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { createRescueRequest } from "@/services/rescue-request.service";
 import { uploadFile } from "@/services/upload.service";
@@ -25,16 +25,8 @@ interface UploadedImage {
     url: string;
 }
 
-type LatLng = { lat: number; lng: number };
-
-export function RescueRequestPanel({
-    embedded = false,
-    externalLocation,
-}: {
-    embedded?: boolean;
-    externalLocation?: LatLng | null;
-}) {
-    const { user: citizen, token } = useAppSelector((state) => state.auth);
+export default function RescueRequestPage() {
+    const { user: citizen } = useAppSelector((state) => state.auth);
     const [step, setStep] = useState<"form" | "success" | "error" | "offline">("form");
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [gpsLoading, setGpsLoading] = useState(true);
@@ -52,29 +44,7 @@ export function RescueRequestPanel({
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const canSendRequest = !!citizen && citizen.role === "CITIZEN";
-
-    // If Map supplies a picked location, prefer it.
     useEffect(() => {
-        if (!externalLocation) return;
-        setForm((f) => ({
-            ...f,
-            lat: externalLocation.lat,
-            lng: externalLocation.lng,
-        }));
-        setGpsLoading(false);
-        setErrors((e) => {
-            const c = { ...e };
-            delete c.gps;
-            return c;
-        });
-    }, [externalLocation?.lat, externalLocation?.lng]);
-
-    // GPS
-    useEffect(() => {
-        // If embedded and location is controlled by external map, we can skip GPS
-        // (still keep old behavior when no externalLocation is provided).
-        if (embedded && externalLocation) return;
         if (!navigator.geolocation) {
             setForm((f) => ({ ...f, lat: 10.7769, lng: 106.7009 }));
             setGpsLoading(false);
@@ -100,10 +70,7 @@ export function RescueRequestPanel({
     }, []);
 
     const displayName = citizen?.fullName ?? citizen?.username ?? "Người dùng";
-    const initials = useMemo(
-        () => displayName.split(" ").map((w: string) => w[0]).slice(-2).join("").toUpperCase(),
-        [displayName]
-    );
+    const initials = displayName.split(" ").map((w: string) => w[0]).slice(-2).join("").toUpperCase();
 
     const validate = () => {
         const e: Record<string, string> = {};
@@ -180,16 +147,9 @@ export function RescueRequestPanel({
         setErrorMessage("");
     };
 
-    const Wrap = ({ children }: { children: React.ReactNode }) => {
-        if (embedded) {
-            return <div className="w-full">{children}</div>;
-        }
-        return <PageShell>{children}</PageShell>;
-    };
-
     // ── OFFLINE ──────────────────────────────────────────────────────────────
     if (step === "offline") return (
-        <Wrap>
+        <PageShell>
             <StatusCard
                 icon={<WifiOff className="w-10 h-10 text-amber-500" />}
                 iconBg="bg-amber-50 border-amber-200"
@@ -204,12 +164,12 @@ export function RescueRequestPanel({
                     <ArrowLeft className="w-4 h-4" /> Quay lại
                 </button>
             </StatusCard>
-        </Wrap>
+        </PageShell>
     );
 
     // ── ERROR ─────────────────────────────────────────────────────────────────
     if (step === "error") return (
-        <Wrap>
+        <PageShell>
             <StatusCard
                 icon={<AlertTriangle className="w-10 h-10 text-red-500" />}
                 iconBg="bg-red-50 border-red-200"
@@ -224,12 +184,12 @@ export function RescueRequestPanel({
                     <ArrowLeft className="w-4 h-4" /> Quay lại form
                 </button>
             </StatusCard>
-        </Wrap>
+        </PageShell>
     );
 
     // ── SUCCESS ───────────────────────────────────────────────────────────────
     if (step === "success") return (
-        <Wrap>
+        <PageShell>
             <StatusCard
                 icon={
                     <div className="relative">
@@ -261,12 +221,12 @@ export function RescueRequestPanel({
                     <Send className="w-4 h-4" /> Tạo yêu cầu mới
                 </button>
             </StatusCard>
-        </Wrap>
+        </PageShell>
     );
 
     // ── MAIN FORM ─────────────────────────────────────────────────────────────
     return (
-        <Wrap>
+        <PageShell>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
                 .rescue-root * { font-family: 'DM Sans', sans-serif; box-sizing: border-box; }
@@ -283,7 +243,7 @@ export function RescueRequestPanel({
                 textarea:focus, input:focus { outline: none; }
             `}</style>
 
-            <div className={`rescue-root w-full ${embedded ? "px-0 py-0" : "max-w-[640px] mx-auto px-4 py-6"} space-y-4`}>
+            <div className="rescue-root w-full max-w-[640px] mx-auto px-4 py-6 space-y-4">
 
                 {/* ── Header card ── */}
                 <div className="slide-up rounded-3xl border border-gray-100 bg-white shadow-sm overflow-hidden">
@@ -408,7 +368,6 @@ export function RescueRequestPanel({
                             type="file"
                             accept="image/*"
                             multiple
-                            aria-label="Tải ảnh hiện trường"
                             style={{ display: "none" }}
                             onChange={(e) => handleImageDrop(e.target.files)}
                         />
@@ -439,7 +398,6 @@ export function RescueRequestPanel({
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center">
                                         <button
                                             type="button"
-                                            aria-label="Xóa ảnh"
                                             onClick={(e) => { e.stopPropagation(); removeImage(img.id); }}
                                             className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-7 h-7 rounded-full bg-red-500 flex items-center justify-center shadow-lg"
                                         >
@@ -461,34 +419,24 @@ export function RescueRequestPanel({
                     )}
                     <button
                         type="button"
-                        className="btn-primary w-full !text-base !py-4 disabled:opacity-60 disabled:cursor-not-allowed"
                         onClick={handleSubmit}
-                        disabled={submitting || gpsLoading || !canSendRequest}
+                        disabled={submitting || gpsLoading}
+                        className="btn-primary w-full py-4 text-base rounded-2xl"
                     >
                         {submitting ? (
                             <><Loader2 className="w-5 h-5 animate-spin" /> Đang gửi yêu cầu...</>
                         ) : (
-                            "Gửi yêu cầu cứu hộ"
+                            <><Send className="w-5 h-5" /> Gửi Yêu Cầu Cứu Hộ</>
                         )}
                     </button>
-                    {!canSendRequest && (
-                        <p style={{ textAlign: "center", fontSize: 12, color: "#dc2626", marginTop: 8 }}>
-                            {token && citizen
-                                ? "Chỉ tài khoản người dân (CITIZEN) mới có thể gửi yêu cầu cứu hộ."
-                                : "Vui lòng đăng nhập bằng tài khoản người dân (CITIZEN) để gửi yêu cầu cứu hộ."}
-                        </p>
-                    )}
-                    <p style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", marginTop: 10 }}>
-                        Thông tin của bạn được bảo mật và chỉ dùng cho mục đích cứu hộ
+                    <p className="text-center text-xs text-gray-400">
+                        Thông tin của bạn được bảo mật và chỉ dùng cho mục đích cứu hộ khẩn cấp
                     </p>
                 </div>
-            </div>
-        </Wrap>
-    );
-}
 
-export default function RescueRequestPage() {
-    return <RescueRequestPanel />;
+            </div>
+        </PageShell>
+    );
 }
 
 // ── Shells ────────────────────────────────────────────────────────────────────

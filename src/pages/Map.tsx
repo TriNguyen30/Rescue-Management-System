@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { RescueRequestPanel } from '@/pages/Citizen'
+// import { RescueRequestPanel } from '@/pages/Citizen'
 
 const userLocationIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -92,7 +92,7 @@ export default function Map() {
                 )}
               </div>
             </div>
-            <RescueRequestPanel embedded externalLocation={panelLocation} />
+            {/* <RescueRequestPanel embedded externalLocation={panelLocation} /> */}
           </div>
         </aside>
 
