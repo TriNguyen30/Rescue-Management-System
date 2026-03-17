@@ -19,6 +19,8 @@ const mapToUser = (item: any): User => ({
   fullName: item.fullName || item.username || "Unknown",
   phone: item.phone || null,
   role: item.role || "CITIZEN",
+  avatarUrl: item.avatarUrl ?? item.avatarURL ?? item.avatar ?? null,
+  avatar: item.avatar ?? item.avatarUrl ?? null,
   createdAt: item.createdAt || null,
   updatedAt: item.updatedAt || null,
 });
@@ -98,6 +100,25 @@ export const changePassword = async (
 ): Promise<void> => {
   console.log("Calling PATCH /users/change-password with payload:", payload);
   await axiosInstance.patch("/users/change-password", payload);
+};
+
+/**
+ * Update the currently-authenticated user's profile (e.g. avatar).
+ * Uses PATCH /users/profile
+ */
+export const updateMyProfile = async (
+  payload: Partial<Pick<User, "fullName" | "phone">> & { avatarUrl?: string | null; avatar?: string | null },
+): Promise<any> => {
+  const res = await axiosInstance.patch("/users/profile", payload);
+  const body = res.data;
+
+  if (body && typeof body === "object" && "data" in body) {
+    return (body as ApiResponse<any>).data;
+  }
+  if (body && typeof body === "object") {
+    return body;
+  }
+  throw new Error("Unexpected response shape");
 };
 
 /**

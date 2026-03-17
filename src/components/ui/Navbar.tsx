@@ -4,6 +4,7 @@ import { useNavigate, NavLink } from "react-router";
 import Logo from "@/assets/image/LogoV2.png";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
+import { API_BASE_URL } from "@/config/env";
 import {
   getNotifications,
   markAllNotificationsRead,
@@ -59,6 +60,16 @@ export default function Navbar() {
       .join("")
       .toUpperCase()
     : "";
+
+  const resolvedAvatarUrl = (raw?: string | null) => {
+    if (!raw) return null;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    const base = String(API_BASE_URL || "").replace(/\/+$/, "");
+    const path = String(raw).startsWith("/") ? raw : `/${raw}`;
+    return base ? `${base}${path}` : raw;
+  };
+
+  const avatar = resolvedAvatarUrl((user as any)?.avatarUrl ?? (user as any)?.avatar ?? null);
 
   //Scroll detection
   useEffect(() => {
@@ -254,8 +265,12 @@ export default function Navbar() {
                   onClick={() => { setProfileOpen(!profileOpen); }}
                   className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all cursor-pointer"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">
-                    {initials}
+                  <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0 overflow-hidden">
+                    {avatar ? (
+                      <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      initials
+                    )}
                   </div>
                   <div className="text-left leading-tight">
                     <p className="text-sm font-semibold text-gray-800 max-w-[100px] truncate">
@@ -271,8 +286,12 @@ export default function Navbar() {
                     {/* User info header */}
                     <div className="px-4 py-3 border-b border-gray-50">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center shrink-0">
-                          {initials}
+                        <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center shrink-0 overflow-hidden">
+                          {avatar ? (
+                            <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            initials
+                          )}
                         </div>
                         <div className="leading-tight min-w-0">
                           <p className="text-sm font-semibold text-gray-900 truncate">{user.fullName || user.username}</p>
@@ -345,8 +364,12 @@ export default function Navbar() {
             {user ? (
               <>
                 <div className="flex items-center gap-3 px-4 py-3 mb-1 bg-gray-50 rounded-xl">
-                  <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center shrink-0">
-                    {initials}
+                  <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center shrink-0 overflow-hidden">
+                    {avatar ? (
+                      <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      initials
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{user.fullName || user.username}</p>

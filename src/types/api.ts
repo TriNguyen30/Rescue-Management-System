@@ -11,8 +11,11 @@ export interface AuthUser {
   username: string;
   email?: string;
   fullName?: string;
+  userCode?: string;
   role: string;
   phone: string;
+  avatarUrl?: string | null;
+  avatar?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
