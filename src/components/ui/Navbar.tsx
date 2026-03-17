@@ -4,6 +4,12 @@ import { useNavigate, NavLink } from "react-router";
 import Logo from "@/assets/image/LogoV2.png";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
+import {
+  getNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  type NotificationItem,
+} from "@/services/notification.service";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Quản trị viên",
@@ -18,8 +24,13 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifs, setNotifs] = useState<NotificationItem[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -31,6 +42,9 @@ export default function Navbar() {
     const handler = (e: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setProfileOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -46,24 +60,83 @@ export default function Navbar() {
       .toUpperCase()
     : "";
 
+  //Scroll detection
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close user menu on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const unreadCount = notifs.filter((n) => n.read === false).length;
+
+  const refreshNotifications = async () => {
+    if (!user) return;
+    setNotifLoading(true);
+    try {
+      const list = await getNotifications();
+      setNotifs(list);
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Load once on login and keep it light (poll every 60s)
+    if (!user) {
+      setNotifs([]);
+      setNotifOpen(false);
+      return;
+    }
+    refreshNotifications();
+    const t = window.setInterval(() => refreshNotifications(), 60000);
+    return () => window.clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
+  const navigateWithScroll = (path: string) => {
+    navigate(path);
+    scrollToTop();
+  };
+
+  const goTo = (path: string) => {
+    setMobileOpen(false);
+    navigateWithScroll(path);
+  };
+
   const navLinks = [
     { to: "/", label: "Trang chủ" },
     { to: "/map", label: "Bản đồ" },
     { to: "/contact", label: "Liên hệ" },
+    { to: "/donate", label: "Quyên góp" },
   ];
 
   return (
-    <header className="sticky top-0 left-0 w-full z-50 bg-white border-b border-gray-100 shadow-sm">
+    <header className={`sticky top-0 left-0 w-full z-50 bg-white border-b border-gray-100 shadow-sm ${isScrolled ? "shadow-lg" : ""}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-2.5">
 
           {/* Logo */}
-          <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => navigate("/")}>
+          <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => goTo("/")}>
             <div className="flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-105">
               <img src={Logo} alt="Logo" className="w-12 h-12 object-contain" />
             </div>
             <div className="leading-none">
-              <span className="block text-[10px] font-bold tracking-widest text-blue-400 uppercase">Rescue AID</span>
+              <span className="block text-[12px] font-bold tracking-widest text-blue-400 uppercase">Rescue AID</span>
               {/* <span className="block text-sm font-extrabold text-gray-900 tracking-tight">AID</span> */}
             </div>
           </div>
@@ -72,6 +145,7 @@ export default function Navbar() {
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map(({ to, label }) => (
               <NavLink key={to} to={to}
+              onClick={scrollToTop}
                 className={({ isActive }) =>
                   `px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                   }`
@@ -85,17 +159,100 @@ export default function Navbar() {
           {/* Right */}
           <div className="flex items-center gap-2">
             {/* Bell */}
-            <button className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors">
-              <Bell className="w-5 h-5 text-gray-400" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full" />
-            </button>
+            <div ref={notifRef} className="relative">
+              <button
+                className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+                title="Thông báo"
+                onClick={async () => {
+                  const next = !notifOpen;
+                  setNotifOpen(next);
+                  if (next) await refreshNotifications();
+                }}
+              >
+                <Bell className="w-5 h-5 text-gray-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-50 flex items-center gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">Thông báo</p>
+                      <p className="text-[11px] text-gray-400">
+                        {unreadCount > 0 ? `${unreadCount} chưa đọc` : "Không có thông báo mới"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="ml-auto text-xs font-semibold text-blue-600 hover:text-blue-700 disabled:text-gray-300"
+                      disabled={notifs.length === 0 || unreadCount === 0}
+                      onClick={async () => {
+                        await markAllNotificationsRead();
+                        setNotifs((p) => p.map((n) => ({ ...n, read: true })));
+                      }}
+                    >
+                      Đánh dấu đã đọc
+                    </button>
+                  </div>
+
+                  <div className="max-h-[360px] overflow-y-auto">
+                    {notifLoading ? (
+                      <div className="px-4 py-6 text-sm text-gray-500">Đang tải...</div>
+                    ) : notifs.length === 0 ? (
+                      <div className="px-4 py-6 text-sm text-gray-500">Chưa có thông báo.</div>
+                    ) : (
+                      <div className="p-2">
+                        {notifs.slice(0, 20).map((n) => (
+                          <button
+                            key={n.id}
+                            type="button"
+                            className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors border border-transparent hover:bg-gray-50 ${n.read === false ? "bg-blue-50/50" : ""}`}
+                            onClick={async () => {
+                              if (n.read === false) {
+                                await markNotificationRead(n.id);
+                                setNotifs((p) => p.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+                              }
+                              if (n.link) navigateWithScroll(n.link);
+                              setNotifOpen(false);
+                            }}
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${n.read === false ? "bg-blue-600" : "bg-gray-200"}`} />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-gray-800 truncate">
+                                  {n.title ?? "Thông báo"}
+                                </p>
+                                {n.message && (
+                                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                                    {n.message}
+                                  </p>
+                                )}
+                                {n.createdAt && (
+                                  <p className="text-[10px] text-gray-400 mt-1">
+                                    {new Date(n.createdAt).toLocaleString("vi-VN")}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {user ? (
               /* Profile Dropdown */
               <div ref={profileRef} className="relative hidden md:block">
                 <button
-                  onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all"
+                  onClick={() => { setProfileOpen(!profileOpen); }}
+                  className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all cursor-pointer"
                 >
                   <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">
                     {initials}
@@ -130,20 +287,20 @@ export default function Navbar() {
                     {/* Menu items */}
                     <div className="p-1.5">
                       <button
-                        onClick={() => { navigate("/profile"); setProfileOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                        onClick={() => { goTo("/profile"); setProfileOpen(false); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
                       >
                         <User className="w-4 h-4" /> Hồ sơ cá nhân
                       </button>
                       <button
-                        onClick={() => { navigate("/requests-history"); setProfileOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                        onClick={() => { goTo("/requests-history"); setProfileOpen(false); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
                       >
                         <ClipboardList className="w-4 h-4" /> Lịch sử cầu cứu
                       </button>
                       <button
                         onClick={() => { handleLogout(); setProfileOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 transition-colors"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
                       >
                         <LogOut className="w-4 h-4" /> Đăng xuất
                       </button>
@@ -153,7 +310,7 @@ export default function Navbar() {
               </div>
             ) : (
               <button
-                onClick={() => navigate("/login")}
+                onClick={() => goTo("/login")}
                 className="hidden md:inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 transition-colors cursor-pointer"
               >
                 Đăng nhập
@@ -178,7 +335,7 @@ export default function Navbar() {
       >
         <div className="px-4 py-3 space-y-1 bg-white">
           {navLinks.map(({ to, label }) => (
-            <button key={to} onClick={() => { navigate(to); setMobileOpen(false); }}
+            <button key={to} onClick={() => { goTo(to); setMobileOpen(false); }}
               className="w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition">
               {label}
             </button>
@@ -196,7 +353,7 @@ export default function Navbar() {
                     <p className="text-xs text-gray-400">{ROLE_LABELS[user.role] || user.role}</p>
                   </div>
                 </div>
-                <button onClick={() => { navigate("/profile"); setMobileOpen(false); }}
+                <button onClick={() => { goTo("/profile"); setMobileOpen(false); }}
                   className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
                   <User className="w-4 h-4" /> Hồ sơ cá nhân
                 </button>
@@ -206,7 +363,7 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <button onClick={() => { navigate("/login"); setMobileOpen(false); }}
+              <button onClick={() => { goTo("/login"); setMobileOpen(false); }}
                 className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 transition">
                 Đăng nhập / Đăng ký
               </button>

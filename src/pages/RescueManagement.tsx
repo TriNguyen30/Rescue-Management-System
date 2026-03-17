@@ -19,12 +19,14 @@ import {
   Check,
 } from "lucide-react";
 import { ManagerLayout } from "@/components/ui/ManagerSidebar";
+import { useNavigate } from "react-router-dom";
 import {
   getRescueTeams,
   createRescueTeam,
   updateRescueTeam,
-  updateRescueTeamLocation,
 } from "@/services/rescue-team.service";
+import { getUsers } from "@/services/user.service";
+import { getVehicles } from "@/services/vehicle.service";
 import { reverseGeocode } from "@/services/geocode.service";
 import type {
   RescueTeam,
@@ -32,20 +34,22 @@ import type {
   UpdateRescueTeamPayload,
   RescueTeamStatus,
 } from "@/types/rescue-teams";
+import type { User } from "@/types/user";
+import type { VehicleItem } from "@/types/vehicle";
 import { useToast } from "@/components/ui/Toast";
 
 type FormState = {
   teamName: string;
   leaderId: string;
-  memberIds: string;
-  vehicleIds: string;
+  memberIds: string[];
+  vehicleIds: string[];
 };
 
 const initialForm: FormState = {
   teamName: "",
   leaderId: "",
-  memberIds: "",
-  vehicleIds: "",
+  memberIds: [],
+  vehicleIds: [],
 };
 
 const STATUS_LABELS: Record<RescueTeamStatus, string> = {
@@ -80,35 +84,57 @@ function EditRescueTeamModal({
   team,
   onClose,
   onSaved,
+  users,
+  vehicles,
 }: {
   team: RescueTeam;
   onClose: () => void;
   onSaved: (updated: RescueTeam) => void;
+  users: User[];
+  vehicles: VehicleItem[];
 }) {
   const [teamName, setTeamName] = useState(team.teamName || "");
   const [leaderId, setLeaderId] = useState(
     typeof team.leaderId === "object" ? team.leaderId?._id ?? "" : team.leaderId ?? ""
   );
-  const [memberIds, setMemberIds] = useState(
-    team.members?.map((m) => m._id).join(", ") ?? ""
+  const [memberIds, setMemberIds] = useState<string[]>(
+    team.members?.map((m) => m._id) ?? []
   );
-  const [vehicleIds, setVehicleIds] = useState(
-    team.vehicles?.map((v) => v._id).join(", ") ?? ""
+  const [vehicleIds, setVehicleIds] = useState<string[]>(
+    team.vehicles?.map((v) => v._id) ?? []
   );
   const [status, setStatus] = useState<RescueTeamStatus>(team.status);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const { success, error: toastError } = useToast();
 
+  const handleMemberSelectChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const selected = Array.from(e.target.selectedOptions).map(
+      (opt) => opt.value
+    );
+    setMemberIds(selected);
+  };
+
+  const handleVehicleSelectChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const selected = Array.from(e.target.selectedOptions).map(
+      (opt) => opt.value
+    );
+    setVehicleIds(selected);
+  };
+
   const handleSave = async () => {
     if (!teamName.trim()) { setError("Tên đội không được để trống."); return; }
-    if (!leaderId.trim()) { setError("Vui lòng nhập ID đội trưởng."); return; }
+    if (!leaderId.trim()) { setError("Vui lòng chọn đội trưởng."); return; }
 
     setSaving(true);
     setError("");
     try {
-      const members = memberIds.split(",").map((s) => s.trim()).filter(Boolean);
-      const vehicles = vehicleIds.split(",").map((s) => s.trim()).filter(Boolean);
+      const members = memberIds.filter(Boolean);
+      const vehicles = vehicleIds.filter(Boolean);
 
       const payload: UpdateRescueTeamPayload = {
         teamName: teamName.trim(),
@@ -168,52 +194,84 @@ function EditRescueTeamModal({
 
           {/* Leader ID */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              ID đội trưởng
+            <label htmlFor="edit_leader_id" className="block text-sm font-medium text-gray-700 mb-1.5">
+              Đội trưởng
             </label>
-            <input
-              value={leaderId}
-              onChange={(e) => setLeaderId(e.target.value)}
-              placeholder="Nhập ID người dùng đội trưởng"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-            />
+            <div className="relative">
+              <select
+                id="edit_leader_id"
+                value={leaderId}
+                onChange={(e) => setLeaderId(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer"
+              >
+                <option value="">Chọn đội trưởng</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.fullName || u.username} {u.phone ? `(${u.phone})` : ""}
+                  </option>
+                ))}
+              </select>
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
 
           {/* Member IDs */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              ID thành viên{" "}
-              <span className="text-gray-400 font-normal">(cách nhau bởi dấu phẩy)</span>
+            <label htmlFor="edit_member_ids" className="block text-sm font-medium text-gray-700 mb-1.5">
+              Thành viên
+              <span className="text-gray-400 font-normal"> (có thể chọn nhiều)</span>
             </label>
-            <textarea
+            <select
+              id="edit_member_ids"
+              multiple
               value={memberIds}
-              onChange={(e) => setMemberIds(e.target.value)}
-              placeholder="VD: 65f1..., 65f2..., 65f3..."
-              className="w-full min-h-[70px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-y"
-            />
+              onChange={handleMemberSelectChange}
+              className="w-full min-h-[90px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+            >
+              {users
+                .filter((u) => u.id !== leaderId)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.fullName || u.username} {u.phone ? `(${u.phone})` : ""}
+                  </option>
+                ))}
+            </select>
           </div>
 
           {/* Vehicle IDs */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              ID phương tiện{" "}
-              <span className="text-gray-400 font-normal">(cách nhau bởi dấu phẩy)</span>
+            <label htmlFor="edit_vehicle_ids" className="block text-sm font-medium text-gray-700 mb-1.5">
+              Phương tiện
+              <span className="text-gray-400 font-normal"> (có thể chọn nhiều)</span>
             </label>
-            <textarea
+            <select
+              id="edit_vehicle_ids"
+              multiple
               value={vehicleIds}
-              onChange={(e) => setVehicleIds(e.target.value)}
-              placeholder="VD: 65f1..., 65f2..."
-              className="w-full min-h-[70px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-y"
-            />
+              onChange={handleVehicleSelectChange}
+              className="w-full min-h-[90px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+            >
+              {vehicles.map((v) => (
+                <option key={v._id || v.id} value={v._id || v.id!}>
+                  {v.plateNumber} - {v.type}{" "}
+                  {typeof v.capacity === "number"
+                    ? `(Sức chứa: ${v.capacity.toLocaleString("vi-VN")})`
+                    : ""}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="edit_status" className="block text-sm font-medium text-gray-700 mb-1.5">
               Trạng thái
             </label>
             <div className="relative">
               <select
+                id="edit_status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as RescueTeamStatus)}
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer"
@@ -281,9 +339,12 @@ export default function RescueManagement() {
   const [editTeam, setEditTeam] = useState<RescueTeam | null>(null);
   const [locationAddress, setLocationAddress] = useState<string | null>(null);
   const [locationAddressLoading, setLocationAddressLoading] = useState(false);
-  const [updatingLocation, setUpdatingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
-  const { success, error: toastError } = useToast();
+  const [users, setUsers] = useState<User[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleItem[]>([]);
+  const navigate = useNavigate();
+  const { success: toastSuccess, error: toastError } = useToast();
+
 
   const fetchTeams = useCallback(async () => {
     setLoading(true);
@@ -301,6 +362,22 @@ export default function RescueManagement() {
   }, []);
 
   useEffect(() => { fetchTeams(); }, [fetchTeams]);
+
+  useEffect(() => {
+    const fetchLookups = async () => {
+      try {
+        const [userData, vehicleData] = await Promise.all([
+          getUsers(),
+          getVehicles(),
+        ]);
+        setUsers(userData.filter((u) => u.role === "RESCUE_TEAM"));
+        setVehicles(vehicleData || []);
+      } catch (e) {
+        console.error("Không thể tải dữ liệu người dùng / phương tiện", e);
+      }
+    };
+    fetchLookups();
+  }, []);
 
   useEffect(() => {
     if (!selectedTeam?.currentLocation?.coordinates?.length) {
@@ -342,16 +419,19 @@ export default function RescueManagement() {
   const busyCount = useMemo(() => teams.filter((t) => t.status === "BUSY").length, [teams]);
 
   const handleOpenModal = () => { setForm(initialForm); setFormError(""); setModalOpen(true); };
-  const handleChange = (field: keyof FormState, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
+  const handleChange = (field: "teamName" | "leaderId", value: string) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
+  const handleMultiChange = (field: "memberIds" | "vehicleIds", values: string[]) =>
+    setForm((prev) => ({ ...prev, [field]: values }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
     if (!form.teamName.trim()) { setFormError("Vui lòng nhập tên đội cứu hộ."); return; }
-    if (!form.leaderId.trim()) { setFormError("Vui lòng nhập ID đội trưởng."); return; }
+    if (!form.leaderId.trim()) { setFormError("Vui lòng chọn đội trưởng."); return; }
 
-    const members = form.memberIds.split(",").map((s) => s.trim()).filter(Boolean);
-    const vehicles = form.vehicleIds.split(",").map((s) => s.trim()).filter(Boolean);
+    const members = form.memberIds.filter(Boolean);
+    const vehicles = form.vehicleIds.filter(Boolean);
     const payload: CreateRescueTeamPayload = {
       teamName: form.teamName.trim(),
       leaderId: form.leaderId.trim(),
@@ -380,50 +460,18 @@ export default function RescueManagement() {
     try {
       const updated = await updateRescueTeam(id, { status: nextStatus });
       setTeams((prev) => prev.map((t) => (t._id === id ? { ...t, ...updated } : t)));
+      toastSuccess("Đội cứu hộ đã được cập nhật trạng thái thành công.");
     } catch (e: any) {
       setTeams((prev) => prev.map((t) => (t._id === id ? { ...t, status: prevStatus } : t)));
       setError(e?.response?.data?.message || e?.message || "Không thể cập nhật trạng thái đội cứu hộ.");
+      toastError("Không thể cập nhật trạng thái đội cứu hộ.", e?.response?.data?.message || e?.message || "Không thể cập nhật trạng thái đội cứu hộ.");
     } finally {
       setUpdatingStatus((prev) => { const { [id]: _removed, ...rest } = prev; return rest; });
     }
   };
 
-  const handleUseMyLocation = (team: RescueTeam) => {
-    if (!team._id) return;
-    setLocationError("");
-    setUpdatingLocation(true);
-    if (!navigator.geolocation) {
-      setLocationError("Trình duyệt không hỗ trợ lấy vị trí.");
-      setUpdatingLocation(false);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const updated = await updateRescueTeamLocation(team._id!, latitude, longitude);
-          setTeams((prev) => prev.map((t) => (t._id === team._id ? { ...t, ...updated } : t)));
-          setSelectedTeam((prev) => (prev?._id === team._id ? { ...prev, ...updated } : prev));
-          setLocationAddress(null);
-          setLocationAddressLoading(true);
-          reverseGeocode(latitude, longitude)
-            .then(setLocationAddress)
-            .catch(() => setLocationError("Không thể tải địa chỉ."))
-            .finally(() => setLocationAddressLoading(false));
-        } catch (e: unknown) {
-          const err = e as { response?: { data?: { message?: string } }; message?: string };
-          setLocationError(err?.response?.data?.message || (err as Error)?.message || "Không thể cập nhật vị trí.");
-        } finally {
-          setUpdatingLocation(false);
-        }
-      },
-      () => {
-        setLocationError("Không lấy được vị trí. Kiểm tra quyền truy cập vị trí.");
-        setUpdatingLocation(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
+  // Note: location updates are now handled only when viewing details; "use my location"
+  // has been removed in favor of direct map navigation and reverse geocoding.
 
   return (
     <ManagerLayout>
@@ -698,22 +746,81 @@ export default function RescueManagement() {
                       placeholder="VD: Đội cứu hộ Q1" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label htmlFor="leader_id" className="block text-sm font-medium text-gray-700 mb-1.5">ID đội trưởng</label>
-                    <input id="leader_id" value={form.leaderId} onChange={(e) => handleChange("leaderId", e.target.value)}
-                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                      placeholder="Nhập ID người dùng đội trưởng" />
+                    <label htmlFor="leader_id" className="block text-sm font-medium text-gray-700 mb-1.5">Đội trưởng</label>
+                    <div className="relative">
+                      <select
+                        id="leader_id"
+                        value={form.leaderId}
+                        onChange={(e) => handleChange("leaderId", e.target.value)}
+                        aria-label="Chọn đội trưởng"
+                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer"
+                      >
+                        <option value="">Chọn đội trưởng</option>
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.fullName || u.username} {u.phone ? `(${u.phone})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
                   <div className="sm:col-span-2">
-                    <label htmlFor="member_ids" className="block text-sm font-medium text-gray-700 mb-1.5">ID thành viên (cách nhau bởi dấu phẩy)</label>
-                    <textarea id="member_ids" value={form.memberIds} onChange={(e) => handleChange("memberIds", e.target.value)}
-                      className="w-full min-h-[70px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-y"
-                      placeholder="VD: 65f1..., 65f2..., 65f3..." />
+                    <label htmlFor="member_ids" className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Thành viên
+                      <span className="text-gray-400 font-normal"> (có thể chọn nhiều)</span>
+                    </label>
+                    <select
+                      id="member_ids"
+                      multiple
+                      value={form.memberIds}
+                      onChange={(e) =>
+                        handleMultiChange(
+                          "memberIds",
+                          Array.from(e.target.selectedOptions).map((opt) => opt.value)
+                        )
+                      }
+                      aria-label="Chọn thành viên đội cứu hộ"
+                      className="w-full min-h-[90px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                    >
+                      {users
+                        .filter((u) => u.id !== form.leaderId)
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.fullName || u.username} {u.phone ? `(${u.phone})` : ""}
+                          </option>
+                        ))}
+                    </select>
                   </div>
                   <div className="sm:col-span-2">
-                    <label htmlFor="vehicle_ids" className="block text-sm font-medium text-gray-700 mb-1.5">ID phương tiện (cách nhau bởi dấu phẩy)</label>
-                    <textarea id="vehicle_ids" value={form.vehicleIds} onChange={(e) => handleChange("vehicleIds", e.target.value)}
-                      className="w-full min-h-[70px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-y"
-                      placeholder="VD: 65f1..., 65f2..." />
+                    <label htmlFor="vehicle_ids" className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Phương tiện
+                      <span className="text-gray-400 font-normal"> (có thể chọn nhiều)</span>
+                    </label>
+                    <select
+                      id="vehicle_ids"
+                      multiple
+                      value={form.vehicleIds}
+                      onChange={(e) =>
+                        handleMultiChange(
+                          "vehicleIds",
+                          Array.from(e.target.selectedOptions).map((opt) => opt.value)
+                        )
+                      }
+                      aria-label="Chọn phương tiện cho đội cứu hộ"
+                      className="w-full min-h-[90px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                    >
+                      {vehicles.map((v) => (
+                        <option key={v._id || v.id} value={v._id || v.id!}>
+                          {v.plateNumber} - {v.type}{" "}
+                          {typeof v.capacity === "number"
+                            ? `(Sức chứa: ${v.capacity.toLocaleString("vi-VN")})`
+                            : ""}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 {formError && (
@@ -740,6 +847,8 @@ export default function RescueManagement() {
         {editTeam && (
           <EditRescueTeamModal
             team={editTeam}
+            users={users}
+            vehicles={vehicles}
             onClose={() => setEditTeam(null)}
             onSaved={(updated) => {
               setTeams((prev) => prev.map((t) => t._id === updated._id ? updated : t));
@@ -751,7 +860,7 @@ export default function RescueManagement() {
         {/* Detail Modal */}
         {selectedTeam && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div>
                   <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Chi tiết đội cứu hộ</p>
@@ -829,11 +938,38 @@ export default function RescueManagement() {
                               <p className="text-xs text-gray-300 mt-0.5">—</p>
                             )}
                           </div>
-                          <button type="button" onClick={() => handleUseMyLocation(selectedTeam)} disabled={updatingLocation}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-100 transition-colors cursor-pointer disabled:opacity-60">
-                            {updatingLocation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
-                            {updatingLocation ? "Đang lấy vị trí..." : "Lấy vị trí hiện tại"}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            {selectedTeam.currentLocation?.coordinates?.length === 2 && (
+                              <>
+                                <a
+                                  href={`https://www.google.com/maps?q=${selectedTeam.currentLocation.coordinates[1]},${selectedTeam.currentLocation.coordinates[0]}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100 transition-colors cursor-pointer"
+                                >
+                                  <MapPin className="w-3.5 h-3.5" />
+                                  Mở Google Maps
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    navigate("/manager/rescue-map", {
+                                      state: {
+                                        lat: selectedTeam.currentLocation.coordinates[1],
+                                        lng: selectedTeam.currentLocation.coordinates[0],
+                                      },
+                                    })
+                                  }
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-100 transition-colors cursor-pointer"
+                                  aria-label="Xem đội trên bản đồ hệ thống"
+                                  title="Xem đội trên bản đồ hệ thống"
+                                >
+                                  <MapPin className="w-3.5 h-3.5" />
+                                  Xem bản đồ hệ thống
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
