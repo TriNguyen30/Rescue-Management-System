@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 're
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { RescueRequestPanel } from '@/pages/Citizen'
+import { ListFilter } from 'lucide-react'
 
 const userLocationIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -37,6 +38,7 @@ export default function Map() {
   const [position, setPosition] = useState<Position | null>(null)
   const [picked, setPicked] = useState<Position | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [panelOpen, setPanelOpen] = useState(true)
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -69,35 +71,47 @@ export default function Map() {
     >
       <div className="flex h-full">
         {/* Sidebar: Citizen rescue request form */}
-        <aside className="hidden lg:block w-[450px] shrink-0 border-r border-gray-100 bg-gray-50 overflow-y-auto">
-          <div className="p-4">
-            <div className="mb-3 rounded-2xl border border-gray-100 bg-white p-3 text-sm text-gray-600">
-              <p className="font-semibold text-gray-800">Chọn vị trí trên bản đồ</p>
-              <p className="text-xs text-gray-500 mt-1">
-                Click vào bản đồ để chọn vị trí chính xác. Tọa độ sẽ tự điền vào form.
-              </p>
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-xs text-gray-400">Đang chọn:</span>
-                <span className="text-xs font-mono text-gray-700">
-                  {effective ? `${effective.lat.toFixed(5)}, ${effective.lng.toFixed(5)}` : '—'}
-                </span>
-                {picked && (
-                  <button
-                    type="button"
-                    className="ml-auto text-xs font-semibold text-blue-600 hover:text-blue-700"
-                    onClick={() => setPicked(null)}
-                  >
-                    Dùng GPS
-                  </button>
-                )}
+        {panelOpen && (
+          <aside className="hidden lg:block w-[450px] shrink-0 border-r border-gray-100 bg-gray-50 overflow-y-auto">
+            <div className="p-4">
+              <div className="mb-3 rounded-2xl border border-gray-100 bg-white p-3 text-sm text-gray-600">
+                <p className="font-semibold text-gray-800">Chọn vị trí trên bản đồ</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Click vào bản đồ để chọn vị trí chính xác. Tọa độ sẽ tự điền vào form.
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs text-gray-400">Đang chọn:</span>
+                  <span className="text-xs font-mono text-gray-700">
+                    {effective ? `${effective.lat.toFixed(5)}, ${effective.lng.toFixed(5)}` : '—'}
+                  </span>
+                  {picked && (
+                    <button
+                      type="button"
+                      className="ml-auto text-xs font-semibold text-blue-600 hover:text-blue-700"
+                      onClick={() => setPicked(null)}
+                    >
+                      Dùng GPS
+                    </button>
+                  )}
+                </div>
               </div>
+              <RescueRequestPanel embedded externalLocation={panelLocation} />
             </div>
-            <RescueRequestPanel embedded externalLocation={panelLocation} />
-          </div>
-        </aside>
+          </aside>
+        )}
 
         {/* Map */}
         <div className="relative flex-1">
+          <div className="absolute bottom-10 right-3 z-[1000] flex items-center gap-2">
+            <button
+              type="button"
+              className="p-2 rounded-xl text-sm font-medium shadow-lg border bg-white/90 text-gray-700 border-gray-200 backdrop-blur-sm hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer"
+              aria-label={panelOpen ? 'Ẩn form cứu hộ' : 'Hiện form cứu hộ'}
+              onClick={() => setPanelOpen((v) => !v)}
+            >
+              {panelOpen ? <ListFilter className="w-6 h-6" /> : <ListFilter className="w-6 h-6" />}
+            </button>
+          </div>
           {error && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white border border-red-200 text-red-600 text-sm font-medium px-4 py-2 rounded-xl shadow-md pointer-events-none">
               {error}
