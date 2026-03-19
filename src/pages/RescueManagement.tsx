@@ -133,7 +133,7 @@ function EditRescueTeamModal({
     setSaving(true);
     setError("");
     try {
-      const members = memberIds.filter(Boolean);
+      const members = memberIds.filter((id) => Boolean(id) && id !== leaderId);
       const vehicles = vehicleIds.filter(Boolean);
 
       const payload: UpdateRescueTeamPayload = {
@@ -201,7 +201,12 @@ function EditRescueTeamModal({
               <select
                 id="edit_leader_id"
                 value={leaderId}
-                onChange={(e) => setLeaderId(e.target.value)}
+                onChange={(e) => {
+                  const nextLeader = e.target.value;
+                  setLeaderId(nextLeader);
+                  // ensure leader is never included in members
+                  setMemberIds((prev) => prev.filter((id) => id !== nextLeader));
+                }}
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer"
               >
                 <option value="">Chọn đội trưởng</option>
@@ -420,7 +425,18 @@ export default function RescueManagement() {
 
   const handleOpenModal = () => { setForm(initialForm); setFormError(""); setModalOpen(true); };
   const handleChange = (field: "teamName" | "leaderId", value: string) =>
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      if (field === "leaderId") {
+        // ensure leader is never included in members
+        const nextLeaderId = value;
+        return {
+          ...prev,
+          leaderId: nextLeaderId,
+          memberIds: prev.memberIds.filter((id) => id !== nextLeaderId),
+        };
+      }
+      return { ...prev, [field]: value };
+    });
   const handleMultiChange = (field: "memberIds" | "vehicleIds", values: string[]) =>
     setForm((prev) => ({ ...prev, [field]: values }));
 
@@ -430,7 +446,7 @@ export default function RescueManagement() {
     if (!form.teamName.trim()) { setFormError("Vui lòng nhập tên đội cứu hộ."); return; }
     if (!form.leaderId.trim()) { setFormError("Vui lòng chọn đội trưởng."); return; }
 
-    const members = form.memberIds.filter(Boolean);
+    const members = form.memberIds.filter((id) => Boolean(id) && id !== form.leaderId);
     const vehicles = form.vehicleIds.filter(Boolean);
     const payload: CreateRescueTeamPayload = {
       teamName: form.teamName.trim(),

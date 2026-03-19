@@ -26,7 +26,7 @@ const ROLE_META: Record<string, { label: string; color: string; bg: string; dot:
     MANAGER: { label: "Manager", color: "text-purple-600", bg: "bg-purple-50", dot: "bg-purple-500" },
     COORDINATOR: { label: "Coordinator", color: "text-blue-600", bg: "bg-blue-50", dot: "bg-blue-500" },
     RESCUE_TEAM: { label: "Rescue Team", color: "text-orange-600", bg: "bg-orange-50", dot: "bg-orange-500" },
-    CITIZEN: { label: "Citizen", color: "text-gray-600", bg: "bg-gray-100", dot: "bg-gray-400" },
+    CITIZEN: { label: "Citizen", color: "text-green-600", bg: "bg-green-50", dot: "bg-green-500" },
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
