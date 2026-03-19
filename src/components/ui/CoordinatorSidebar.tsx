@@ -17,7 +17,14 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export default function CoordinatorSidebar() {
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(
+        () => localStorage.getItem("sidebar_collapsed") === "true"
+    );
+
+    const toggleCollapsed = (value: boolean) => {
+        setCollapsed(value);
+        localStorage.setItem("sidebar_collapsed", String(value));
+    };
     const [mobileOpen, setMobileOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
@@ -56,28 +63,36 @@ export default function CoordinatorSidebar() {
             }`}
         >
             <div className={`flex items-center gap-3 px-4 py-5 border-b border-gray-100 ${collapsed ? "justify-center px-0" : ""}`}>
-                <div className={`w-12 h-12 ${collapsed ? "mx-auto" : ""}`}>
-                    <img src={Logo} alt="Logo" className="w-full h-auto" />
-                </div>
-                {!collapsed && (
-                    <div className="overflow-hidden">
-                        <p className="text-sm font-extrabold text-gray-900 leading-tight truncate">Rescue AID</p>
-                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Coordinator</p>
-                    </div>
-                )}
+                {/* ── Logo → navigate("/") ── */}
                 <button
-                    onClick={() => setCollapsed((v) => !v)}
-                    className={`ml-auto p-1 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors shrink-0 cursor-pointer ${
-                        collapsed ? "hidden" : ""
-                    }`}
+                    onClick={() => navigate("/")}
+                    className={`flex items-center gap-3 min-w-0 ${collapsed ? "mx-auto" : ""}`}
+                    title="Về trang chủ"
                 >
-                    <ChevronLeft className="w-4 h-4" />
+                    <div className="w-12 h-12 shrink-0">
+                        <img src={Logo} alt="Logo" className="w-full h-auto" />
+                    </div>
+                    {!collapsed && (
+                        <div className="overflow-hidden text-left">
+                            <p className="text-sm font-extrabold text-gray-900 leading-tight truncate">Rescue AID</p>
+                            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Coordinator</p>
+                        </div>
+                    )}
                 </button>
+
+                {!collapsed && (
+                    <button
+                        onClick={() => toggleCollapsed(true)}
+                        className="ml-auto p-1 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors shrink-0 cursor-pointer"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+                )}
             </div>
 
             {collapsed && (
                 <button
-                    onClick={() => setCollapsed(false)}
+                    onClick={() => toggleCollapsed(false)}
                     className="mx-auto mt-2 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors cursor-pointer"
                 >
                     <ChevronRight className="w-4 h-4" />
@@ -153,14 +168,21 @@ export default function CoordinatorSidebar() {
                     <div className="md:hidden fixed left-0 top-0 bottom-0 z-50 flex">
                         <div className="w-[240px] h-full bg-white border-r border-gray-100 flex flex-col shadow-2xl">
                             <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-100">
-                                <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center shrink-0">
-                                    <Waves className="w-4 h-4 text-white" />
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-extrabold text-gray-900 leading-tight">Rescue AID</p>
-                                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Coordinator</p>
-                                </div>
-                                <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+                                {/* ── Logo mobile → navigate("/") ── */}
+                                <button
+                                    onClick={() => { navigate("/"); setMobileOpen(false); }}
+                                    className="flex items-center gap-3 min-w-0"
+                                    title="Về trang chủ"
+                                >
+                                    <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                                        <Waves className="w-4 h-4 text-white" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-extrabold text-gray-900 leading-tight">Rescue AID</p>
+                                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Coordinator</p>
+                                    </div>
+                                </button>
+                                <button onClick={() => setMobileOpen(false)} className="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
@@ -208,4 +230,3 @@ export default function CoordinatorSidebar() {
         </>
     );
 }
-
