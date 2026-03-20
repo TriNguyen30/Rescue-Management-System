@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { useAppSelector } from "@/store/hooks";
-import { updateUserRole, changePassword } from "@/services/user.service";
-import { UpdateUserRolesPayload, ChangePasswordPayload } from "@/types/user";
+import { useEffect, useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { changePassword, updateMyProfile } from "@/services/user.service";
+import { setUser } from "@/store/slices/authSlice";
+import { API_BASE_URL } from "@/config/env";
+import { ChangePasswordPayload } from "@/types/user";
 import {
     User,
     Phone,
@@ -12,7 +14,6 @@ import {
     AlertTriangle,
     Hash,
     CalendarDays,
-    ChevronRight,
     Eye,
     EyeOff,
     Lock,
@@ -25,7 +26,7 @@ const ROLE_META: Record<string, { label: string; color: string; bg: string; dot:
     MANAGER: { label: "Manager", color: "text-purple-600", bg: "bg-purple-50", dot: "bg-purple-500" },
     COORDINATOR: { label: "Coordinator", color: "text-blue-600", bg: "bg-blue-50", dot: "bg-blue-500" },
     RESCUE_TEAM: { label: "Rescue Team", color: "text-orange-600", bg: "bg-orange-50", dot: "bg-orange-500" },
-    CITIZEN: { label: "Citizen", color: "text-gray-600", bg: "bg-gray-100", dot: "bg-gray-400" },
+    CITIZEN: { label: "Citizen", color: "text-green-600", bg: "bg-green-50", dot: "bg-green-500" },
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -99,7 +100,14 @@ function PasswordInput({
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function UserProfile() {
+    const dispatch = useAppDispatch();
     const { user } = useAppSelector((state) => state.auth);
+
+    const [avatarEditing, setAvatarEditing] = useState(false);
+    const [avatarSaving, setAvatarSaving] = useState(false);
+    const [avatarError, setAvatarError] = useState("");
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [avatarDraft, setAvatarDraft] = useState("");
 
     // Password change state
     const [oldPassword, setOldPassword] = useState("");
@@ -121,6 +129,63 @@ export default function UserProfile() {
     const displayName = user.fullName || user.username || "Người dùng";
     const initials = displayName.split(" ").map((w: string) => w[0]).slice(-2).join("").toUpperCase();
     const roleMeta = ROLE_META[user.role] ?? ROLE_META.CITIZEN;
+
+    const resolvedAvatarUrl = (raw?: string | null) => {
+        if (!raw) return null;
+        if (/^https?:\/\//i.test(raw)) return raw;
+        const base = String(API_BASE_URL || "").replace(/\/+$/, "");
+        const path = String(raw).startsWith("/") ? raw : `/${raw}`;
+        return base ? `${base}${path}` : raw;
+    };
+
+    useEffect(() => {
+        const next = (user.avatarUrl ?? user.avatar ?? null) as string | null;
+        setAvatarUrl(next);
+        setAvatarDraft(next ?? "");
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user.avatarUrl, user.avatar]);
+
+    const isValidAvatarLink = (value: string) => {
+        const v = value.trim();
+        if (!v) return true; // allow clearing avatar
+        if (v.startsWith("/")) return true; // allow relative path from API
+        try {
+            const u = new URL(v);
+            return u.protocol === "http:" || u.protocol === "https:";
+        } catch {
+            return false;
+        }
+    };
+
+    const handleSaveAvatarLink = async () => {
+        setAvatarError("");
+        const next = avatarDraft.trim();
+        if (!isValidAvatarLink(next)) {
+            setAvatarError("Link avatar không hợp lệ. Vui lòng dùng http(s)://... hoặc đường dẫn bắt đầu bằng /");
+            return;
+        }
+
+        setAvatarSaving(true);
+        try {
+            // Optimistic UI
+            setAvatarUrl(next || null);
+
+            const updated = await updateMyProfile({ avatarUrl: next || null, avatar: next || null });
+            const serverAvatar = ((updated?.avatarUrl ?? updated?.avatar ?? next) || null) as string | null;
+
+            dispatch(setUser({ ...user, avatarUrl: serverAvatar, avatar: serverAvatar }));
+            setAvatarUrl(serverAvatar);
+            setAvatarDraft(serverAvatar ?? "");
+            setAvatarEditing(false);
+        } catch (e: any) {
+            setAvatarError(e?.response?.data?.message || e?.message || "Không thể cập nhật avatar. Vui lòng thử lại.");
+            const current = (user.avatarUrl ?? user.avatar ?? null) as string | null;
+            setAvatarUrl(current);
+            setAvatarDraft(current ?? "");
+        } finally {
+            setAvatarSaving(false);
+        }
+    };
 
     const handleChangePassword = async () => {
         setPwError("");
@@ -183,16 +248,75 @@ export default function UserProfile() {
                         <div className="flex items-center gap-6">
                             {/* Avatar */}
                             <div className="relative shrink-0">
-                                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-blue-200">
-                                    {initials}
+                                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-blue-200 overflow-hidden">
+                                    {resolvedAvatarUrl(avatarUrl) ? (
+                                        <img
+                                            src={resolvedAvatarUrl(avatarUrl) ?? undefined}
+                                            alt="Avatar"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        initials
+                                    )}
                                 </div>
                                 <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${roleMeta.dot}`} />
+                                <button
+                                    type="button"
+                                    onClick={() => { setAvatarEditing((v) => !v); setAvatarError(""); }}
+                                    disabled={avatarSaving}
+                                    className="absolute -top-2 -right-2 w-9 h-9 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                                    title="Đổi avatar"
+                                >
+                                    {avatarSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+                                </button>
                             </div>
 
                             {/* Name + role */}
                             <div className="flex-1 min-w-0">
                                 <h1 className="text-2xl font-black text-gray-900 leading-tight truncate">{displayName}</h1>
-                                <p className="text-sm text-gray-400 font-medium mt-0.5">@{user.username}</p>
+                                {/* <p className="text-sm text-gray-400 font-medium mt-0.5">@{user.username}</p> */}
+                                {avatarEditing && (
+                                    <div className="mt-3 max-w-xl">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                            <input
+                                                value={avatarDraft}
+                                                onChange={(e) => setAvatarDraft(e.target.value)}
+                                                placeholder="Dán link avatar (https://...)"
+                                                className="w-full sm:flex-1 px-4 py-2.5 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:border-blue-400 focus:bg-white transition-all placeholder-gray-300"
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSaveAvatarLink}
+                                                    disabled={avatarSaving}
+                                                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-2xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
+                                                >
+                                                    {avatarSaving ? "Đang lưu..." : "Lưu"}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setAvatarEditing(false);
+                                                        setAvatarError("");
+                                                        const current = (user.avatarUrl ?? user.avatar ?? null) as string | null;
+                                                        setAvatarDraft(current ?? "");
+                                                        setAvatarUrl(current);
+                                                    }}
+                                                    disabled={avatarSaving}
+                                                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-2xl text-sm font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                                                >
+                                                    Hủy
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {avatarError && (
+                                            <div className="mt-2 text-xs font-semibold text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-2xl inline-flex items-center gap-2">
+                                                <AlertTriangle className="w-3.5 h-3.5" />
+                                                <span>{avatarError}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 <div className="mt-2.5 flex flex-wrap items-center gap-2">
                                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${roleMeta.bg} ${roleMeta.color} border-current/20`}>
                                         <Shield className="w-3 h-3" />
@@ -230,6 +354,18 @@ export default function UserProfile() {
                                 </div>
                                 <h2 className="text-sm font-bold text-gray-800">Thông tin cá nhân</h2>
                             </div>
+                            <div className="flex items-center gap-2">
+                                {avatarError && (
+                                    <span className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 px-3 py-1 rounded-full">
+                                        {avatarError}
+                                    </span>
+                                )}
+                                {!avatarError && avatarSaving && (
+                                    <span className="text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full">
+                                        Đang cập nhật avatar...
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
                         <div className="divide-y divide-gray-50">
@@ -238,12 +374,12 @@ export default function UserProfile() {
                                 label="Họ và tên"
                                 value={displayName}
                             />
-                            <InfoRow
+                            {/* <InfoRow
                                 icon={<User className="w-4 h-4" />}
                                 label="Tên đăng nhập"
                                 value={`@${user.username}`}
                                 mono
-                            />
+                            /> */}
                             <InfoRow
                                 icon={<Phone className="w-4 h-4" />}
                                 label="Số điện thoại"

@@ -286,6 +286,15 @@ export default function AssignedTaskDetails() {
             </div>
 
             <div className="flex gap-2">
+              <span className="w-4 h-4" />
+              <span>
+                Người cần cứu:&nbsp;
+                {request.userId?.fullName || "—"}
+                {request.userId?.phone ? ` • ${request.userId.phone}` : ""}
+              </span>
+            </div>
+
+            <div className="flex gap-2">
               <Navigation2 className="w-4 h-4 text-gray-400" />
               <span>
                 Vị trí đội cứu hộ:&nbsp;
