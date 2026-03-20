@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ClipboardCheck, Shield, LogOut, ChevronLeft, ChevronRight, Waves, Menu, X } from "lucide-react";
+import { ClipboardCheck, Shield, LogOut, ChevronLeft, ChevronRight, Waves, Menu, X, MapPin } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
@@ -14,6 +14,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     { key: "tasks", label: "Nhiệm vụ", icon: <ClipboardCheck className="w-4 h-4" />, path: "/rescue-team" },
+    { key: "nearby", label: "Gần tôi", icon: <MapPin className="w-4 h-4" />, path: "/rescue-team/nearby" },
 ];
 
 export default function RescueTeamSidebar() {
@@ -100,7 +101,7 @@ export default function RescueTeamSidebar() {
 
             <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
                 {NAV_ITEMS.map((item) => {
-                    const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+                    const isActive = location.pathname === item.path;
                     return (
                         <button
                             key={item.key}
