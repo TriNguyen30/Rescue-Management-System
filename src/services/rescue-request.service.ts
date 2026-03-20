@@ -178,3 +178,35 @@ export const confirmRescuedRescueRequest = async (id: string): Promise<RescueReq
         throw error;
     }
 };
+
+/**
+ * [Team] Tìm yêu cầu cứu hộ xung quanh
+ * GET /rescue-requests/nearby?latitude=...&longitude=...&radius=...
+ */
+export const getNearbyRescueRequests = async (
+    latitude: number,
+    longitude: number,
+    radius: number,
+): Promise<RescueRequest[]> => {
+    try {
+        const response = await axiosInstance.get<RescueRequest[] | { data: RescueRequest[] }>(
+            "/rescue-requests/nearby",
+            { params: { latitude, longitude, radius } },
+        );
+
+        const data = response.data;
+        if (Array.isArray(data)) return data;
+        if (
+            data &&
+            typeof data === "object" &&
+            "data" in (data as any) &&
+            Array.isArray((data as any).data)
+        ) {
+            return (data as any).data;
+        }
+        return [];
+    } catch (error) {
+        console.error("Error fetching nearby rescue requests:", error);
+        throw error;
+    }
+};
