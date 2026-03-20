@@ -24,6 +24,7 @@ import AssignedTaskDetails from "@/pages/AssignedTaskDetails";
 import RequestsHistory from "@/pages/RequestsHistory";
 import UserProfile from "@/pages/UserProfile";
 import Donation from "@/pages/Donation";
+import SearchNearbyRequests from "@/pages/SearchNearbyRequests";
 
 export default function AppRoutes() {
   return (
@@ -141,6 +142,7 @@ export default function AppRoutes() {
       >
         <Route index element={<RescueTeamDashboard />} />
         <Route path="assigned-task/:id" element={<AssignedTaskDetails />} />
+        <Route path="nearby" element={<SearchNearbyRequests />} />
       </Route>
     </Routes>
   );
