@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, User, Phone } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, User, Phone, CheckCircle, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Logo from "@/assets/image/LogoV2.png";
 import { register } from "@/services/auth.service";
@@ -69,19 +69,26 @@ export default function Register() {
         phone: values.phone.trim(),
         roles: [values.role],
       });
-      if (!response.data.isSuccess) {
+      const msg: string = response.data.message ?? "";
+      const looksLikeSuccess =
+        response.data.isSuccess === true ||
+        msg.toLowerCase().includes("thành công") ||
+        msg.toLowerCase().includes("success");
+
+      if (!looksLikeSuccess) {
         setSubmitError(
-          response.data.message ||
-            "Không thể tạo tài khoản. Vui lòng kiểm tra lại thông tin và thử lại."
+          msg || "Không thể tạo tài khoản. Vui lòng kiểm tra lại thông tin và thử lại."
         );
         return;
       }
-      setSubmitSuccess("Tài khoản đã được tạo thành công. Bạn có thể đăng nhập ngay bây giờ.");
-      setTimeout(() => navigate("/login"), 1500);
+      setSubmitSuccess(
+        msg || "Tài khoản đã được tạo thành công. Bạn có thể đăng nhập ngay bây giờ."
+      );
+      setTimeout(() => navigate("/login"), 2000);
     } catch (error: any) {
       setSubmitError(
         error?.response?.data?.message ||
-          "Không thể đăng ký. Vui lòng kiểm tra kết nối và thông tin rồi thử lại."
+        "Không thể đăng ký. Vui lòng kiểm tra kết nối và thông tin rồi thử lại."
       );
     } finally {
       setIsLoading(false);
@@ -130,20 +137,25 @@ export default function Register() {
             <p className="text-sm text-gray-400">Vui lòng điền thông tin bên dưới để đăng ký.</p>
           </div>
 
+          {/* ── Error alert ── */}
           {submitError && (
             <div
               role="alert"
-              className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700"
+              className="mb-4 p-3.5 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2.5"
             >
-              {submitError}
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-red-500" />
+              <span>{submitError}</span>
             </div>
           )}
+
+          {/* ── Success alert ── */}
           {submitSuccess && (
             <div
               role="status"
-              className="mb-4 p-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700"
+              className="mb-4 p-3.5 rounded-xl bg-green-50 border border-green-300 text-sm text-green-800 flex items-start gap-2.5"
             >
-              {submitSuccess}
+              <CheckCircle className="w-4 h-4 mt-0.5 shrink-0 text-green-600" />
+              <span className="font-medium">{submitSuccess}</span>
             </div>
           )}
 
@@ -163,9 +175,8 @@ export default function Register() {
                         name={field}
                         type={type}
                         placeholder={placeholder}
-                        className={`w-full pl-10 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 focus:bg-white ${
-                          errors[field] && touched[field] ? "border-red-400" : "border-gray-200"
-                        }`}
+                        className={`w-full pl-10 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 focus:bg-white ${errors[field] && touched[field] ? "border-red-400" : "border-gray-200"
+                          }`}
                         aria-describedby={errors[field] && touched[field] ? `${field}-error` : undefined}
                       />
                     </div>
@@ -187,9 +198,8 @@ export default function Register() {
                       name="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Nhập mật khẩu"
-                      className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 focus:bg-white ${
-                        errors.password && touched.password ? "border-red-400" : "border-gray-200"
-                      }`}
+                      className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-gray-50 focus:bg-white ${errors.password && touched.password ? "border-red-400" : "border-gray-200"
+                        }`}
                       aria-describedby={errors.password && touched.password ? "password-error" : undefined}
                     />
                     <button
@@ -209,7 +219,7 @@ export default function Register() {
 
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || !!submitSuccess}
                   className="w-full mt-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   {isLoading ? "Đang xử lý..." : "Đăng ký"}
