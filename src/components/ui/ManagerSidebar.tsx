@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     LayoutDashboard,
     Users,
@@ -24,6 +24,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
+import { getRescueRequests } from "@/services/rescue-request.service";
 import Logo from "@/assets/image/LogoV2.png";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ const NAV_ITEMS: NavItem[] = [
     { key: "rescue-teams", label: "Đội cứu hộ", icon: <HeartPulse className="w-4 h-4" />, path: "/manager/rescue-teams", section: "Quản lý" },
     { key: "inventories", label: "Tồn kho", icon: <ToolCase className="w-4 h-4" />, path: "/manager/inventories" },
     { key: "vehicle", label: "Phương tiện", icon: <CarFront className="w-4 h-4" />, path: "/manager/vehicle" },
-    { key: "requests", label: "Yêu cầu cứu hộ", icon: <Bell className="w-4 h-4" />, path: "/manager/requests", badge: 12 },
+    { key: "requests", label: "Yêu cầu cứu hộ", icon: <Bell className="w-4 h-4" />, path: "/manager/requests", badge: 0 },
     // { key: "reports", label: "Báo cáo", icon: <FileText className="w-4 h-4" />, path: "/admin/reports" },
     { key: "settings", label: "Cài đặt", icon: <Settings className="w-4 h-4" />, path: "/manager/settings", section: "Hệ thống" },
 ];
@@ -90,6 +91,7 @@ export default function ManagerSidebar({
     const dispatch = useAppDispatch();
     const { user } = useAppSelector((state) => state.auth);
     const location = useLocation();
+    const [requestCount, setRequestCount] = useState<number>(0);
 
     const displayName = user?.fullName || user?.username || adminName;
     const displayRole = user?.role || adminRole;
@@ -116,6 +118,32 @@ export default function ManagerSidebar({
         }
     };
 
+    useEffect(() => {
+        const fetchRequestCount = async () => {
+            try {
+                const data = await getRescueRequests();
+                setRequestCount(data.length);
+            } catch {
+                setRequestCount(0);
+            }
+        };
+
+        fetchRequestCount();
+    }, []);
+
+    const navItems = useMemo(
+        () =>
+            NAV_ITEMS.map((item) =>
+                item.key === "requests"
+                    ? {
+                        ...item,
+                        badge: requestCount,
+                    }
+                    : item,
+            ),
+        [requestCount],
+    );
+
     const sidebarContent = (
         <div
             className={`flex flex-col h-full bg-white border-r border-gray-100 transition-all duration-300 ${collapsed ? "w-[64px]" : "w-[240px]"
@@ -134,6 +162,7 @@ export default function ManagerSidebar({
                 )}
                 <button
                     onClick={() => setCollapsed((v) => !v)}
+                    aria-label="Thu gọn thanh điều hướng"
                     className={`ml-auto p-1 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors shrink-0 cursor-pointer ${collapsed ? "hidden" : ""}`}
                 >
                     <ChevronLeft className="w-4 h-4" />
@@ -144,6 +173,7 @@ export default function ManagerSidebar({
             {collapsed && (
                 <button
                     onClick={() => setCollapsed(false)}
+                    aria-label="Mở rộng thanh điều hướng"
                     className="mx-auto mt-2 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors cursor-pointer"
                 >
                     <ChevronRight className="w-4 h-4" />
@@ -152,7 +182,7 @@ export default function ManagerSidebar({
 
             {/* Nav Items */}
             <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-                {NAV_ITEMS.map((item) => {
+                {navItems.map((item) => {
                     const isActive = location.pathname === item.path;
                     const showSection = !collapsed && item.section;
 
@@ -243,6 +273,7 @@ export default function ManagerSidebar({
             {/* Mobile hamburger */}
             <button
                 onClick={() => setMobileOpen(true)}
+                aria-label="Mở menu điều hướng"
                 className="md:hidden fixed top-4 left-4 z-40 p-2 bg-white border border-gray-200 rounded-xl shadow-sm text-gray-600 hover:bg-gray-50 transition-colors"
             >
                 <Menu className="w-5 h-5" />
@@ -267,13 +298,13 @@ export default function ManagerSidebar({
                                     <p className="text-sm font-extrabold text-gray-900 leading-tight">Rescue AID</p>
                                     <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Manager Panel</p>
                                 </div>
-                                <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+                                <button onClick={() => setMobileOpen(false)} aria-label="Đóng menu điều hướng" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
 
                             <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-                                {NAV_ITEMS.map((item) => {
+                                {navItems.map((item) => {
                                     const isActive = location.pathname === item.path;
 
                                     return (
@@ -323,6 +354,7 @@ export default function ManagerSidebar({
                                     </div>
                                     <button
                                         onClick={handleLogout}
+                                        aria-label="Đăng xuất"
                                         className="p-1 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
                                     >
                                         <LogOut className="w-3.5 h-3.5" />

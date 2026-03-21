@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, Loader2, RefreshCw, Search, X } from "lucide-react";
 import { ManagerLayout } from "@/components/ui/ManagerSidebar";
+import Pagination from "@/components/ui/Pagination";
+import { PageProvider, usePage } from "@/context/PageContext";
 import { getRescueRequests } from "@/services/rescue-request.service";
 import type { RescueRequest } from "@/types/rescue-requests";
 import { Eye } from "lucide-react";
@@ -30,7 +32,16 @@ function formatDate(iso: string) {
 }
 
 export default function RTRequestManagement() {
+    return (
+        <PageProvider initialPageSize={10}>
+            <RTRequestManagementContent />
+        </PageProvider>
+    );
+}
+
+function RTRequestManagementContent() {
     const navigate = useNavigate();
+    const { page, pageSize, setPage, setTotalItems } = usePage();
     const [requests, setRequests] = useState<RescueRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -75,6 +86,19 @@ export default function RTRequestManagement() {
             return matchQ && matchStatus;
         });
     }, [requests, search, statusFilter]);
+
+    const paginated = useMemo(() => {
+        const start = (page - 1) * pageSize;
+        return filtered.slice(start, start + pageSize);
+    }, [filtered, page, pageSize]);
+
+    useEffect(() => {
+        setTotalItems(filtered.length);
+    }, [filtered.length, setTotalItems]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search, statusFilter, setPage]);
 
     return (
         <ManagerLayout>
@@ -161,96 +185,102 @@ export default function RTRequestManagement() {
                                 <p className="text-sm">Không có yêu cầu nào phù hợp.</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-gray-100 bg-gray-50/70">
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                                Mã
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                                Người gửi
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                                                Mô tả
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                                Trạng thái
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                                                Đội được gán
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                                                Tạo lúc
-                                            </th>
-                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">
-                                                Hành động
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {filtered.map((r) => {
-                                            const status = STATUS_META[r.status] || {
-                                                label: r.status,
-                                                bg: "bg-gray-50 border-gray-200",
-                                                text: "text-gray-700",
-                                            };
-                                            const urgency = r.urgencyLevel ? URGENCY_META[r.urgencyLevel] : null;
+                            <div className="space-y-4">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="border-b border-gray-100 bg-gray-50/70">
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                    Mã
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                    Người gửi
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                                                    Mô tả
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                    Trạng thái
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                                                    Đội được gán
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                                                    Tạo lúc
+                                                </th>
+                                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">
+                                                    Hành động
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {paginated.map((r) => {
+                                                const status = STATUS_META[r.status] || {
+                                                    label: r.status,
+                                                    bg: "bg-gray-50 border-gray-200",
+                                                    text: "text-gray-700",
+                                                };
+                                                const urgency = r.urgencyLevel ? URGENCY_META[r.urgencyLevel] : null;
 
-                                            return (
-                                                <tr key={r._id} className="hover:bg-blue-50/30 transition-colors">
-                                                    <td className="px-4 py-3 text-sm font-mono font-semibold text-gray-900">
-                                                        <div className="flex flex-col">
-                                                            <span>{r.requestCode}</span>
-                                                            {urgency && (
-                                                                <span className={`text-xs font-semibold ${urgency.text}`}>
-                                                                    {urgency.label}
-                                                                </span>
+                                                return (
+                                                    <tr key={r._id} className="hover:bg-blue-50/30 transition-colors">
+                                                        <td className="px-4 py-3 text-sm font-mono font-semibold text-gray-900">
+                                                            <div className="flex flex-col">
+                                                                <span>{r.requestCode}</span>
+                                                                {urgency && (
+                                                                    <span className={`text-xs font-semibold ${urgency.text}`}>
+                                                                        {urgency.label}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-700">
+                                                            <div className="flex flex-col">
+                                                                <span className="font-medium">{r.userId?.fullName || "—"}</span>
+                                                                <span className="text-xs text-gray-400">{r.userId?.phone || ""}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">
+                                                            <span className="line-clamp-2">{r.description}</span>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <span
+                                                                className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold border ${status.bg} ${status.text}`}
+                                                            >
+                                                                {status.label}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-700 hidden lg:table-cell">
+                                                            {r.assignedTeamId?.teamName ? (
+                                                                <span className="font-medium">{r.assignedTeamId.teamName}</span>
+                                                            ) : (
+                                                                <span className="text-gray-300">Chưa gán</span>
                                                             )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-700">
-                                                        <div className="flex flex-col">
-                                                            <span className="font-medium">{r.userId?.fullName || "—"}</span>
-                                                            <span className="text-xs text-gray-400">{r.userId?.phone || ""}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">
-                                                        <span className="line-clamp-2">{r.description}</span>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <span
-                                                            className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold border ${status.bg} ${status.text}`}
-                                                        >
-                                                            {status.label}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-700 hidden lg:table-cell">
-                                                        {r.assignedTeamId?.teamName ? (
-                                                            <span className="font-medium">{r.assignedTeamId.teamName}</span>
-                                                        ) : (
-                                                            <span className="text-gray-300">Chưa gán</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-xs text-gray-500 hidden sm:table-cell">
-                                                        {formatDate(r.createdAt)}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => navigate(`/manager/requests/${r._id}`)}
-                                                            aria-label="Xem chi tiết yêu cầu"
-                                                            title="Xem chi tiết yêu cầu"
-                                                            className="p-1.5 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
-                                                        >
-                                                            <Eye className="w-4 h-4" />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-xs text-gray-500 hidden sm:table-cell">
+                                                            {formatDate(r.createdAt)}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => navigate(`/manager/requests/${r._id}`)}
+                                                                aria-label="Xem chi tiết yêu cầu"
+                                                                title="Xem chi tiết yêu cầu"
+                                                                className="p-1.5 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="px-4 pb-4">
+                                    <Pagination />
+                                </div>
                             </div>
                         )}
                     </div>
