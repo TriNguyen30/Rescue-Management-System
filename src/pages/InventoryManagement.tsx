@@ -315,18 +315,6 @@ function EditInventoryModal({
                                 placeholder="Ví dụ: 10"
                             />
                         </div>
-                        {/* <div className="flex items-center gap-3 pt-5">
-                            <button
-                                type="button"
-                                onClick={() => setIsActive((v) => !v)}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${isActive ? "bg-blue-500" : "bg-gray-200"}`}
-                            >
-                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isActive ? "translate-x-6" : "translate-x-1"}`} />
-                            </button>
-                            <span className="text-sm text-gray-700">
-                                {isActive ? "Đang hoạt động" : "Ngừng hoạt động"}
-                            </span>
-                        </div> */}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú / mô tả</label>
@@ -960,7 +948,7 @@ export default function InventoryManagement() {
                                 type="button"
                                 onClick={() => setDeleteItem(null)}
                                 disabled={!!deletingId}
-                                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60"
+                                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60 cursor-pointer"
                             >
                                 Hủy
                             </button>
@@ -968,7 +956,7 @@ export default function InventoryManagement() {
                                 type="button"
                                 onClick={confirmDeleteItem}
                                 disabled={!!deletingId}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-red-300 rounded-xl transition-colors"
+                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-red-300 rounded-xl transition-colors cursor-pointer"
                             >
                                 {deletingId ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                                 {deletingId ? "Đang xóa..." : "Xóa"}
