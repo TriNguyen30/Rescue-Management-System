@@ -11,6 +11,16 @@ export const getVehicles = async (): Promise<VehicleItem[]> => {
     }
 };
 
+export const getVehicleById = async (id: string): Promise<VehicleItem> => {
+    try {
+        const response = await axiosInstance.get<VehicleItem>(`/vehicles/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching vehicle:", id);
+        throw error;
+    }
+};
+
 export const createVehicle = async (payload: CreateVehicleItemPayload): Promise<VehicleItem> => {
     try {
         const response = await axiosInstance.post<VehicleItem>("/vehicles", payload);
@@ -27,6 +37,25 @@ export const updateVehicleStatus = async (id: string, payload: UpdateVehicleStat
         return response.data;
     } catch (error) {
         console.error("Error updating vehicle status:", payload);
+        throw error;
+    }
+};
+
+export const updateVehicle = async (id: string, payload: UpdateVehicleItemPayload): Promise<VehicleItem> => {
+    try {
+        const response = await axiosInstance.patch<VehicleItem>(`/vehicles/${id}`, payload);
+        return response.data;
+    } catch (error) {
+        console.error("Error updating vehicle:", payload);
+        throw error;
+    }
+};
+
+export const deleteVehicle = async (id: string): Promise<void> => {
+    try {
+        await axiosInstance.delete(`/vehicles/${id}`);
+    } catch (error) {
+        console.error("Error deleting vehicle:", id);
         throw error;
     }
 };

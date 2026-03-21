@@ -15,7 +15,7 @@ import {
   createVehicle,
   updateVehicleStatus,
 } from "@/services/vehicle.service";
-import { VehicleItem, CreateVehicleItemPayload } from "@/types/vehicle";
+import { VehicleItem, CreateVehicleItemPayload, UpdateVehicleItemPayload, UpdateVehicleStatusPayload } from "@/types/vehicle";
 import { ManagerLayout } from "@/components/ui/ManagerSidebar";
 import { useToast } from "@/components/ui/Toast";
 

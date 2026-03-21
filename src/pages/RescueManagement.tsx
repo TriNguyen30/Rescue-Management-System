@@ -129,11 +129,14 @@ function EditRescueTeamModal({
   const handleSave = async () => {
     if (!teamName.trim()) { setError("Tên đội không được để trống."); return; }
     if (!leaderId.trim()) { setError("Vui lòng chọn đội trưởng."); return; }
+    if (memberIds.length === 0) { setError("Vui lòng chọn ít nhất một thành viên."); return; }
 
     setSaving(true);
     setError("");
     try {
-      const members = memberIds.filter((id) => Boolean(id) && id !== leaderId);
+      const members = Array.from(
+        new Set([leaderId, ...memberIds])
+      );
       const vehicles = vehicleIds.filter(Boolean);
 
       const payload: UpdateRescueTeamPayload = {
@@ -446,7 +449,7 @@ export default function RescueManagement() {
     if (!form.teamName.trim()) { setFormError("Vui lòng nhập tên đội cứu hộ."); return; }
     if (!form.leaderId.trim()) { setFormError("Vui lòng chọn đội trưởng."); return; }
 
-    const members = form.memberIds.filter((id) => Boolean(id) && id !== form.leaderId);
+    const members = Array.from(new Set([form.leaderId, ...form.memberIds]));
     const vehicles = form.vehicleIds.filter(Boolean);
     const payload: CreateRescueTeamPayload = {
       teamName: form.teamName.trim(),
@@ -458,9 +461,12 @@ export default function RescueManagement() {
     try {
       const created = await createRescueTeam(payload);
       setTeams((prev) => [created, ...prev]);
+      setForm(initialForm);
       setModalOpen(false);
+      toastSuccess("Đội cứu hộ đã được tạo thành công.");
     } catch (e: any) {
       setFormError(e?.response?.data?.message || e?.message || "Không thể tạo đội cứu hộ mới.");
+      toastError("Không thể tạo đội cứu hộ mới.", e?.response?.data?.message || e?.message || "Không thể tạo đội cứu hộ mới.");
     } finally {
       setSubmitting(false);
     }
