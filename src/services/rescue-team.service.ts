@@ -70,6 +70,18 @@ export const updateRescueTeamLocation = async (id: string, latitude: number, lon
     }
 }
 
+export const updateRescueTeamStatus = async (id: string, status: string): Promise<RescueTeam> => {
+    try {
+        const response = await axiosInstance.patch<RescueTeam>(`/rescue-teams/${id}/status`, {
+            status,
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error updating rescue team status:", { id, status });
+        throw error;
+    }
+}
+
 export const deleteRescueTeam = async (id: string): Promise<void> => {
     try {
         await axiosInstance.delete(`/rescue-teams/${id}`);

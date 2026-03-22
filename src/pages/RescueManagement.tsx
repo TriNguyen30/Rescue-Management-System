@@ -26,9 +26,15 @@ import { ManagerLayout } from "@/components/ui/ManagerSidebar";
 import { useNavigate } from "react-router-dom";
 import {
   getRescueTeams,
+  getResuceTeamById,
   createRescueTeam,
   updateRescueTeam,
   deleteRescueTeam,
+  assignMemberToRescueTeam,
+  removeMemberFromRescueTeam,
+  assignVehicleToRescueTeam,
+  removeVehicleFromRescueTeam,
+  updateRescueTeamStatus,
 } from "@/services/rescue-team.service";
 import { getUsers } from "@/services/user.service";
 import { getVehicles } from "@/services/vehicle.service";
@@ -38,6 +44,8 @@ import type {
   CreateRescueTeamPayload,
   UpdateRescueTeamPayload,
   RescueTeamStatus,
+  AssignMemberToRescueTeamPayload,
+  AssignVehicleToRescueTeamPayload,
 } from "@/types/rescue-teams";
 import type { User } from "@/types/user";
 import type { VehicleItem } from "@/types/vehicle";
@@ -53,6 +61,7 @@ const resolveVehicleId = (v: VehicleItem): string => (v._id ?? v.id)!;
 type FormState = {
   teamName: string;
   leaderId: string;
+  baseArea: string;
   memberIds: string[];
   vehicleIds: string[];
 };
@@ -60,9 +69,23 @@ type FormState = {
 const initialForm: FormState = {
   teamName: "",
   leaderId: "",
+  baseArea: "",
   memberIds: [],
   vehicleIds: [],
 };
+
+/** Payload shape required by assign/remove rescue-team endpoints */
+function teamRef(teamId: string): { id: string; _id: string } {
+  return { id: teamId, _id: teamId };
+}
+
+function memberAssignPayload(teamId: string, userId: string): AssignMemberToRescueTeamPayload {
+  return { ...teamRef(teamId), userId };
+}
+
+function vehicleAssignPayload(teamId: string, vehicleId: string): AssignVehicleToRescueTeamPayload {
+  return { ...teamRef(teamId), vehicleId };
+}
 
 const STATUS_LABELS: Record<RescueTeamStatus, string> = {
   AVAILABLE: "Sẵn sàng",
@@ -87,14 +110,16 @@ function StatusBadge({ status }: { status: RescueTeamStatus }) {
   );
 }
 
-// ── Member / vehicle multi-select shared sub-component ────────────────────────
-function MultiSelect({
+// ── Checkbox multi-select (members / vehicles) ────────────────────────────────
+function CheckboxMultiSelect({
   id,
   label,
   hint,
   options,
   value,
   onChange,
+  searchable = true,
+  maxHeightClass = "max-h-[220px]",
 }: {
   id: string;
   label: string;
@@ -102,24 +127,125 @@ function MultiSelect({
   options: { value: string; label: string }[];
   value: string[];
   onChange: (vals: string[]) => void;
+  searchable?: boolean;
+  maxHeightClass?: string;
 }) {
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter(
+      (o) =>
+        o.label.toLowerCase().includes(q) ||
+        o.value.toLowerCase().includes(q),
+    );
+  }, [options, query]);
+
+  const toggle = (val: string) => {
+    if (value.includes(val)) {
+      onChange(value.filter((v) => v !== val));
+    } else {
+      onChange([...value, val]);
+    }
+  };
+
+  const selectAllFiltered = () => {
+    const next = new Set(value);
+    filtered.forEach((o) => next.add(o.value));
+    onChange(Array.from(next));
+  };
+
+  const clearSelection = () => onChange([]);
+
   return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1.5">
-        {label}
-        {hint && <span className="text-gray-400 font-normal ml-1">{hint}</span>}
-      </label>
-      <select
-        id={id}
-        multiple
-        value={value}
-        onChange={(e) => onChange(Array.from(e.target.selectedOptions).map((o) => o.value))}
-        className="w-full min-h-[90px] px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p id={`${id}-legend`} className="text-sm font-medium text-gray-700">
+          {label}
+          {hint && <span className="text-gray-400 font-normal ml-1">{hint}</span>}
+        </p>
+        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-lg">
+          {value.length} đã chọn
+        </span>
+      </div>
+
+      {searchable && options.length > 4 && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <input
+            type="search"
+            id={`${id}_search`}
+            placeholder="Tìm theo tên, số điện thoại..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+            aria-label="Lọc danh sách"
+          />
+        </div>
+      )}
+
+      {options.length > 0 && (
+        <div className="flex flex-wrap gap-2 text-xs">
+          <button
+            type="button"
+            onClick={selectAllFiltered}
+            className="text-emerald-600 hover:text-emerald-800 font-medium underline-offset-2 hover:underline"
+          >
+            Chọn tất cả {query.trim() ? "trong kết quả" : ""}
+          </button>
+          <span className="text-gray-300">|</span>
+          <button
+            type="button"
+            onClick={clearSelection}
+            className="text-gray-500 hover:text-gray-800 font-medium underline-offset-2 hover:underline"
+          >
+            Bỏ chọn hết
+          </button>
+        </div>
+      )}
+
+      <div
+        role="group"
+        aria-labelledby={`${id}-legend`}
+        className={`${maxHeightClass} overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-inner`}
       >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
+        {filtered.length === 0 ? (
+          <p className="px-4 py-8 text-sm text-center text-gray-400">
+            {options.length === 0 ? "Chưa có dữ liệu." : "Không có mục phù hợp bộ lọc."}
+          </p>
+        ) : (
+          <ul className="divide-y divide-gray-100" id={id}>
+            {filtered.map((o) => {
+              const checked = value.includes(o.value);
+              return (
+                <li key={o.value}>
+                  <label
+                    className={`flex items-start gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
+                      checked
+                        ? "bg-emerald-50/80 hover:bg-emerald-50"
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="pt-0.5 shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggle(o.value)}
+                        className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer"
+                      />
+                    </span>
+                    <span className="text-sm text-gray-800 leading-snug flex-1 select-none">{o.label}</span>
+                    {checked && (
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" aria-hidden />
+                    )}
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -143,10 +269,10 @@ function EditRescueTeamModal({
     typeof team.leaderId === "object" ? (team.leaderId?._id ?? "") : (team.leaderId ?? "")
   );
   const [memberIds, setMemberIds] = useState<string[]>(
-    team.members?.map((m) => m._id ?? m.id ?? "").filter(Boolean) ?? []
+    team.members?.map((m) => m._id).filter(Boolean) ?? []
   );
   const [vehicleIds, setVehicleIds] = useState<string[]>(
-    team.vehicles?.map((v) => resolveVehicleId(v)).filter(Boolean) ?? []
+    team.vehicles?.map((v) => v._id).filter(Boolean) ?? []
   );
   const [status, setStatus] = useState<RescueTeamStatus>(team.status);
   const [saving, setSaving] = useState(false);
@@ -156,20 +282,54 @@ function EditRescueTeamModal({
   const handleSave = async () => {
     if (!teamName.trim()) { setError("Tên đội không được để trống."); return; }
     if (!leaderId.trim()) { setError("Vui lòng chọn đội trưởng."); return; }
-    if (memberIds.length === 0) { setError("Vui lòng chọn ít nhất một thành viên."); return; }
+
+    const teamId = resolveTeamId(team);
+    const leaderOld =
+      typeof team.leaderId === "object" && team.leaderId
+        ? team.leaderId._id
+        : String(team.leaderId ?? "");
+    const prevUserIds = new Set(
+      [leaderOld, ...(team.members?.map((m) => m._id).filter(Boolean) ?? [])].filter(Boolean) as string[],
+    );
+    const newUserIds = new Set(
+      [leaderId.trim(), ...memberIds].filter(Boolean),
+    );
+    const prevVehicleIds = new Set(
+      team.vehicles?.map((v) => v._id).filter(Boolean) ?? [],
+    );
+    const newVehicleIds = new Set(vehicleIds.filter(Boolean));
 
     setSaving(true);
     setError("");
     try {
-      const members = Array.from(new Set([leaderId, ...memberIds]));
-      const payload: UpdateRescueTeamPayload = {
+      const patchPayload: UpdateRescueTeamPayload = {
         teamName: teamName.trim(),
         leaderId: leaderId.trim(),
-        members,
-        vehicles: vehicleIds.filter(Boolean),
-        status,
       };
-      const updated = await updateRescueTeam(resolveTeamId(team), payload);
+      await updateRescueTeam(teamId, patchPayload);
+      if (status !== team.status) {
+        await updateRescueTeamStatus(teamId, status);
+      }
+
+      const toRemoveUsers = [...prevUserIds].filter((id) => !newUserIds.has(id));
+      const toAddUsers = [...newUserIds].filter((id) => !prevUserIds.has(id));
+      for (const userId of toRemoveUsers) {
+        await removeMemberFromRescueTeam(memberAssignPayload(teamId, userId));
+      }
+      for (const userId of toAddUsers) {
+        await assignMemberToRescueTeam(memberAssignPayload(teamId, userId));
+      }
+
+      const toRemoveVehicles = [...prevVehicleIds].filter((id) => !newVehicleIds.has(id));
+      const toAddVehicles = [...newVehicleIds].filter((id) => !prevVehicleIds.has(id));
+      for (const vid of toRemoveVehicles) {
+        await removeVehicleFromRescueTeam(vehicleAssignPayload(teamId, vid));
+      }
+      for (const vid of toAddVehicles) {
+        await assignVehicleToRescueTeam(vehicleAssignPayload(teamId, vid));
+      }
+
+      const updated = await getResuceTeamById(teamId);
       onSaved(updated);
       onClose();
       success("Đội cứu hộ đã được cập nhật thành công.");
@@ -236,20 +396,20 @@ function EditRescueTeamModal({
           </div>
 
           {/* Members */}
-          <MultiSelect
+          <CheckboxMultiSelect
             id="edit_member_ids"
             label="Thành viên"
-            hint="(có thể chọn nhiều)"
+            hint="(tick để chọn nhiều người)"
             options={userOptions.filter((o) => o.value !== leaderId)}
             value={memberIds}
             onChange={setMemberIds}
           />
 
           {/* Vehicles */}
-          <MultiSelect
+          <CheckboxMultiSelect
             id="edit_vehicle_ids"
             label="Phương tiện"
-            hint="(có thể chọn nhiều)"
+            hint="(tick để chọn nhiều xe)"
             options={vehicleOptions}
             value={vehicleIds}
             onChange={setVehicleIds}
@@ -398,7 +558,7 @@ export default function RescueManagement() {
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleOpenModal = () => { setForm(initialForm); setFormError(""); setModalOpen(true); };
 
-  const handleChange = (field: "teamName" | "leaderId", value: string) =>
+  const handleChange = (field: "teamName" | "leaderId" | "baseArea", value: string) =>
     setForm((prev) => {
       if (field === "leaderId") {
         return { ...prev, leaderId: value, memberIds: prev.memberIds.filter((id) => id !== value) };
@@ -418,13 +578,31 @@ export default function RescueManagement() {
     const payload: CreateRescueTeamPayload = {
       teamName: form.teamName.trim(),
       leaderId: form.leaderId.trim(),
-      members: Array.from(new Set([form.leaderId, ...form.memberIds])),
-      vehicles: form.vehicleIds.filter(Boolean),
+      baseArea: form.baseArea.trim() || "—",
     };
     setSubmitting(true);
     try {
       const created = await createRescueTeam(payload);
-      setTeams((prev) => [created, ...prev]);
+      const teamId = resolveTeamId(created);
+
+      const desiredUsers = Array.from(new Set([form.leaderId.trim(), ...form.memberIds]));
+      for (const userId of desiredUsers) {
+        try {
+          await assignMemberToRescueTeam(memberAssignPayload(teamId, userId));
+        } catch {
+          /* leader có thể đã được gán khi tạo đội */
+        }
+      }
+      for (const vehicleId of form.vehicleIds.filter(Boolean)) {
+        try {
+          await assignVehicleToRescueTeam(vehicleAssignPayload(teamId, vehicleId));
+        } catch {
+          /* xe có thể đã gán hoặc lỗi tạm thời */
+        }
+      }
+
+      const fresh = await getResuceTeamById(teamId);
+      setTeams((prev) => [fresh, ...prev.filter((t) => resolveTeamId(t) !== teamId)]);
       setForm(initialForm);
       setModalOpen(false);
       toastSuccess("Đội cứu hộ đã được tạo thành công.");
@@ -446,7 +624,7 @@ export default function RescueManagement() {
     setTeams((prev) => prev.map((t) => resolveTeamId(t) === id ? { ...t, status: nextStatus } : t));
     setUpdatingStatus((prev) => ({ ...prev, [id]: true }));
     try {
-      const updated = await updateRescueTeam(id, { status: nextStatus });
+      const updated = await updateRescueTeamStatus(id, nextStatus);
       setTeams((prev) => prev.map((t) => resolveTeamId(t) === id ? { ...t, ...updated } : t));
       toastSuccess("Cập nhật trạng thái đội cứu hộ thành công.");
       fetchTeams();
@@ -721,6 +899,12 @@ export default function RescueManagement() {
                     placeholder="VD: Đội cứu hộ Q1" />
                 </div>
                 <div>
+                  <label htmlFor="base_area" className="block text-sm font-medium text-gray-700 mb-1.5">Khu vực hoạt động</label>
+                  <input id="base_area" value={form.baseArea} onChange={(e) => handleChange("baseArea", e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                    placeholder="VD: Quận 1, TP.HCM (để trống sẽ dùng mặc định)" />
+                </div>
+                <div>
                   <label htmlFor="leader_id" className="block text-sm font-medium text-gray-700 mb-1.5">Đội trưởng</label>
                   <div className="relative">
                     <select id="leader_id" value={form.leaderId} onChange={(e) => handleChange("leaderId", e.target.value)}
@@ -734,18 +918,18 @@ export default function RescueManagement() {
                     </svg>
                   </div>
                 </div>
-                <MultiSelect
+                <CheckboxMultiSelect
                   id="member_ids"
                   label="Thành viên"
-                  hint="(có thể chọn nhiều)"
+                  hint="(tick để chọn nhiều người)"
                   options={userOptions.filter((o) => o.value !== form.leaderId)}
                   value={form.memberIds}
                   onChange={(vals) => handleMultiChange("memberIds", vals)}
                 />
-                <MultiSelect
+                <CheckboxMultiSelect
                   id="vehicle_ids"
                   label="Phương tiện"
-                  hint="(có thể chọn nhiều)"
+                  hint="(tick để chọn nhiều xe)"
                   options={vehicleOptions}
                   value={form.vehicleIds}
                   onChange={(vals) => handleMultiChange("vehicleIds", vals)}
@@ -934,7 +1118,7 @@ export default function RescueManagement() {
                   {selectedTeam.members?.length ? (
                     <div className="max-h-40 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50/60 divide-y divide-gray-100">
                       {selectedTeam.members.map((m) => (
-                        <div key={m._id ?? m.id} className="px-3 py-2 flex items-center justify-between">
+                        <div key={m._id} className="px-3 py-2 flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-gray-900">{m.fullName}</p>
                             <p className="text-xs text-gray-500">{m.phone || "—"}</p>
