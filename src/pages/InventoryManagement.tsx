@@ -864,18 +864,6 @@ export default function InventoryManagement() {
                                             placeholder="Ví dụ: 10"
                                         />
                                     </div>
-                                    <div className="flex items-center gap-3 pt-5">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleChange("isActive", !form.isActive)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${form.isActive ? "bg-blue-500" : "bg-gray-200"}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${form.isActive ? "translate-x-6" : "translate-x-1"}`} />
-                                        </button>
-                                        <span className="text-sm text-gray-700">
-                                            {form.isActive ? "Đang hoạt động" : "Ngừng hoạt động"}
-                                        </span>
-                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú / mô tả</label>
