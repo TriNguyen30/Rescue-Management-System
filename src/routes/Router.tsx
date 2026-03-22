@@ -13,6 +13,8 @@ import CoordinatorDashboard from "@/pages/CoordinatorDashboard";
 import RescueManagement from "@/pages/RescueManagement";
 import InventoryManagement from "@/pages/InventoryManagement";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AdminSystemSettings from "@/pages/AdminSystemSettings";
+import AdminOperationsReport from "@/pages/AdminOperationsReport";
 import VehicleManagement from "@/pages/VehicleManagement";
 import RescueMap from "@/pages/RescueMap";
 import RequestDetails from "@/pages/RequestDetails";
@@ -25,6 +27,7 @@ import RequestsHistory from "@/pages/RequestsHistory";
 import UserProfile from "@/pages/UserProfile";
 import Donation from "@/pages/Donation";
 import SearchNearbyRequests from "@/pages/SearchNearbyRequests";
+import ManagerSetting from "@/pages/ManagerSetting";
 
 export default function AppRoutes() {
   return (
@@ -53,6 +56,22 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute requireAdmin>
             <UserManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/analytics"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AdminOperationsReport />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/settings"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AdminSystemSettings />
           </ProtectedRoute>
         }
       />
@@ -109,6 +128,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute requireManager>
             <RequestDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/settings"
+        element={
+          <ProtectedRoute requireManager>
+            <ManagerSetting />
           </ProtectedRoute>
         }
       />

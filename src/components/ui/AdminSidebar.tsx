@@ -53,7 +53,7 @@ const NAV_ITEMS: NavItem[] = [
     // { key: "rescue-teams", label: "Đội cứu hộ", icon: <HeartPulse className="w-4 h-4" />, path: "/admin/rescue-teams" },
     // { key: "requests", label: "Yêu cầu cứu hộ", icon: <Bell className="w-4 h-4" />, path: "/admin/requests", badge: 12 },
     // { key: "reports", label: "Báo cáo", icon: <FileText className="w-4 h-4" />, path: "/admin/reports" },
-    { key: "analytics", label: "Thống kê", icon: <BarChart3 className="w-4 h-4" />, path: "/admin/analytics", section: "Phân tích" },
+    { key: "analytics", label: "Báo cáo cứu trợ", icon: <BarChart3 className="w-4 h-4" />, path: "/admin/analytics", section: "Phân tích" },
     { key: "settings", label: "Cài đặt", icon: <Settings className="w-4 h-4" />, path: "/admin/settings", section: "Hệ thống" },
 ];
 
