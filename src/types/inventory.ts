@@ -5,7 +5,9 @@ export interface InventoryItem {
     quantity: number;
     unit: string;
     category: string;
+    lowStockThreshold?: number;
     description?: string;
+    isActive?: boolean;
     createdAt?: string | null;
     updatedAt?: string | null;
 }
@@ -16,6 +18,8 @@ export interface CreateInventoryItemPayload {
     unit: string;
     category: string;
     description?: string;
+    lowStockThreshold?: number;
+    isActive?: boolean;
 }
 
 export interface UpdateInventoryItemPayload {
@@ -23,9 +27,11 @@ export interface UpdateInventoryItemPayload {
     quantity?: number;
     unit?: string;
     category?: string;
+    lowStockThreshold?: number;
     description?: string;
+    isActive?: boolean;
 }
 
 export interface UpdateInventoryStockPayload {
-    amount: number;
+    quantityChange: number;
 }

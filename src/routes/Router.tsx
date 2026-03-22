@@ -57,14 +57,6 @@ export default function AppRoutes() {
         }
       />
       <Route
-        path="/admin/dashboard"
-        element={
-          <ProtectedRoute requireAdmin>
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/manager"
         element={
           <ProtectedRoute requireManager>
@@ -131,7 +123,6 @@ export default function AppRoutes() {
         <Route index element={<CoordinatorDashboard />} />
         <Route path="requests/:id" element={<RequestDetails />} />
       </Route>
-
       <Route
         path="/rescue-team"
         element={

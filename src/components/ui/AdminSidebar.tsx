@@ -44,14 +44,14 @@ interface AdminSidebarProps {
 
 // ── Nav Config ────────────────────────────────────────────────────────────────
 const NAV_ITEMS: NavItem[] = [
-    { key: "dashboard", label: "Tổng quan", icon: <LayoutDashboard className="w-4 h-4" />, path: "/admin/dashboard", section: "Chính" },
-    { key: "rescue-map", label: "Bản đồ cứu hộ", icon: <Map className="w-4 h-4" />, path: "/admin/rescue-map", badge: "LIVE" },
+    { key: "dashboard", label: "Tổng quan", icon: <LayoutDashboard className="w-4 h-4" />, path: "/admin", section: "Chính" },
+    // { key: "rescue-map", label: "Bản đồ cứu hộ", icon: <Map className="w-4 h-4" />, path: "/admin/rescue-map", badge: "LIVE" },
     // { key: "alerts", label: "Cảnh báo", icon: <AlertTriangle className="w-4 h-4" />, path: "/admin/alerts", badge: 3 },
     // { key: "broadcasts", label: "Phát sóng", icon: <Radio className="w-4 h-4" />, path: "/admin/broadcasts" },
 
     { key: "users", label: "Người dùng", icon: <Users className="w-4 h-4" />, path: "/admin/users", section: "Quản lý" },
-    { key: "rescue-teams", label: "Đội cứu hộ", icon: <HeartPulse className="w-4 h-4" />, path: "/admin/rescue-teams" },
-    { key: "requests", label: "Yêu cầu cứu hộ", icon: <Bell className="w-4 h-4" />, path: "/admin/requests", badge: 12 },
+    // { key: "rescue-teams", label: "Đội cứu hộ", icon: <HeartPulse className="w-4 h-4" />, path: "/admin/rescue-teams" },
+    // { key: "requests", label: "Yêu cầu cứu hộ", icon: <Bell className="w-4 h-4" />, path: "/admin/requests", badge: 12 },
     // { key: "reports", label: "Báo cáo", icon: <FileText className="w-4 h-4" />, path: "/admin/reports" },
     { key: "analytics", label: "Thống kê", icon: <BarChart3 className="w-4 h-4" />, path: "/admin/analytics", section: "Phân tích" },
     { key: "settings", label: "Cài đặt", icon: <Settings className="w-4 h-4" />, path: "/admin/settings", section: "Hệ thống" },

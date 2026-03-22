@@ -89,7 +89,7 @@ export default function Modal({
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors cursor-pointer"
                                 aria-label="Đóng"
                             >
                                 <X className="w-5 h-5" />

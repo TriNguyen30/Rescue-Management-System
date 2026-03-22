@@ -9,32 +9,37 @@ import {
   Users,
   Hash,
   Calendar,
+  Edit3,
+  Trash2,
+  Eye,
+  Check,
+  Tag,
+  Clock,
+  ToggleLeft,
+  ToggleRight,
+  FileText,
+  TrendingUp,
 } from "lucide-react";
 import {
   getVehicles,
   createVehicle,
+  updateVehicle,
   updateVehicleStatus,
+  deleteVehicle,
 } from "@/services/vehicle.service";
-import { VehicleItem, CreateVehicleItemPayload } from "@/types/vehicle";
+import {
+  VehicleItem,
+  CreateVehicleItemPayload,
+  UpdateVehicleItemPayload,
+} from "@/types/vehicle";
 import { ManagerLayout } from "@/components/ui/ManagerSidebar";
 import { useToast } from "@/components/ui/Toast";
+import Modal from "@/components/ui/Modal";
 
-type FormState = {
-  plateNumber: string;
-  type: string;
-  capacity: string;
-  status: string;
-  assignedTeam: string;
-};
+/** Resolve canonical id supporting both `id` and `_id`. */
+const resolveId = (v: VehicleItem): string => (v.id ?? v._id)!;
 
-const initialForm: FormState = {
-  plateNumber: "",
-  type: "",
-  capacity: "",
-  status: "AVAILABLE",
-  assignedTeam: "",
-};
-
+// ── Constants ────────────────────────────────────────────────────────────────
 const STATUS_LABELS: Record<string, string> = {
   AVAILABLE: "Sẵn sàng",
   IN_USE: "Đang hoạt động",
@@ -42,32 +47,293 @@ const STATUS_LABELS: Record<string, string> = {
   BROKEN: "Hư hỏng",
 };
 
-const STATUS_COLORS: Record<
-  string,
-  { bg: string; text: string; dot: string }
-> = {
-  AVAILABLE: {
-    bg: "bg-emerald-50 border-emerald-100",
-    text: "text-emerald-700",
-    dot: "bg-emerald-500",
-  },
-  IN_USE: {
-    bg: "bg-blue-50 border-blue-100",
-    text: "text-blue-700",
-    dot: "bg-blue-500",
-  },
-  MAINTENANCE: {
-    bg: "bg-amber-50 border-amber-100",
-    text: "text-amber-700",
-    dot: "bg-amber-500",
-  },
-  BROKEN: {
-    bg: "bg-red-50 border-red-100",
-    text: "text-red-700",
-    dot: "bg-red-500",
-  },
+const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  AVAILABLE: { bg: "bg-emerald-50 border-emerald-100", text: "text-emerald-700", dot: "bg-emerald-500" },
+  IN_USE: { bg: "bg-blue-50 border-blue-100", text: "text-blue-700", dot: "bg-blue-500" },
+  MAINTENANCE: { bg: "bg-amber-50 border-amber-100", text: "text-amber-700", dot: "bg-amber-500" },
+  BROKEN: { bg: "bg-red-50 border-red-100", text: "text-red-700", dot: "bg-red-500" },
 };
 
+type FormState = {
+  name: string;
+  plateNumber: string;
+  type: string;
+  capacity: string;
+  status: string;
+  assignedTeam: string;
+  isActive: boolean;
+};
+
+const initialForm: FormState = {
+  name: "",
+  plateNumber: "",
+  type: "",
+  capacity: "",
+  status: "AVAILABLE",
+  assignedTeam: "",
+  isActive: true,
+};
+
+// ── StatusBadge ───────────────────────────────────────────────────────────────
+function StatusBadge({ status }: { status: string }) {
+  const meta = STATUS_COLORS[status] ?? STATUS_COLORS.AVAILABLE;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${meta.bg} ${meta.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+      {STATUS_LABELS[status] ?? status}
+    </span>
+  );
+}
+
+// ── View Detail Modal ─────────────────────────────────────────────────────────
+function ViewDetailModal({
+  vehicle,
+  onClose,
+  onEdit,
+}: {
+  vehicle: VehicleItem;
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  const formatDate = (val?: string | null) =>
+    val ? new Date(val).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" }) : "—";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <CarFront className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Chi tiết phương tiện</p>
+              <h3 className="text-lg font-bold text-gray-900 leading-tight">{vehicle.plateNumber}</h3>
+              {vehicle.name && <p className="text-sm text-gray-500">{vehicle.name}</p>}
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer mt-0.5">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-5">
+          {/* Status highlight */}
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-1">Trạng thái hiện tại</p>
+              <StatusBadge status={vehicle.status} />
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-medium text-gray-500 mb-0.5">Sức chứa</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {vehicle.capacity?.toLocaleString("vi-VN")}
+                <span className="text-sm font-semibold text-gray-400 ml-1">chỗ / kg</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Info grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
+              <Tag className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Loại xe</p>
+                <p className="text-sm font-semibold text-gray-800">{vehicle.type || "—"}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
+              <Users className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Đội phụ trách</p>
+                <p className="text-sm font-semibold text-gray-800">{vehicle.assignedTeam || "Chưa phân công"}</p>
+              </div>
+            </div>
+            {vehicle.name && (
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                <FileText className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Tên xe</p>
+                  <p className="text-sm font-semibold text-gray-800">{vehicle.name}</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
+              {vehicle.isActive !== false
+                ? <ToggleRight className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                : <ToggleLeft className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />}
+              <div>
+                <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Hoạt động</p>
+                <p className={`text-sm font-semibold ${vehicle.isActive !== false ? "text-emerald-600" : "text-gray-400"}`}>
+                  {vehicle.isActive !== false ? "Đang hoạt động" : "Ngừng hoạt động"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Timestamps */}
+          <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400 pt-1 border-t border-gray-100">
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              <span>Tạo: {formatDate(vehicle.createdAt)}</span>
+            </div>
+            {vehicle.updatedAt && vehicle.updatedAt !== vehicle.createdAt && (
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Cập nhật: {formatDate(vehicle.updatedAt)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => { onClose(); onEdit(); }}
+              className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-xl transition-colors cursor-pointer"
+            >
+              <Edit3 className="w-4 h-4" />
+              Chỉnh sửa
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Edit Vehicle Modal ────────────────────────────────────────────────────────
+function EditVehicleModal({
+  vehicle,
+  onClose,
+  onSaved,
+}: {
+  vehicle: VehicleItem;
+  onClose: () => void;
+  onSaved: (updated: VehicleItem) => void;
+}) {
+  const [name, setName] = useState(vehicle.name ?? "");
+  const [plateNumber, setPlateNumber] = useState(vehicle.plateNumber ?? "");
+  const [type, setType] = useState(vehicle.type ?? "");
+  const [capacity, setCapacity] = useState(String(vehicle.capacity ?? ""));
+  const [status, setStatus] = useState(vehicle.status ?? "AVAILABLE");
+  const [assignedTeam, setAssignedTeam] = useState(vehicle.assignedTeam ?? "");
+  const [isActive, setIsActive] = useState(vehicle.isActive ?? true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const { success, error: toastError } = useToast();
+
+  const handleSave = async () => {
+    if (!plateNumber.trim()) { setError("Vui lòng nhập biển số xe."); return; }
+    if (!type.trim()) { setError("Vui lòng nhập loại xe."); return; }
+    const capacityNumber = Number(capacity);
+    if (!Number.isFinite(capacityNumber) || capacityNumber < 0) { setError("Sức chứa không hợp lệ."); return; }
+
+    setSaving(true);
+    setError("");
+    try {
+      const payload: UpdateVehicleItemPayload = {
+        name: name.trim() || undefined,
+        plateNumber: plateNumber.trim(),
+        type: type.trim(),
+        capacity: capacityNumber,
+        status,
+        assignedTeam: assignedTeam.trim() || undefined,
+      };
+      const updated = await updateVehicle(resolveId(vehicle), payload);
+      onSaved(updated);
+      onClose();
+      success("Phương tiện đã được cập nhật thành công.");
+    } catch (e: any) {
+      const message = e?.response?.data?.message || "Cập nhật phương tiện thất bại.";
+      setError(message);
+      toastError(message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div>
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Chỉnh sửa phương tiện</p>
+            <h3 className="text-lg font-bold text-gray-900">{vehicle.plateNumber}</h3>
+          </div>
+          <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên xe <span className="text-gray-400 font-normal">(tuỳ chọn)</span></label>
+              <input value={name} onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                placeholder="VD: Xe cứu hộ số 1" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Biển số xe</label>
+              <input value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                placeholder="VD: 51F-123.45" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Loại xe</label>
+              <input value={type} onChange={(e) => setType(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                placeholder="VD: Xe tải, xuồng cao tốc..." />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Sức chứa (người / kg)</label>
+              <input type="number" min={0} value={capacity} onChange={(e) => setCapacity(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Trạng thái</label>
+              <select value={status} onChange={(e) => setStatus(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition cursor-pointer">
+                {Object.entries(STATUS_LABELS).map(([val, label]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Đội phụ trách</label>
+              <input value={assignedTeam} onChange={(e) => setAssignedTeam(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                placeholder="VD: Đội cứu hộ Q1" />
+            </div>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-xl">
+              <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} disabled={saving}
+              className="flex-1 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer disabled:opacity-60">
+              Hủy
+            </button>
+            <button type="button" onClick={handleSave} disabled={saving}
+              className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {saving ? "Đang lưu..." : "Lưu thay đổi"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function VehicleManagement() {
   const [vehicles, setVehicles] = useState<VehicleItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,9 +344,11 @@ export default function VehicleManagement() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
-  const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [viewVehicle, setViewVehicle] = useState<VehicleItem | null>(null);
+  const [editVehicle, setEditVehicle] = useState<VehicleItem | null>(null);
+  const [deleteVehicleItem, setDeleteVehicleItem] = useState<VehicleItem | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>({});
   const { success, error: toastError } = useToast();
 
   const fetchVehicles = useCallback(async () => {
@@ -88,21 +356,15 @@ export default function VehicleManagement() {
     setError("");
     try {
       const data = await getVehicles();
-      setVehicles(data || []);
+      setVehicles(data ?? []);
     } catch (e: any) {
-      setError(
-        e?.response?.data?.message ||
-          e?.message ||
-          "Không thể tải danh sách phương tiện."
-      );
+      setError(e?.response?.data?.message || e?.message || "Không thể tải danh sách phương tiện.");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchVehicles();
-  }, [fetchVehicles]);
+  useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
   const statuses = useMemo(() => {
     const set = new Set<string>();
@@ -117,51 +379,30 @@ export default function VehicleManagement() {
         !q ||
         v.plateNumber.toLowerCase().includes(q) ||
         v.type.toLowerCase().includes(q) ||
+        v.name?.toLowerCase().includes(q) ||
         v.assignedTeam?.toLowerCase().includes(q);
-      const matchStatus =
-        statusFilter === "ALL" || v.status === statusFilter;
+      const matchStatus = statusFilter === "ALL" || v.status === statusFilter;
       return matchSearch && matchStatus;
     });
   }, [vehicles, search, statusFilter]);
 
-  const handleOpenModal = () => {
-    setForm(initialForm);
-    setFormError("");
-    setModalOpen(true);
-  };
-
-  const handleChange = (field: keyof FormState, value: string) => {
+  const handleOpenModal = () => { setForm(initialForm); setFormError(""); setModalOpen(true); };
+  const handleChange = (field: keyof FormState, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
-
-    if (!form.plateNumber.trim()) {
-      setFormError("Vui lòng nhập biển số phương tiện.");
-      return;
-    }
-    if (!form.type.trim()) {
-      setFormError("Vui lòng nhập loại phương tiện.");
-      return;
-    }
+    if (!form.plateNumber.trim()) { setFormError("Vui lòng nhập biển số xe."); return; }
+    if (!form.type.trim()) { setFormError("Vui lòng nhập loại xe."); return; }
     const capacityNumber = Number(form.capacity);
-    if (!Number.isFinite(capacityNumber) || capacityNumber < 0) {
-      setFormError("Sức chứa không hợp lệ.");
-      return;
-    }
-    if (!form.status.trim()) {
-      setFormError("Vui lòng chọn trạng thái.");
-      return;
-    }
+    if (!Number.isFinite(capacityNumber) || capacityNumber < 0) { setFormError("Sức chứa không hợp lệ."); return; }
 
     const payload: CreateVehicleItemPayload = {
+      name: form.name.trim() || undefined,
       plateNumber: form.plateNumber.trim(),
       type: form.type.trim(),
       capacity: capacityNumber,
-      status: form.status.trim(),
-      assignedTeam: form.assignedTeam.trim() || undefined,
     };
 
     setSubmitting(true);
@@ -170,9 +411,9 @@ export default function VehicleManagement() {
       setVehicles((prev) => [created, ...prev]);
       setModalOpen(false);
       success("Phương tiện đã được tạo thành công.");
+      fetchVehicles();
     } catch (e: any) {
-      const message =
-        e?.response?.data?.message || e?.message || "Không thể tạo phương tiện.";
+      const message = e?.response?.data?.message || e?.message || "Không thể tạo phương tiện.";
       setFormError(message);
       toastError(message);
     } finally {
@@ -180,52 +421,53 @@ export default function VehicleManagement() {
     }
   };
 
-  const handleUpdateStatus = async (vehicle: VehicleItem, nextStatus: string) => {
-    const id = vehicle.id || vehicle._id;
-    if (!id) return;
+  const patchVehicle = (updated: VehicleItem) =>
+    setVehicles((prev) => prev.map((v) => resolveId(v) === resolveId(updated) ? updated : v));
 
+  const handleUpdateStatus = async (vehicle: VehicleItem, nextStatus: string) => {
+    const id = resolveId(vehicle);
     const prevStatus = vehicle.status;
     if (prevStatus === nextStatus) return;
 
-    setError("");
-    setVehicles((prev) =>
-      prev.map((v) => ((v.id || v._id) === id ? { ...v, status: nextStatus } : v))
-    );
+    setVehicles((prev) => prev.map((v) => resolveId(v) === id ? { ...v, status: nextStatus } : v));
     setUpdatingStatus((prev) => ({ ...prev, [id]: true }));
 
     try {
       const updated = await updateVehicleStatus(id, { status: nextStatus });
-      setVehicles((prev) =>
-        prev.map((v) => ((v.id || v._id) === id ? { ...v, ...updated } : v))
-      );
+      patchVehicle(updated);
       success("Cập nhật trạng thái phương tiện thành công.");
+      fetchVehicles();
     } catch (e: any) {
-      setVehicles((prev) =>
-        prev.map((v) => ((v.id || v._id) === id ? { ...v, status: prevStatus } : v))
-      );
-      const message =
-        e?.response?.data?.message ||
-        e?.message ||
-        "Không thể cập nhật trạng thái phương tiện.";
-      setError(message);
+      setVehicles((prev) => prev.map((v) => resolveId(v) === id ? { ...v, status: prevStatus } : v));
+      const message = e?.response?.data?.message || e?.message || "Không thể cập nhật trạng thái.";
       toastError(message);
     } finally {
-      setUpdatingStatus((prev) => {
-        const { [id]: _removed, ...rest } = prev;
-        return rest;
-      });
+      setUpdatingStatus((prev) => { const { [id]: _, ...rest } = prev; return rest; });
     }
   };
 
-  const totalCapacity = useMemo(
-    () => vehicles.reduce((sum, v) => sum + (v.capacity || 0), 0),
-    [vehicles]
-  );
+  const confirmDelete = async () => {
+    const item = deleteVehicleItem;
+    const id = item ? resolveId(item) : null;
+    if (!id || deletingId) return;
 
-  const inUseCount = useMemo(
-    () => vehicles.filter((v) => v.status === "IN_USE").length,
-    [vehicles]
-  );
+    setDeletingId(id);
+    try {
+      await deleteVehicle(id);
+      setVehicles((prev) => prev.filter((v) => resolveId(v) !== id));
+      setDeleteVehicleItem(null);
+      success("Đã xóa phương tiện thành công.");
+      fetchVehicles();
+    } catch (e: any) {
+      const message = e?.response?.data?.message || e?.message || "Xóa phương tiện thất bại.";
+      toastError(message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const totalCapacity = useMemo(() => vehicles.reduce((sum, v) => sum + (v.capacity || 0), 0), [vehicles]);
+  const inUseCount = useMemo(() => vehicles.filter((v) => v.status === "IN_USE").length, [vehicles]);
 
   return (
     <ManagerLayout>
@@ -238,32 +480,18 @@ export default function VehicleManagement() {
                 <CarFront className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Quản lý phương tiện
-                </h1>
-                <p className="text-sm text-gray-400 mt-0.5">
-                  Theo dõi xe cứu hộ, trạng thái và đội phụ trách
-                </p>
+                <h1 className="text-2xl font-bold text-gray-900">Quản lý phương tiện</h1>
+                <p className="text-sm text-gray-400 mt-0.5">Theo dõi xe cứu hộ, trạng thái và đội phụ trách</p>
               </div>
             </div>
-
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={fetchVehicles}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
-              >
-                <Loader2
-                  className={`w-4 h-4 ${
-                    loading ? "animate-spin" : "text-gray-400"
-                  }`}
-                />
+              <button onClick={fetchVehicles} disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm cursor-pointer">
+                <Loader2 className={`w-4 h-4 ${loading ? "animate-spin" : "text-gray-400"}`} />
                 Làm mới
               </button>
-              <button
-                onClick={handleOpenModal}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-xl shadow-sm transition-colors cursor-pointer"
-              >
+              <button onClick={handleOpenModal}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-xl shadow-sm transition-colors cursor-pointer">
                 <Plus className="w-4 h-4" />
                 Thêm phương tiện
               </button>
@@ -278,9 +506,7 @@ export default function VehicleManagement() {
               </div>
               <div>
                 <p className="text-xs text-gray-400">Tổng số phương tiện</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {vehicles.length}
-                </p>
+                <p className="text-xl font-bold text-gray-900">{vehicles.length}</p>
               </div>
             </div>
             <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
@@ -298,9 +524,7 @@ export default function VehicleManagement() {
               </div>
               <div>
                 <p className="text-xs text-gray-400">Tổng sức chứa</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {totalCapacity.toLocaleString("vi-VN")}
-                </p>
+                <p className="text-xl font-bold text-gray-900">{totalCapacity.toLocaleString("vi-VN")}</p>
               </div>
             </div>
           </div>
@@ -309,44 +533,24 @@ export default function VehicleManagement() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm theo biển số, loại xe, đội phụ trách..."
-                className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-              />
+              <input value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Tìm theo biển số, tên xe, loại xe, đội phụ trách..."
+                className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
               {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  aria-label="Xóa tìm kiếm"
-                  title="Xóa tìm kiếm"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                >
+                <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400 hidden sm:inline">
-                Lọc theo trạng thái
-              </span>
-              <div className="relative">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  aria-label="Lọc theo trạng thái"
-                  title="Lọc theo trạng thái"
-                  className="pl-3 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer"
-                >
-                  <option value="ALL">Tất cả</option>
-                  {statuses.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABELS[s] || s}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <span className="text-xs text-gray-400 hidden sm:inline">Lọc theo trạng thái</span>
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                className="pl-3 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer">
+                <option value="ALL">Tất cả</option>
+                {statuses.map((s) => (
+                  <option key={s} value={s}>{STATUS_LABELS[s] ?? s}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -361,92 +565,64 @@ export default function VehicleManagement() {
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-red-500 px-4 text-center">
                 <AlertTriangle className="w-8 h-8" />
                 <p className="text-sm">{error}</p>
-                <button
-                  onClick={fetchVehicles}
-                  className="text-xs text-blue-500 hover:underline"
-                >
-                  Thử lại
-                </button>
+                <button onClick={fetchVehicles} className="text-xs text-blue-500 hover:underline">Thử lại</button>
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-gray-400">
                 <CarFront className="w-10 h-10 text-gray-200" />
-                <p className="text-sm">
-                  Chưa có phương tiện nào phù hợp bộ lọc.
-                </p>
+                <p className="text-sm">Chưa có phương tiện nào phù hợp bộ lọc.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/60">
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Biển số
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Loại xe
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Sức chứa
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                        Trạng thái
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                        Đội phụ trách
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                        Ngày cập nhật
-                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Biển số</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Loại xe</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Sức chứa</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Đội phụ trách</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Ngày cập nhật</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Hành động</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {filtered.map((v) => {
-                      const meta = STATUS_COLORS[v.status] || STATUS_COLORS.AVAILABLE;
-                      const id = (v.id || v._id) as string | undefined;
-                      const isUpdating = id ? Boolean(updatingStatus[id]) : false;
+                      const id = resolveId(v);
+                      const isUpdating = Boolean(updatingStatus[id]);
                       return (
-                        <tr
-                          key={v.id || v._id}
-                          className="hover:bg-blue-50/40 transition-colors"
-                        >
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                            {v.plateNumber}
+                        <tr key={id} className="group hover:bg-blue-50/40 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-gray-900">{v.plateNumber}</span>
+                              {v.name && <span className="text-xs text-gray-400">{v.name}</span>}
+                              {v.isActive === false && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-400 border border-gray-200 w-fit mt-0.5">
+                                  Ngừng HĐ
+                                </span>
+                              )}
+                            </div>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-700">
-                            {v.type}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-700">
+                          <td className="px-4 py-3 text-sm text-gray-700">{v.type}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700 hidden sm:table-cell">
                             {v.capacity?.toLocaleString("vi-VN")}
                           </td>
-                          <td className="px-4 py-3 hidden sm:table-cell">
+                          <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${meta.bg} ${meta.text}`}
-                              >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full ${meta.dot}`}
-                                />
-                                {STATUS_LABELS[v.status] || v.status}
-                              </span>
-
+                              <StatusBadge status={v.status} />
                               <div className="relative">
                                 <select
                                   value={v.status}
-                                  disabled={!id || isUpdating}
-                                  onChange={(e) =>
-                                    handleUpdateStatus(v, e.target.value)
-                                  }
+                                  disabled={isUpdating}
+                                  onChange={(e) => handleUpdateStatus(v, e.target.value)}
                                   className="pl-2 pr-7 py-1 text-[11px] border border-gray-200 rounded-lg bg-gray-50 hover:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                                   aria-label="Cập nhật trạng thái"
                                   title="Cập nhật trạng thái"
                                 >
-                                  <option value="AVAILABLE">Sẵn sàng</option>
-                                  <option value="IN_USE">Đang hoạt động</option>
-                                  <option value="MAINTENANCE">Bảo trì</option>
-                                  <option value="BROKEN">Hư hỏng</option>
+                                  {Object.entries(STATUS_LABELS).map(([val, label]) => (
+                                    <option key={val} value={val}>{label}</option>
+                                  ))}
                                 </select>
-
                                 {isUpdating && (
                                   <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 )}
@@ -454,23 +630,51 @@ export default function VehicleManagement() {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">
-                            {v.assignedTeam || (
-                              <span className="text-gray-300">Chưa phân công</span>
-                            )}
+                            {v.assignedTeam || <span className="text-gray-300">Chưa phân công</span>}
                           </td>
                           <td className="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell">
                             {v.updatedAt || v.createdAt ? (
                               <div className="inline-flex items-center gap-1.5">
                                 <Calendar className="w-3.5 h-3.5 text-gray-300" />
-                                <span>
-                                  {new Date(
-                                    (v.updatedAt || v.createdAt) as string
-                                  ).toLocaleDateString("vi-VN")}
-                                </span>
+                                <span>{new Date((v.updatedAt || v.createdAt) as string).toLocaleDateString("vi-VN")}</span>
                               </div>
                             ) : (
                               <span className="text-gray-300">—</span>
                             )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setViewVehicle(v)}
+                                aria-label="Xem chi tiết"
+                                title="Xem chi tiết"
+                                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditVehicle(v)}
+                                aria-label="Chỉnh sửa"
+                                title="Chỉnh sửa"
+                                className="p-1.5 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteVehicleItem(v)}
+                                aria-label="Xóa"
+                                title="Xóa"
+                                disabled={deletingId === id}
+                                className="p-1.5 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-50"
+                              >
+                                {deletingId === id
+                                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                                  : <Trash2 className="w-4 h-4" />}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -488,111 +692,39 @@ export default function VehicleManagement() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div>
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
-                    Phương tiện
-                  </p>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    Thêm phương tiện mới
-                  </h3>
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Phương tiện</p>
+                  <h3 className="text-lg font-bold text-gray-900">Thêm phương tiện mới</h3>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  aria-label="Đóng"
-                  title="Đóng"
-                  className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                >
+                <button type="button" onClick={() => setModalOpen(false)}
+                  className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label
-                      htmlFor="vehicle_plateNumber"
-                      className="block text-sm font-medium text-gray-700 mb-1.5"
-                    >
-                      Biển số xe
-                    </label>
-                    <input
-                      id="vehicle_plateNumber"
-                      value={form.plateNumber}
-                      onChange={(e) =>
-                        handleChange("plateNumber", e.target.value)
-                      }
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên xe <span className="text-gray-400 font-normal">(tuỳ chọn)</span></label>
+                    <input value={form.name} onChange={(e) => handleChange("name", e.target.value)}
                       className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                      placeholder="VD: 51F-123.45"
-                    />
+                      placeholder="VD: Xe cứu hộ số 1" />
                   </div>
                   <div>
-                    <label
-                      htmlFor="vehicle_type"
-                      className="block text-sm font-medium text-gray-700 mb-1.5"
-                    >
-                      Loại xe
-                    </label>
-                    <input
-                      id="vehicle_type"
-                      value={form.type}
-                      onChange={(e) => handleChange("type", e.target.value)}
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Biển số xe</label>
+                    <input value={form.plateNumber} onChange={(e) => handleChange("plateNumber", e.target.value)}
                       className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                      placeholder="VD: Xe tải, xuồng cao tốc..."
-                    />
+                      placeholder="VD: 51F-123.45" />
                   </div>
                   <div>
-                    <label
-                      htmlFor="vehicle_capacity"
-                      className="block text-sm font-medium text-gray-700 mb-1.5"
-                    >
-                      Sức chứa (người / kg)
-                    </label>
-                    <input
-                      id="vehicle_capacity"
-                      type="number"
-                      min={0}
-                      value={form.capacity}
-                      onChange={(e) => handleChange("capacity", e.target.value)}
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Loại xe</label>
+                    <input value={form.type} onChange={(e) => handleChange("type", e.target.value)}
                       className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                    />
+                      placeholder="VD: Xe tải, xuồng cao tốc..." />
                   </div>
                   <div>
-                    <label
-                      htmlFor="vehicle_status"
-                      className="block text-sm font-medium text-gray-700 mb-1.5"
-                    >
-                      Trạng thái
-                    </label>
-                    <select
-                      id="vehicle_status"
-                      value={form.status}
-                      onChange={(e) => handleChange("status", e.target.value)}
-                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                    >
-                      <option value="AVAILABLE">Sẵn sàng</option>
-                      <option value="IN_USE">Đang hoạt động</option>
-                      <option value="MAINTENANCE">Bảo trì</option>
-                      <option value="BROKEN">Hư hỏng</option>
-                    </select>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Sức chứa (người / kg)</label>
+                    <input type="number" min={0} value={form.capacity} onChange={(e) => handleChange("capacity", e.target.value)}
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
                   </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="vehicle_assignedTeam"
-                    className="block text-sm font-medium text-gray-700 mb-1.5"
-                  >
-                    Đội phụ trách
-                  </label>
-                  <input
-                    id="vehicle_assignedTeam"
-                    value={form.assignedTeam}
-                    onChange={(e) =>
-                      handleChange("assignedTeam", e.target.value)
-                    }
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                    placeholder="VD: Đội cứu hộ Q1"
-                  />
                 </div>
 
                 {formError && (
@@ -601,37 +733,64 @@ export default function VehicleManagement() {
                   </div>
                 )}
 
-                <div className="flex justify-end gap-3 pt-2 cursor-pointer">
-                  <button
-                    type="button"
-                    onClick={() => setModalOpen(false)}
-                    className="px-4 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
-                    disabled={submitting}
-                  >
+                <div className="flex justify-end gap-3 pt-2">
+                  <button type="button" onClick={() => setModalOpen(false)} disabled={submitting}
+                    className="px-4 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer">
                     Hủy
                   </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 rounded-xl transition-colors cursor-pointer"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Đang lưu...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4" />
-                        Lưu phương tiện
-                      </>
-                    )}
+                  <button type="submit" disabled={submitting}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 rounded-xl transition-colors cursor-pointer">
+                    {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Đang lưu...</> : <><Plus className="w-4 h-4" />Lưu phương tiện</>}
                   </button>
                 </div>
               </form>
             </div>
           </div>
         )}
+
+        {/* View Detail Modal */}
+        {viewVehicle && (
+          <ViewDetailModal
+            vehicle={viewVehicle}
+            onClose={() => setViewVehicle(null)}
+            onEdit={() => setEditVehicle(viewVehicle)}
+          />
+        )}
+
+        {/* Edit Modal */}
+        {editVehicle && (
+          <EditVehicleModal
+            vehicle={editVehicle}
+            onClose={() => setEditVehicle(null)}
+            onSaved={(updated) => { patchVehicle(updated); setEditVehicle(null); fetchVehicles(); }}
+          />
+        )}
+
+        {/* Delete confirmation modal */}
+        <Modal
+          open={!!deleteVehicleItem}
+          onClose={() => { if (!deletingId) setDeleteVehicleItem(null); }}
+          title="Xác nhận xóa phương tiện"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Bạn có chắc muốn xóa phương tiện
+              <span className="font-semibold text-gray-900"> {deleteVehicleItem?.plateNumber}</span>? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setDeleteVehicleItem(null)} disabled={!!deletingId}
+                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60">
+                Hủy
+              </button>
+              <button type="button" onClick={confirmDelete} disabled={!!deletingId}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-red-300 rounded-xl transition-colors">
+                {deletingId ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {deletingId ? "Đang xóa..." : "Xóa"}
+              </button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </ManagerLayout>
   );
