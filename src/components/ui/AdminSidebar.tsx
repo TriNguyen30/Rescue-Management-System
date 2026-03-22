@@ -44,7 +44,7 @@ interface AdminSidebarProps {
 
 // ── Nav Config ────────────────────────────────────────────────────────────────
 const NAV_ITEMS: NavItem[] = [
-    { key: "dashboard", label: "Tổng quan", icon: <LayoutDashboard className="w-4 h-4" />, path: "/admin/dashboard", section: "Chính" },
+    { key: "dashboard", label: "Tổng quan", icon: <LayoutDashboard className="w-4 h-4" />, path: "/admin", section: "Chính" },
     { key: "rescue-map", label: "Bản đồ cứu hộ", icon: <Map className="w-4 h-4" />, path: "/admin/rescue-map", badge: "LIVE" },
     // { key: "alerts", label: "Cảnh báo", icon: <AlertTriangle className="w-4 h-4" />, path: "/admin/alerts", badge: 3 },
     // { key: "broadcasts", label: "Phát sóng", icon: <Radio className="w-4 h-4" />, path: "/admin/broadcasts" },

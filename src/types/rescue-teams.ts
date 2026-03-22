@@ -7,12 +7,14 @@ export interface RescueTeamLeader {
     _id: string;
     fullName: string;
     phone: string;
+    role: string;
 }
 
 export interface RescueTeamMember {
     _id: string;
     fullName: string;
     phone: string;
+    role: string;
 }
 
 export type VehicleType = "BOAT" | "TRUCK" | "AMBULANCE";
@@ -34,17 +36,11 @@ export type RescueTeamStatus = "AVAILABLE" | "BUSY" | "OFFLINE";
 export interface RescueTeam {
     _id: string;
     teamName: string;
-
     leaderId: RescueTeamLeader;
-
     members: RescueTeamMember[];
-
     vehicles: Vehicle[];
-
     currentLocation: GeoPoint;
-
     status: RescueTeamStatus;
-
     createdAt: string;
     updatedAt: string;
 }
@@ -57,15 +53,24 @@ export interface UpdateRescueTeamLocationPayload {
 export interface CreateRescueTeamPayload {
     teamName: string;
     leaderId: string;
-    members: string[];
-    vehicles: string[];
+    baseArea: string;
 }
 
 export interface UpdateRescueTeamPayload {
     teamName?: string;
     leaderId?: string;
-    members?: string[];
-    vehicles?: string[];
-    currentLocation?: string;
+    baseArea?: string;
     status?: string;
+}
+
+export interface AssignMemberToRescueTeamPayload {
+    id: string;
+    _id: string;
+    userId: string;
+}
+
+export interface AssignVehicleToRescueTeamPayload {
+    id: string;
+    _id: string;
+    vehicleId: string;
 }
