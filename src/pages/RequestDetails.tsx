@@ -68,24 +68,6 @@ const URGENCY_BADGE: Record<string, string> = {
   CRITICAL: "bg-red-50    text-red-700    border border-red-200"
 };
 
-/* ─── Reusable Card ─── */
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-function SectionTitle({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2 mb-4">
-      <span className="text-gray-400">{icon}</span>
-      <h3 className="font-semibold text-gray-800 text-sm tracking-wide uppercase">{children}</h3>
-    </div>
-  );
-}
-
 /* ─── Select ─── */
 function Select({ value, onChange, children, className = "", disabled }: {
   value: string;
@@ -136,9 +118,9 @@ export default function RequestDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [request, setRequest]   = useState<RescueRequest | null>(null);
-  const [teams, setTeams]       = useState<RescueTeam[]>([]);
-  const [vehicles, setVehicles] = useState<VehicleItem[]>([]);
+  const [request, setRequest]     = useState<RescueRequest | null>(null);
+  const [teams, setTeams]         = useState<RescueTeam[]>([]);
+  const [vehicles, setVehicles]   = useState<VehicleItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -253,7 +235,7 @@ export default function RequestDetails() {
     finally { setAssigning(false); }
   };
 
-  /* ─── States ─── */
+  /* ─── Loading / Error states ─── */
   if (!id) return <div className="p-10 text-center text-gray-500">Thiếu ID yêu cầu</div>;
 
   if (loading) return (
@@ -263,8 +245,17 @@ export default function RequestDetails() {
   );
 
   if (error || !request) return (
-    <div className="p-6 flex items-center gap-2 text-red-600">
-      <AlertCircle size={18} /> {error}
+    <div className="h-screen flex flex-col items-center justify-center gap-4">
+      <div className="rounded-xl bg-red-50 border border-red-200 p-6 flex items-center gap-3 text-red-700">
+        <AlertCircle className="w-6 h-6 shrink-0" />
+        {error ?? "Không tìm thấy yêu cầu"}
+      </div>
+      <button
+        onClick={() => navigate("/coordinator")}
+        className="inline-flex items-center gap-2 text-blue-600"
+      >
+        <ArrowLeft className="w-4 h-4" /> Quay lại
+      </button>
     </div>
   );
 
@@ -278,214 +269,240 @@ export default function RequestDetails() {
   const assignedVehicleNames =
     assignedTeam?.vehicles?.map((vid: string) => vehicleMap[vid]?.plateNumber).filter(Boolean) ?? [];
 
-  /* ─── Render ─── */
+  /* ─── Render: sidebar + map layout ─── */
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-5">
+    <div className="min-h-screen flex bg-gray-50">
 
-        {/* Back */}
-        <button
-          onClick={() => navigate("/coordinator")}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition"
-        >
-          <ArrowLeft size={16} /> Quay lại danh sách
-        </button>
+      {/* ══ SIDEBAR ══ */}
+      <div className="w-full lg:w-[400px] bg-white border-r border-gray-200 flex flex-col overflow-y-auto shrink-0">
 
-        {/* ── Thông tin yêu cầu ── */}
-        <Card>
-          <div className="flex items-start justify-between gap-4 flex-wrap">
+        {/* Header */}
+        <div className="p-5 border-b border-gray-100">
+          <button
+            onClick={() => navigate("/coordinator")}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition mb-4"
+          >
+            <ArrowLeft size={16} /> Quay lại danh sách
+          </button>
+
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs text-gray-400 mb-1 font-mono">{request.requestCode}</p>
-              <h2 className="text-xl font-bold text-gray-900 leading-tight">{request.description}</h2>
+              <p className="font-mono text-xs text-gray-400 mb-0.5">{request.requestCode}</p>
+              <p className="font-semibold text-gray-900 leading-snug">{request.description}</p>
             </div>
             {request.urgencyLevel && (
-              <span className={`shrink-0 text-xs font-semibold px-3 py-1 rounded-full ${URGENCY_BADGE[request.urgencyLevel] ?? "bg-gray-100 text-gray-600"}`}>
+              <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${URGENCY_BADGE[request.urgencyLevel] ?? "bg-gray-100 text-gray-600"}`}>
                 {URGENCY_LABEL[request.urgencyLevel] ?? request.urgencyLevel}
               </span>
             )}
           </div>
+        </div>
 
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              { icon: <User size={15}/>,   label: "Người gửi",  value: request.userId?.fullName },
-              { icon: <Phone size={15}/>,  label: "Số điện thoại", value: request.userId?.phone },
-              { icon: <MapPin size={15}/>, label: "Vị trí",     value: `${lat.toFixed(6)}, ${lng.toFixed(6)}` },
-              { icon: <Clock size={15}/>,  label: "Thời gian",  value: formatDate(request.createdAt) }
-            ].map(({ icon, label, value }) => (
-              <div key={label} className="flex items-start gap-2.5 p-3 bg-gray-50 rounded-xl">
-                <span className="mt-0.5 text-gray-400 shrink-0">{icon}</span>
-                <div>
-                  <p className="text-[11px] text-gray-400 font-medium">{label}</p>
-                  <p className="text-sm text-gray-800 font-medium">{value || "—"}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <div className="flex-1 p-5 space-y-4 overflow-y-auto">
 
-        {/* ── Đội đã điều phối ── */}
-        {assignedTeam && (
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl px-6 py-4 flex items-start gap-3">
-            <Truck size={18} className="text-blue-500 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-blue-800">Đội cứu hộ đã điều phối</p>
-              <p className="text-sm text-blue-700 mt-0.5">{assignedTeam.teamName}</p>
-              {assignedVehicleNames.length > 0 && (
-                <p className="text-xs text-blue-500 mt-0.5">Phương tiện: {assignedVehicleNames.join(", ")}</p>
-              )}
+          {/* ── Thông tin người gửi ── */}
+          <div className="border rounded-xl p-4 text-sm space-y-2">
+            <div className="flex gap-2 items-center">
+              <User size={14} className="text-gray-400 shrink-0" />
+              <span className="text-gray-700">{request.userId?.fullName || "—"}</span>
+            </div>
+            <div className="flex gap-2 items-center">
+              <Phone size={14} className="text-gray-400 shrink-0" />
+              <span className="text-gray-700">{request.userId?.phone || "—"}</span>
+            </div>
+            <div className="flex gap-2 items-center">
+              <MapPin size={14} className="text-gray-400 shrink-0" />
+              <span className="text-gray-700">{`${lat.toFixed(6)}, ${lng.toFixed(6)}`}</span>
+            </div>
+            <div className="flex gap-2 items-center">
+              <Clock size={14} className="text-gray-400 shrink-0" />
+              <span className="text-gray-700">{formatDate(request.createdAt)}</span>
             </div>
           </div>
-        )}
 
-        {/* ── Xác minh ── */}
-        <Card>
-          <SectionTitle icon={<ShieldCheck size={16}/>}>Xác minh yêu cầu</SectionTitle>
-          <div className="flex items-center gap-3 flex-wrap">
-            <Select
-              value={selectedUrgency}
-              onChange={v => setSelectedUrgency(v as UrgencyLevel)}
-              className="w-44"
-              disabled={isAssigned}
-            >
-              <option value="LOW">Nhẹ</option>
-              <option value="MEDIUM">Trung bình</option>
-              <option value="HIGH">Khẩn cấp</option>
-              <option value="CRITICAL">Nguy kịch</option>
-            </Select>
-            <Btn onClick={handleVerify} disabled={verifying || isAssigned} variant="primary"
-              icon={verifying ? <Loader2 size={14} className="animate-spin"/> : undefined}>
-              {verifying ? "Đang xác minh…" : "Xác minh"}
-            </Btn>
+          {/* ── Đội đã điều phối ── */}
+          {assignedTeam && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-start gap-2.5">
+              <Truck size={15} className="text-blue-500 mt-0.5 shrink-0" />
+              <div className="text-sm">
+                <p className="font-semibold text-blue-800">Đội đã điều phối</p>
+                <p className="text-blue-700">{assignedTeam.teamName}</p>
+                {assignedVehicleNames.length > 0 && (
+                  <p className="text-xs text-blue-500 mt-0.5">Phương tiện: {assignedVehicleNames.join(", ")}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Xác minh ── */}
+          <div className="border rounded-xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1.5">
+              <ShieldCheck size={13} /> Xác minh yêu cầu
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={selectedUrgency}
+                onChange={v => setSelectedUrgency(v as UrgencyLevel)}
+                className="flex-1 min-w-[130px]"
+                disabled={isAssigned}
+              >
+                <option value="LOW">Nhẹ</option>
+                <option value="MEDIUM">Trung bình</option>
+                <option value="HIGH">Khẩn cấp</option>
+                <option value="CRITICAL">Nguy kịch</option>
+              </Select>
+              <Btn
+                onClick={handleVerify}
+                disabled={verifying || isAssigned}
+                variant="primary"
+                icon={verifying ? <Loader2 size={13} className="animate-spin"/> : undefined}
+              >
+                {verifying ? "Đang xác minh…" : "Xác minh"}
+              </Btn>
+            </div>
             {isAssigned && (
-              <span className="text-xs text-gray-500">
-                Yêu cầu đã được điều phối, không thể xác minh nữa.
-              </span>
+              <p className="text-xs text-gray-400">Yêu cầu đã được điều phối, không thể xác minh nữa.</p>
             )}
           </div>
-        </Card>
 
-        {/* ── Điều phối ── */}
-        <Card>
-          <SectionTitle icon={<Truck size={16}/>}>Điều phối cứu hộ</SectionTitle>
+          {/* ── Điều phối ── */}
+          <div className="border rounded-xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1.5">
+              <Truck size={13} /> Điều phối cứu hộ
+            </p>
 
-          <div className="flex flex-wrap gap-3 mb-5">
-            <Select value={teamId} onChange={setTeamId} className="flex-1 min-w-[180px]">
+            <Select value={teamId} onChange={setTeamId} className="w-full">
               <option value="">Chọn đội cứu hộ</option>
               {teams.filter(t => t.status === "AVAILABLE").map(t => (
                 <option key={t._id} value={t._id}>{t.teamName}</option>
               ))}
             </Select>
-            <Select value={vehicleId} onChange={setVehicleId} className="flex-1 min-w-[160px]">
+
+            <Select value={vehicleId} onChange={setVehicleId} className="w-full">
               <option value="">Chọn phương tiện</option>
               {vehicles.filter(v => v.status === "AVAILABLE").map(v => (
                 <option key={v._id} value={v._id}>{v.plateNumber}</option>
               ))}
             </Select>
-          </div>
 
-          {/* Supplies */}
-          <div className="border-t border-gray-100 pt-4 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-              <Package size={14}/> Vật tư mang theo
-            </div>
-
-            <div className="flex flex-wrap gap-2 items-center">
-              <Select value={newSupplyInventoryId} onChange={setNewSupplyInventoryId} className="flex-1 min-w-[180px]">
-                <option value="">Chọn vật tư…</option>
-                {inventory.map(item => {
-                  const key = item._id || item.id;
-                  if (!key) return null;
-                  const remaining = getRemainingQuantity(key);
-                  if (remaining <= 0) return null;
-                  return <option key={key} value={key}>{item.itemName} (còn {remaining})</option>;
-                })}
-              </Select>
-              <input
-                type="number" min={1}
-                value={newSupplyQuantity}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (!val) { setNewSupplyQuantity(""); return; }
-                  const num = Number(val);
-                  if (!Number.isNaN(num)) setNewSupplyQuantity(num);
-                }}
-                placeholder="Số lượng"
-                className="h-9 w-28 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-              <Btn onClick={handleAddSupply} variant="ghost" size="sm" icon={<Plus size={14}/>}>Thêm</Btn>
-            </div>
-
-            {supplies.length > 0 && (
-              <div className="rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
-                {supplies.map(s => {
-                  const item = inventoryMap[s.inventoryId];
-                  if (!item) return null;
-                  return (
-                    <div key={s.inventoryId}
-                      className="flex items-center justify-between px-4 py-2.5 bg-white text-sm hover:bg-gray-50 transition">
-                      <span className="text-gray-700">
-                        <span className="font-medium">{item.itemName}</span>
-                        <span className="text-gray-400 ml-2">{s.quantity} / {item.quantity}</span>
-                      </span>
-                      <button onClick={() => handleRemoveSupply(s.inventoryId)}
-                        className="text-gray-300 hover:text-red-500 transition ml-4">
-                        <Trash2 size={14}/>
-                      </button>
-                    </div>
-                  );
-                })}
+            {/* Supplies */}
+            <div className="border-t border-gray-100 pt-3 space-y-2">
+              <p className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
+                <Package size={12}/> Vật tư mang theo
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <Select value={newSupplyInventoryId} onChange={setNewSupplyInventoryId} className="flex-1 min-w-[140px]">
+                  <option value="">Chọn vật tư…</option>
+                  {inventory.map(item => {
+                    const key = item._id || item.id;
+                    if (!key) return null;
+                    const remaining = getRemainingQuantity(key);
+                    if (remaining <= 0) return null;
+                    return <option key={key} value={key}>{item.itemName} (còn {remaining})</option>;
+                  })}
+                </Select>
+                <input
+                  type="number" min={1}
+                  value={newSupplyQuantity}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (!val) { setNewSupplyQuantity(""); return; }
+                    const num = Number(val);
+                    if (!Number.isNaN(num)) setNewSupplyQuantity(num);
+                  }}
+                  placeholder="SL"
+                  className="h-9 w-20 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                />
+                <Btn onClick={handleAddSupply} variant="ghost" size="sm" icon={<Plus size={13}/>}>Thêm</Btn>
               </div>
-            )}
-          </div>
 
-          <div className="mt-5 pt-4 border-t border-gray-100">
-            <Btn onClick={handleAssign} disabled={assigning || !teamId} variant="success"
-              icon={assigning ? <Loader2 size={14} className="animate-spin"/> : <Truck size={14}/>}>
-              {assigning ? "Đang điều phối…" : "Xác nhận điều phối"}
-            </Btn>
-          </div>
-        </Card>
-
-        {/* ── Bản đồ ── */}
-        {requestPoint && (
-          <Card className="!p-0 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-              <MapPin size={15} className="text-gray-400"/>
-              <span className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Bản đồ vị trí</span>
-            </div>
-            <div className="h-[380px]">
-              <MapContainer center={requestPoint} zoom={13} style={{ height: "100%" }}>
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-                <Marker position={requestPoint} icon={victimIcon}>
-                  <Popup><b>Người cần cứu</b><br/>{request.userId?.fullName}</Popup>
-                </Marker>
-                {teamPoints.map(p => (
-                  <Marker key={p.team._id} position={p.position}>
-                    <Popup>🚑 {p.team.teamName}</Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
-            </div>
-          </Card>
-        )}
-
-        {/* ── Hình ảnh ── */}
-        {images.length > 0 && (
-          <Card>
-            <SectionTitle icon={<Package size={16}/>}>Hình ảnh đính kèm</SectionTitle>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-              {images.map((img, i) => (
-                <div key={i} onClick={() => setLightbox({ images, index: i })}
-                  className="aspect-square rounded-xl overflow-hidden cursor-zoom-in
-                    ring-1 ring-gray-100 hover:ring-blue-400 transition">
-                  <img src={imgUrl(img)} className="w-full h-full object-cover"/>
+              {supplies.length > 0 && (
+                <div className="rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
+                  {supplies.map(s => {
+                    const item = inventoryMap[s.inventoryId];
+                    if (!item) return null;
+                    return (
+                      <div key={s.inventoryId}
+                        className="flex items-center justify-between px-3 py-2 bg-white text-sm hover:bg-gray-50 transition">
+                        <span className="text-gray-700">
+                          <span className="font-medium">{item.itemName}</span>
+                          <span className="text-gray-400 ml-2">{s.quantity} / {item.quantity}</span>
+                        </span>
+                        <button onClick={() => handleRemoveSupply(s.inventoryId)}
+                          className="text-gray-300 hover:text-red-500 transition ml-3">
+                          <Trash2 size={13}/>
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              )}
             </div>
-          </Card>
-        )}
 
+            <div className="pt-1">
+              <Btn
+                onClick={handleAssign}
+                disabled={assigning || !teamId}
+                variant="success"
+                icon={assigning ? <Loader2 size={13} className="animate-spin"/> : <Truck size={13}/>}
+              >
+                {assigning ? "Đang điều phối…" : "Xác nhận điều phối"}
+              </Btn>
+            </div>
+          </div>
+
+          {/* ── Hình ảnh ── */}
+          {images.length > 0 && (
+            <div className="border rounded-xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1.5">
+                <Package size={13}/> Hình ảnh đính kèm
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {images.map((img, i) => (
+                  <div
+                    key={i}
+                    onClick={() => setLightbox({ images, index: i })}
+                    className="w-20 h-20 rounded-lg overflow-hidden cursor-zoom-in ring-1 ring-gray-200 hover:ring-blue-400 transition"
+                  >
+                    <img src={imgUrl(img)} alt={`Ảnh ${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* ══ MAP (full remaining width) ══ */}
+      <div className="hidden lg:block flex-1">
+        {requestPoint ? (
+          <MapContainer
+            center={requestPoint}
+            zoom={13}
+            style={{ width: "100%", height: "100%" }}
+          >
+            <TileLayer
+              attribution="&copy; OpenStreetMap contributors"
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <Marker position={requestPoint} icon={victimIcon}>
+              <Popup>
+                <b>Người cần cứu</b><br />{request.userId?.fullName}
+              </Popup>
+            </Marker>
+            {teamPoints.map(p => (
+              <Marker key={p.team._id} position={p.position}>
+                <Popup>🚑 {p.team.teamName}</Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            Không có dữ liệu bản đồ
+          </div>
+        )}
       </div>
 
       {/* ── Lightbox ── */}
@@ -500,27 +517,23 @@ export default function RequestDetails() {
             style={{ zIndex: 100000 }}>
             <X size={26}/>
           </button>
-
           <button
             onClick={e => { e.stopPropagation(); setLightbox(prev => prev && { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }); }}
             className="fixed left-5 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition"
             style={{ zIndex: 100000 }}>
             <ChevronLeft size={40}/>
           </button>
-
           <img
             src={imgUrl(lightbox.images[lightbox.index])}
             onClick={e => e.stopPropagation()}
             className="max-h-[82vh] max-w-[88vw] rounded-xl object-contain shadow-2xl"
           />
-
           <button
             onClick={e => { e.stopPropagation(); setLightbox(prev => prev && { ...prev, index: (prev.index + 1) % prev.images.length }); }}
             className="fixed right-5 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition"
             style={{ zIndex: 100000 }}>
             <ChevronRight size={40}/>
           </button>
-
           <div className="fixed bottom-5 left-1/2 -translate-x-1/2 text-white/50 text-sm" style={{ zIndex: 100000 }}>
             {lightbox.index + 1} / {lightbox.images.length}
           </div>
