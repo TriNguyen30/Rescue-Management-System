@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { createRescueRequest } from "@/services/rescue-request.service";
 import { uploadFile } from "@/services/upload.service";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import {
     Camera,
     X,
@@ -18,6 +21,18 @@ import {
     SatelliteDish,
     ImagePlus,
 } from "lucide-react";
+
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+// Fix Leaflet default marker icon paths when bundling.
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconUrl: markerIcon,
+    iconRetinaUrl: markerIcon2x,
+    shadowUrl: markerShadow,
+});
 
 interface UploadedImage {
     id: string;
@@ -50,26 +65,42 @@ export function RescueRequestPanel({
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
+    type Position = { lat: number; lng: number };
+    const DEFAULT_COORD: Position = { lat: 10.7769, lng: 106.7009 };
+
+    const gpsLockedRef = useRef(false);
+    const [pickOnMapOpen, setPickOnMapOpen] = useState(false);
+
+    function LocationPicker({ onPick }: { onPick: (p: Position) => void }) {
+        useMapEvents({
+            click: (e) => onPick({ lat: e.latlng.lat, lng: e.latlng.lng }),
+        });
+        return null;
+    }
+
     useEffect(() => {
         // If external location is provided (from map), use it and skip GPS loading
         if (externalLocation) {
+            gpsLockedRef.current = true;
             setForm((f) => ({ ...f, lat: externalLocation.lat, lng: externalLocation.lng }));
             setGpsLoading(false);
             return;
         }
 
         if (!navigator.geolocation) {
-            setForm((f) => ({ ...f, lat: 10.7769, lng: 106.7009 }));
+            setForm((f) => ({ ...f, lat: DEFAULT_COORD.lat, lng: DEFAULT_COORD.lng }));
             setGpsLoading(false);
             return;
         }
         navigator.geolocation.getCurrentPosition(
             (pos) => {
+                if (gpsLockedRef.current) return;
                 setForm((f) => ({ ...f, lat: pos.coords.latitude, lng: pos.coords.longitude }));
                 setGpsLoading(false);
             },
             () => {
-                setForm((f) => ({ ...f, lat: 10.7769, lng: 106.7009 }));
+                if (gpsLockedRef.current) return;
+                setForm((f) => ({ ...f, lat: DEFAULT_COORD.lat, lng: DEFAULT_COORD.lng }));
                 setGpsLoading(false);
             }
         );
@@ -140,6 +171,18 @@ export function RescueRequestPanel({
         setUploadedImages((p) => [...p, ...newImages].slice(0, 5));
     };
 
+    const handlePickOnMap = (p: Position) => {
+        gpsLockedRef.current = true;
+        setForm((f) => ({ ...f, lat: p.lat, lng: p.lng }));
+        setGpsLoading(false);
+        setErrors((prev) => {
+            const next = { ...prev };
+            delete next.gps;
+            return next;
+        });
+        setPickOnMapOpen(false);
+    };
+
     const removeImage = (id: string) => {
         setUploadedImages((p) => {
             const img = p.find((i) => i.id === id);
@@ -155,7 +198,11 @@ export function RescueRequestPanel({
 
     const resetForm = () => {
         setStep("form");
-        setForm((f) => ({ description: "", lat: f.lat ?? 10.7769, lng: f.lng ?? 106.7009 }));
+        setForm((f) => ({
+            description: "",
+            lat: f.lat ?? DEFAULT_COORD.lat,
+            lng: f.lng ?? DEFAULT_COORD.lng,
+        }));
         setUploadedImages((p) => { p.forEach((i) => URL.revokeObjectURL(i.url)); return []; });
         setErrors({});
         setErrorMessage("");
@@ -313,8 +360,19 @@ export function RescueRequestPanel({
                                 <span className="text-xs text-emerald-600 font-semibold font-mono">
                                     {form.lat?.toFixed(5)}, {form.lng?.toFixed(5)}
                                 </span>
-                                <span className="ml-auto text-[11px] text-gray-400 bg-white border border-gray-100 rounded-md px-1.5 py-0.5">
-                                    ±5m
+                                <span className="ml-auto flex items-center gap-2">
+                                    <span className="text-[11px] text-gray-400 bg-white border border-gray-100 rounded-md px-1.5 py-0.5">
+                                        ±5m
+                                    </span>
+                                    {!embedded && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setPickOnMapOpen(true)}
+                                            className="text-[11px] font-semibold text-blue-600 bg-white border border-gray-100 rounded-md px-2 py-0.5 hover:bg-gray-50 transition"
+                                        >
+                                            Chọn trên bản đồ
+                                        </button>
+                                    )}
                                 </span>
                             </>
                         )}
@@ -446,6 +504,59 @@ export function RescueRequestPanel({
                         Thông tin của bạn được bảo mật và chỉ dùng cho mục đích cứu hộ khẩn cấp
                     </p>
                 </div>
+
+                {/* ── Pick coordinates on map (Citizen only) ── */}
+                {!embedded && pickOnMapOpen && (
+                    <div className="fixed inset-0 z-[3000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3">
+                        <div className="w-full max-w-4xl bg-white rounded-2xl overflow-hidden shadow-2xl">
+                            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-100">
+                                <div className="flex items-center gap-2">
+                                    <MapPin className="w-4 h-4 text-blue-600" />
+                                    <div className="text-sm font-bold text-gray-900">Chọn tọa độ trên bản đồ</div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setPickOnMapOpen(false)}
+                                    className="p-1.5 rounded-lg hover:bg-gray-100 transition"
+                                    aria-label="Đóng"
+                                >
+                                    <X className="w-4 h-4 text-gray-600" />
+                                </button>
+                            </div>
+
+                            <div style={{ height: "70vh" }}>
+                                <MapContainer
+                                    center={[form.lat ?? DEFAULT_COORD.lat, form.lng ?? DEFAULT_COORD.lng]}
+                                    zoom={16}
+                                    style={{ width: "100%", height: "100%" }}
+                                >
+                                    <TileLayer
+                                        attribution="&copy; OpenStreetMap contributors"
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    />
+                                    <LocationPicker onPick={handlePickOnMap} />
+
+                                    {form.lat != null && form.lng != null && (
+                                        <Marker position={[form.lat, form.lng]}>
+                                            <Popup>📍 Vị trí bạn chọn</Popup>
+                                        </Marker>
+                                    )}
+                                </MapContainer>
+                            </div>
+
+                            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setPickOnMapOpen(false)}
+                                    className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
             </div>
         </>
