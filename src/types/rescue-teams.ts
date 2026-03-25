@@ -54,6 +54,8 @@ export interface CreateRescueTeamPayload {
     teamName: string;
     leaderId: string;
     baseArea: string;
+    latitude: number;
+    longitude: number;
 }
 
 export interface UpdateRescueTeamPayload {
@@ -61,6 +63,8 @@ export interface UpdateRescueTeamPayload {
     leaderId?: string;
     baseArea?: string;
     status?: string;
+    latitude?: number;
+    longitude?: number;
 }
 
 export interface AssignMemberToRescueTeamPayload {
