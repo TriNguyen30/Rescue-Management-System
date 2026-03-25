@@ -21,6 +21,16 @@ export const getVehicleById = async (id: string): Promise<VehicleItem> => {
     }
 };
 
+export const getVehiclesAvailable = async (): Promise<VehicleItem[]> => {
+    try {
+        const response = await axiosInstance.get<VehicleItem[]>("/vehicles/available");
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching vehicles available:", error);
+        throw error;
+    }
+};
+
 export const createVehicle = async (payload: CreateVehicleItemPayload): Promise<VehicleItem> => {
     try {
         const response = await axiosInstance.post<VehicleItem>("/vehicles", payload);

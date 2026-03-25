@@ -6,7 +6,10 @@ export interface VehicleItem {
     type: string;
     capacity: number;
     status: string;
-    assignedTeam?: string;
+    assignedTeamId: {
+        _id: string;
+        teamName: string;
+    } | null;
     isActive?: boolean;
     createdAt?: string | null;
     updatedAt?: string | null;
@@ -25,7 +28,8 @@ export interface UpdateVehicleItemPayload {
     type?: string;
     capacity?: number;
     status?: string;
-    assignedTeam?: string;
+    assignedTeamId?: string | null;
+    teamName?: string | null;
 }
 
 export interface UpdateVehicleStatusPayload {

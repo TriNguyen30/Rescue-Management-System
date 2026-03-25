@@ -199,7 +199,7 @@ export default function Navbar() {
                     </div>
                     <button
                       type="button"
-                      className="ml-auto text-xs font-semibold text-blue-600 hover:text-blue-700 disabled:text-gray-300"
+                      className="ml-auto text-xs font-semibold text-blue-600 hover:text-blue-700 disabled:text-gray-300 cursor-pointer"
                       disabled={notifs.length === 0 || unreadCount === 0}
                       onClick={async () => {
                         await markAllNotificationsRead();
@@ -221,7 +221,7 @@ export default function Navbar() {
                           <button
                             key={n.id}
                             type="button"
-                            className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors border border-transparent hover:bg-gray-50 ${n.read === false ? "bg-blue-50/50" : ""}`}
+                            className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors border border-transparent hover:bg-gray-50 cursor-pointer ${n.read === false ? "bg-blue-50/50" : ""}`}
                             onClick={async () => {
                               if (n.read === false) {
                                 await markNotificationRead(n.id);

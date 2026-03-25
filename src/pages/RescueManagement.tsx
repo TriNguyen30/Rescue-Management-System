@@ -62,6 +62,8 @@ type FormState = {
   teamName: string;
   leaderId: string;
   baseArea: string;
+  latitude: string,
+  longitude: string,
   memberIds: string[];
   vehicleIds: string[];
 };
@@ -70,6 +72,8 @@ const initialForm: FormState = {
   teamName: "",
   leaderId: "",
   baseArea: "",
+  latitude: "",
+  longitude: "",
   memberIds: [],
   vehicleIds: [],
 };
@@ -120,6 +124,7 @@ function CheckboxMultiSelect({
   onChange,
   searchable = true,
   maxHeightClass = "max-h-[220px]",
+  placeholder = "Tìm theo tên, số điện thoại...",
 }: {
   id: string;
   label: string;
@@ -129,6 +134,7 @@ function CheckboxMultiSelect({
   onChange: (vals: string[]) => void;
   searchable?: boolean;
   maxHeightClass?: string;
+  placeholder?: string;
 }) {
   const [query, setQuery] = useState("");
 
@@ -176,7 +182,7 @@ function CheckboxMultiSelect({
           <input
             type="search"
             id={`${id}_search`}
-            placeholder="Tìm theo tên, số điện thoại..."
+            placeholder={placeholder || "Tìm theo tên, số điện thoại..."}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
@@ -221,11 +227,10 @@ function CheckboxMultiSelect({
               return (
                 <li key={o.value}>
                   <label
-                    className={`flex items-start gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
-                      checked
-                        ? "bg-emerald-50/80 hover:bg-emerald-50"
-                        : "hover:bg-gray-50"
-                    }`}
+                    className={`flex items-start gap-3 px-3 py-2.5 cursor-pointer transition-colors ${checked
+                      ? "bg-emerald-50/80 hover:bg-emerald-50"
+                      : "hover:bg-gray-50"
+                      }`}
                   >
                     <span className="pt-0.5 shrink-0">
                       <input
@@ -305,6 +310,8 @@ function EditRescueTeamModal({
       const patchPayload: UpdateRescueTeamPayload = {
         teamName: teamName.trim(),
         leaderId: leaderId.trim(),
+        latitude: parseFloat(latitude) || 0,
+        longitude: parseFloat(longitude) || 0,
       };
       await updateRescueTeam(teamId, patchPayload);
       if (status !== team.status) {
@@ -352,9 +359,25 @@ function EditRescueTeamModal({
     label: `${v.plateNumber} - ${v.type}${typeof v.capacity === "number" ? ` (Sức chứa: ${v.capacity.toLocaleString("vi-VN")})` : ""}`,
   }));
 
+  const [latitude, setLatitude] = useState(
+    team.currentLocation?.coordinates?.[1]?.toString() || ""
+  );
+  const [longitude, setLongitude] = useState(
+    team.currentLocation?.coordinates?.[0]?.toString() || ""
+  );
+
+  const handlePasteMapLink = (url: string) => {
+    const match = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+
+    if (match) {
+      setLatitude(match[1]);
+      setLongitude(match[2]);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
           <div>
             <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Chỉnh sửa đội cứu hộ</p>
@@ -373,6 +396,75 @@ function EditRescueTeamModal({
             <input value={teamName} onChange={(e) => setTeamName(e.target.value)}
               placeholder="VD: Đội cứu hộ Q1"
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
+          </div>
+
+          <div className="space-y-3">
+            {/* Coordinates */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Latitude */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Vĩ độ (Latitude)
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={latitude}
+                  onChange={(e) => setLatitude(e.target.value)}
+                  placeholder="VD: 10.7769"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl 
+        focus:ring-2 focus:ring-emerald-500 focus:border-transparent 
+        outline-none bg-gray-50 focus:bg-white transition"
+                />
+              </div>
+
+              {/* Longitude */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Kinh độ (Longitude)
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={longitude}
+                  onChange={(e) => setLongitude(e.target.value)}
+                  placeholder="VD: 106.7009"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl 
+        focus:ring-2 focus:ring-emerald-500 focus:border-transparent 
+        outline-none bg-gray-50 focus:bg-white transition"
+                />
+              </div>
+            </div>
+
+            {/* Paste Google Maps link */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Dán link Google Maps
+              </label>
+              <input
+                type="text"
+                placeholder="VD: https://www.google.com/maps/@10.7769,106.7009,15z"
+                onBlur={(e) => handlePasteMapLink(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl 
+      focus:ring-2 focus:ring-emerald-500 focus:border-transparent 
+      outline-none bg-gray-50 focus:bg-white transition"
+              />
+            </div>
+
+            {/* Preview link */}
+            {latitude && longitude && (
+              <div className="flex items-center gap-2">
+                <a
+                  href={`https://www.google.com/maps?q=${latitude},${longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  <MapPin className="w-4 h-4" />
+                  Xem trên Google Maps
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Leader */}
@@ -408,6 +500,7 @@ function EditRescueTeamModal({
           {/* Vehicles */}
           <CheckboxMultiSelect
             id="edit_vehicle_ids"
+            placeholder="Tìm theo biển số xe..."
             label="Phương tiện"
             hint="(tick để chọn nhiều xe)"
             options={vehicleOptions}
@@ -477,6 +570,22 @@ export default function RescueManagement() {
   const [vehicles, setVehicles] = useState<VehicleItem[]>([]);
   const navigate = useNavigate();
   const { success: toastSuccess, error: toastError } = useToast();
+  const [geocoding, setGeocoding] = useState(false);
+
+  const handleGeocode = async () => {
+    const lat = parseFloat(form.latitude);
+    const lon = parseFloat(form.longitude);
+    if (isNaN(lat) || isNaN(lon)) return;
+    setGeocoding(true);
+    try {
+      const address = await reverseGeocode(lat, lon);
+      setForm((prev) => ({ ...prev, baseArea: address }));
+    } catch {
+      // silently ignore
+    } finally {
+      setGeocoding(false);
+    }
+  };
 
   // ── Data fetching ─────────────────────────────────────────────────────────
   const fetchTeams = useCallback(async () => {
@@ -579,6 +688,8 @@ export default function RescueManagement() {
       teamName: form.teamName.trim(),
       leaderId: form.leaderId.trim(),
       baseArea: form.baseArea.trim() || "—",
+      latitude: parseFloat(form.latitude) || 0,
+      longitude: parseFloat(form.longitude) || 0,
     };
     setSubmitting(true);
     try {
@@ -667,6 +778,28 @@ export default function RescueManagement() {
     value: resolveVehicleId(v),
     label: `${v.plateNumber} - ${v.type}${typeof v.capacity === "number" ? ` (Sức chứa: ${v.capacity.toLocaleString("vi-VN")})` : ""}`,
   }));
+
+  useEffect(() => {
+    fetch("https://provinces.open-api.vn/api/?depth=1")
+      .then(res => res.json())
+      .then(data => setProvinces(data));
+  }, []);
+
+  const handlePasteMapLink = (url: string) => {
+    const match = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+
+    if (match) {
+      const lat = match[1];
+      const lng = match[2];
+
+      setForm((prev) => ({
+        ...prev,
+        latitude: lat,
+        longitude: lng,
+      }));
+      handleGeocode(); // gọi luôn
+    }
+  };
 
   return (
     <ManagerLayout>
@@ -822,7 +955,7 @@ export default function RescueManagement() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <StatusBadge status={team.status} />
-                              <div className="relative">
+                              {/* <div className="relative">
                                 <select value={team.status} disabled={isUpdating}
                                   onChange={(e) => handleUpdateStatus(team, e.target.value as RescueTeamStatus)}
                                   className="pl-2 pr-7 py-1 text-[11px] border border-gray-200 rounded-lg bg-gray-50 hover:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
@@ -834,7 +967,7 @@ export default function RescueManagement() {
                                 {isUpdating && (
                                   <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 )}
-                              </div>
+                              </div> */}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell">
@@ -880,7 +1013,7 @@ export default function RescueManagement() {
         {/* ── Create Modal ── */}
         {modalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
                 <div>
                   <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Đội cứu hộ</p>
@@ -904,6 +1037,70 @@ export default function RescueManagement() {
                     className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
                     placeholder="VD: Quận 1, TP.HCM (để trống sẽ dùng mặc định)" />
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="latitude" className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Vĩ độ (Latitude)
+                    </label>
+                    <input
+                      id="latitude"
+                      type="number"
+                      step="any"
+                      value={form.latitude}
+                      onChange={(e) => setForm((prev) => ({ ...prev, latitude: e.target.value }))}
+                      onBlur={handleGeocode}
+                      placeholder="VD: 10.7769"
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="longitude" className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Kinh độ (Longitude)
+                    </label>
+                    <input
+                      id="longitude"
+                      type="number"
+                      step="any"
+                      value={form.longitude}
+                      onChange={(e) => setForm((prev) => ({ ...prev, longitude: e.target.value }))}
+                      onBlur={handleGeocode}
+                      placeholder="VD: 106.7009"
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Dán link Google Maps
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="VD: https://www.google.com/maps/@10.7769,106.7009,15z"
+                    onBlur={(e) => handlePasteMapLink(e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl"
+                  />
+                  {form.latitude && form.longitude && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <a
+                        href={`https://www.google.com/maps?q=${form.latitude},${form.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <MapPin className="w-4 h-4" />
+                        Xem trên Google Maps
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Address preview below the coord fields */}
+                {geocoding && (
+                  <div className="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang tra cứu địa chỉ...
+                  </div>
+                )}
                 <div>
                   <label htmlFor="leader_id" className="block text-sm font-medium text-gray-700 mb-1.5">Đội trưởng</label>
                   <div className="relative">
@@ -928,6 +1125,7 @@ export default function RescueManagement() {
                 />
                 <CheckboxMultiSelect
                   id="vehicle_ids"
+                  placeholder="Tìm theo biển số xe..."
                   label="Phương tiện"
                   hint="(tick để chọn nhiều xe)"
                   options={vehicleOptions}
@@ -984,11 +1182,11 @@ export default function RescueManagement() {
             </p>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setDeleteTeam(null)} disabled={!!deletingId}
-                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60">
+                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60 cursor-pointer">
                 Hủy
               </button>
               <button type="button" onClick={confirmDeleteTeam} disabled={!!deletingId}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-red-300 rounded-xl transition-colors">
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-red-300 rounded-xl transition-colors cursor-pointer">
                 {deletingId ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {deletingId ? "Đang xóa..." : "Xóa"}
               </button>

@@ -148,7 +148,9 @@ function ViewDetailModal({
               <Users className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
               <div>
                 <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Đội phụ trách</p>
-                <p className="text-sm font-semibold text-gray-800">{vehicle.assignedTeam || "Chưa phân công"}</p>
+                <p className="text-sm font-semibold text-gray-800">
+                  {vehicle.assignedTeamId?.teamName || "Chưa phân công"}
+                </p>
               </div>
             </div>
             {vehicle.name && (
@@ -219,11 +221,12 @@ function EditVehicleModal({
   const [type, setType] = useState(vehicle.type ?? "");
   const [capacity, setCapacity] = useState(String(vehicle.capacity ?? ""));
   const [status, setStatus] = useState(vehicle.status ?? "AVAILABLE");
-  const [assignedTeam, setAssignedTeam] = useState(vehicle.assignedTeam ?? "");
+  const [assignedTeam, setAssignedTeam] = useState(vehicle.assignedTeamId?.teamName ?? "");
   const [isActive, setIsActive] = useState(vehicle.isActive ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const { success, error: toastError } = useToast();
+
 
   const handleSave = async () => {
     if (!plateNumber.trim()) { setError("Vui lòng nhập biển số xe."); return; }
@@ -305,8 +308,8 @@ function EditVehicleModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Đội phụ trách</label>
               <input value={assignedTeam} onChange={(e) => setAssignedTeam(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                placeholder="VD: Đội cứu hộ Q1" />
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition cursor-not-allowed"
+                placeholder="VD: Đội cứu hộ Q1" disabled />
             </div>
           </div>
 
@@ -610,7 +613,7 @@ export default function VehicleManagement() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <StatusBadge status={v.status} />
-                              <div className="relative">
+                              {/* <div className="relative">
                                 <select
                                   value={v.status}
                                   disabled={isUpdating}
@@ -626,11 +629,11 @@ export default function VehicleManagement() {
                                 {isUpdating && (
                                   <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 )}
-                              </div>
+                              </div> */}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">
-                            {v.assignedTeam || <span className="text-gray-300">Chưa phân công</span>}
+                            {v.assignedTeamId ? v.assignedTeamId.teamName : <span className="text-gray-300">Chưa phân công</span>}
                           </td>
                           <td className="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell">
                             {v.updatedAt || v.createdAt ? (
@@ -780,11 +783,11 @@ export default function VehicleManagement() {
             </p>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setDeleteVehicleItem(null)} disabled={!!deletingId}
-                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60">
+                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60 cursor-pointer">
                 Hủy
               </button>
               <button type="button" onClick={confirmDelete} disabled={!!deletingId}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-red-300 rounded-xl transition-colors">
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-red-300 rounded-xl transition-colors cursor-pointer">
                 {deletingId ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {deletingId ? "Đang xóa..." : "Xóa"}
               </button>
