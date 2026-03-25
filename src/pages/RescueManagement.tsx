@@ -823,7 +823,7 @@ export default function RescueManagement() {
                 Làm mới
               </button>
               <button onClick={handleOpenModal}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-sm transition-colors cursor-pointer">
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-xl shadow-sm transition-colors cursor-pointer">
                 <Plus className="w-4 h-4" />
                 Thêm đội cứu hộ
               </button>
@@ -867,7 +867,7 @@ export default function RescueManagement() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input value={search} onChange={(e) => setSearch(e.target.value)}
                 placeholder="Tìm theo tên đội, đội trưởng, thành viên hoặc biển số xe..."
-                className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
+                className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
               {search && (
                 <button type="button" onClick={() => setSearch("")} aria-label="Xóa tìm kiếm"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
@@ -879,7 +879,7 @@ export default function RescueManagement() {
               <span className="text-xs text-gray-400 hidden sm:inline">Lọc theo trạng thái</span>
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as RescueTeamStatus | "ALL")}
                 aria-label="Lọc theo trạng thái"
-                className="pl-3 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer">
+                className="pl-3 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer">
                 <option value="ALL">Tất cả</option>
                 {statuses.map((s) => <option key={s} value={s}>{STATUS_LABELS[s] ?? s}</option>)}
               </select>
@@ -987,7 +987,7 @@ export default function RescueManagement() {
                               </button>
                               <button type="button" onClick={() => setEditTeam(team)}
                                 aria-label="Chỉnh sửa đội" title="Chỉnh sửa đội"
-                                className="p-1.5 rounded-lg hover:bg-emerald-100 text-gray-400 hover:text-emerald-600 transition-colors cursor-pointer">
+                                className="p-1.5 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors cursor-pointer">
                                 <Edit3 className="w-4 h-4" />
                               </button>
                               <button type="button" onClick={() => setDeleteTeam(team)}
