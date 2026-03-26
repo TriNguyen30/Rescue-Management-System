@@ -32,7 +32,6 @@ import {
   CreateVehicleItemPayload,
   UpdateVehicleItemPayload,
 } from "@/types/vehicle";
-import { ManagerLayout } from "@/components/ui/ManagerSidebar";
 import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 
@@ -258,29 +257,6 @@ function EditVehicleModal({
   const patchVehicle = (updated: VehicleItem) =>
     setVehicles((prev) => prev.map((v) => resolveId(v) === resolveId(updated) ? updated : v));
 
-  const handleUpdateStatus = async (vehicle: VehicleItem, nextStatus: string) => {
-    const id = resolveId(vehicle);
-    const prevStatus = vehicle.status;
-    if (prevStatus === nextStatus) return;
-
-    setVehicles((prev) => prev.map((v) => resolveId(v) === id ? { ...v, status: nextStatus } : v));
-    setUpdatingStatus((prev) => ({ ...prev, [id]: true }));
-
-    try {
-      const updated = await updateVehicleStatus(id, { status: nextStatus });
-      patchVehicle(updated);
-      success("Cập nhật trạng thái phương tiện thành công.");
-      fetchVehicles();
-    } catch (e: any) {
-      setVehicles((prev) => prev.map((v) => resolveId(v) === id ? { ...v, status: prevStatus } : v));
-      const message = e?.response?.data?.message || e?.message || "Không thể cập nhật trạng thái.";
-      toastError(message);
-    } finally {
-      setUpdatingStatus((prev) => { const { [id]: _, ...rest } = prev; return rest; });
-    }
-  };
-
-
   const handleSave = async () => {
     if (!plateNumber.trim()) { setError("Vui lòng nhập biển số xe."); return; }
     if (!type.trim()) { setError("Vui lòng nhập loại xe."); return; }
@@ -367,7 +343,7 @@ function EditVehicleModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Trạng thái</label>
-              <select value={status} onChange={(e) => handleUpdateStatus(vehicle, e.target.value)}
+              <select value={status} onChange={(e) => setStatus(e.target.value)}
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition cursor-pointer">
                 {Object.entries(STATUS_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>{label}</option>
@@ -555,7 +531,6 @@ export default function VehicleManagement() {
   };
 
   return (
-    <ManagerLayout>
       <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
@@ -881,6 +856,5 @@ export default function VehicleManagement() {
           </div>
         </Modal>
       </div>
-    </ManagerLayout>
   );
 }

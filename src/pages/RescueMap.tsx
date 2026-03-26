@@ -139,8 +139,6 @@ export default function RescueMap() {
     const zoom = rescuePosition || position ? 16 : DEFAULT_ZOOM
 
     return (
-        <ManagerLayout>
-            {/* Fill the remaining height inside the layout's <main> */}
             <div className="relative flex flex-col" style={{ height: '100%', minHeight: 0 }}>
 
                 {/* Status bar */}
@@ -198,6 +196,5 @@ export default function RescueMap() {
                     )}
                 </MapContainer>
             </div>
-        </ManagerLayout>
     )
 }

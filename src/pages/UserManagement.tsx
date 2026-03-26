@@ -24,7 +24,6 @@ import {
   changePassword,
 } from "@/services/user.service";
 import { User, ChangePasswordPayload } from "@/types/user";
-import { AdminLayout } from "@/components/ui/AdminSidebar";
 import { useToast } from "@/components/ui/Toast";
 import { PageProvider, usePage } from "@/context/PageContext";
 import Pagination from "@/components/ui/Pagination";
@@ -487,10 +486,8 @@ function UserDashboardInner() {
 // ── Page export (wraps inner with PageProvider) ───────────────────────────────
 export default function AdminUserDashboard() {
   return (
-    <AdminLayout>
       <PageProvider initialPageSize={5}>
         <UserDashboardInner />
       </PageProvider>
-    </AdminLayout>
   );
 }

@@ -367,11 +367,35 @@ function EditRescueTeamModal({
   );
 
   const handlePasteMapLink = (url: string) => {
-    const match = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    let lat = "";
+    let lng = "";
 
-    if (match) {
-      setLatitude(match[1]);
-      setLongitude(match[2]);
+    // Case 1: @lat,lng
+    const atMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (atMatch) {
+      lat = atMatch[1];
+      lng = atMatch[2];
+    }
+
+    // Case 2: ?q=lat,lng
+    const qMatch = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (!lat && qMatch) {
+      lat = qMatch[1];
+      lng = qMatch[2];
+    }
+
+    // ✅ Case 3: raw "lat, lng"
+    const rawMatch = url.match(/^\s*(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)\s*$/);
+    if (!lat && rawMatch) {
+      lat = rawMatch[1];
+      lng = rawMatch[2];
+    }
+
+    if (lat && lng) {
+      setLatitude(lat);
+      setLongitude(lng);
+    } else {
+      console.log("Không parse được:", url);
     }
   };
 
@@ -444,7 +468,7 @@ function EditRescueTeamModal({
               <input
                 type="text"
                 placeholder="VD: https://www.google.com/maps/@10.7769,106.7009,15z"
-                onBlur={(e) => handlePasteMapLink(e.target.value)}
+                onChange={(e) => handlePasteMapLink(e.target.value)}
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl 
       focus:ring-2 focus:ring-emerald-500 focus:border-transparent 
       outline-none bg-gray-50 focus:bg-white transition"
@@ -536,7 +560,7 @@ function EditRescueTeamModal({
               Hủy
             </button>
             <button type="button" onClick={handleSave} disabled={saving}
-              className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer">
+              className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               {saving ? "Đang lưu..." : "Lưu thay đổi"}
             </button>
@@ -802,7 +826,6 @@ export default function RescueManagement() {
   };
 
   return (
-    <ManagerLayout>
       <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
@@ -1370,6 +1393,5 @@ export default function RescueManagement() {
           </div>
         )}
       </div>
-    </ManagerLayout>
   );
 }

@@ -28,6 +28,8 @@ import UserProfile from "@/pages/UserProfile";
 import Donation from "@/pages/Donation";
 import SearchNearbyRequests from "@/pages/SearchNearbyRequests";
 import ManagerSetting from "@/pages/ManagerSetting";
+import ManagerLayout from "@/layouts/ManagerLayout";
+import AdminLayout from "@/layouts/AdminLayout";
 
 export default function AppRoutes() {
   return (
@@ -47,98 +49,81 @@ export default function AppRoutes() {
         path="/admin"
         element={
           <ProtectedRoute requireAdmin>
-            <AdminDashboard />
+            <AdminLayout />
           </ProtectedRoute>
         }
-      />
-      <Route
-        path="/admin/users"
-        element={
-          <ProtectedRoute requireAdmin>
-            <UserManagement />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/analytics"
-        element={
-          <ProtectedRoute requireAdmin>
-            <AdminOperationsReport />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/settings"
-        element={
-          <ProtectedRoute requireAdmin>
-            <AdminSystemSettings />
-          </ProtectedRoute>
-        }
-      />
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<UserManagement />} />
+        <Route path="/admin/analytics" element={<AdminOperationsReport />} />
+        <Route path="/admin/settings" element={<AdminSystemSettings />} />
+      </Route>
       <Route
         path="/manager"
         element={
           <ProtectedRoute requireManager>
-            <ManagerDashboard />
+            <ManagerLayout />
           </ProtectedRoute>
         }
-      />
-      <Route
-        path="/manager/inventories"
-        element={
-          <ProtectedRoute requireManager>
-            <InventoryManagement />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/manager/vehicle"
-        element={
-          <ProtectedRoute requireManager>
-            <VehicleManagement />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/manager/rescue-teams"
-        element={
-          <ProtectedRoute requireManager>
-            <RescueManagement />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/manager/rescue-map"
-        element={
-          <ProtectedRoute requireManager>
-            <RescueMap />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/manager/requests"
-        element={
-          <ProtectedRoute requireManager>
-            <RTRequestManagement />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/manager/requests/:id"
-        element={
-          <ProtectedRoute requireManager>
-            <RequestDetails />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/manager/settings"
-        element={
-          <ProtectedRoute requireManager>
-            <ManagerSetting />
-          </ProtectedRoute>
-        }
-      />
+      >
+        <Route index element={<ManagerDashboard />} />
+        <Route
+          path="/manager/inventories"
+          element={
+            <ProtectedRoute requireManager>
+              <InventoryManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/vehicle"
+          element={
+            <ProtectedRoute requireManager>
+              <VehicleManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/rescue-teams"
+          element={
+            <ProtectedRoute requireManager>
+              <RescueManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/rescue-map"
+          element={
+            <ProtectedRoute requireManager>
+              <RescueMap />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/requests"
+          element={
+            <ProtectedRoute requireManager>
+              <RTRequestManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/requests/:id"
+          element={
+            <ProtectedRoute requireManager>
+              <RequestDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/settings"
+          element={
+            <ProtectedRoute requireManager>
+              <ManagerSetting />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
       <Route
         path="/coordinator"
         element={
