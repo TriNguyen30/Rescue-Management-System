@@ -239,6 +239,46 @@ function EditVehicleModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const { success, error: toastError } = useToast();
+  const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>({});
+  const [vehicles, setVehicles] = useState<VehicleItem[]>([]);
+
+  const fetchVehicles = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await getVehicles();
+      setVehicles(data ?? []);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e?.message || "Không thể tải danh sách phương tiện.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const patchVehicle = (updated: VehicleItem) =>
+    setVehicles((prev) => prev.map((v) => resolveId(v) === resolveId(updated) ? updated : v));
+
+  const handleUpdateStatus = async (vehicle: VehicleItem, nextStatus: string) => {
+    const id = resolveId(vehicle);
+    const prevStatus = vehicle.status;
+    if (prevStatus === nextStatus) return;
+
+    setVehicles((prev) => prev.map((v) => resolveId(v) === id ? { ...v, status: nextStatus } : v));
+    setUpdatingStatus((prev) => ({ ...prev, [id]: true }));
+
+    try {
+      const updated = await updateVehicleStatus(id, { status: nextStatus });
+      patchVehicle(updated);
+      success("Cập nhật trạng thái phương tiện thành công.");
+      fetchVehicles();
+    } catch (e: any) {
+      setVehicles((prev) => prev.map((v) => resolveId(v) === id ? { ...v, status: prevStatus } : v));
+      const message = e?.response?.data?.message || e?.message || "Không thể cập nhật trạng thái.";
+      toastError(message);
+    } finally {
+      setUpdatingStatus((prev) => { const { [id]: _, ...rest } = prev; return rest; });
+    }
+  };
 
 
   const handleSave = async () => {
@@ -315,10 +355,10 @@ function EditVehicleModal({
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Loại xe</label>
               <select value={type} onChange={(e) => setType(e.target.value)}
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl" >
-                  {VEHICLE_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+                {VEHICLE_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Sức chứa (người / kg)</label>
@@ -327,7 +367,7 @@ function EditVehicleModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Trạng thái</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}
+              <select value={status} onChange={(e) => handleUpdateStatus(vehicle, e.target.value)}
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition cursor-pointer">
                 {Object.entries(STATUS_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>{label}</option>
@@ -763,11 +803,11 @@ export default function VehicleManagement() {
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Loại xe</label>
                     <select value={form.type} onChange={(e) => handleChange("type", e.target.value)}
                       className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl" >
-                        <option value="">Chọn loại xe</option>
-                        {VEHICLE_TYPE_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
+                      <option value="">Chọn loại xe</option>
+                      {VEHICLE_TYPE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Sức chứa (người / kg)</label>
