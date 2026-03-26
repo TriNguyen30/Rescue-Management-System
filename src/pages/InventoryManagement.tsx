@@ -75,6 +75,20 @@ function ViewDetailModal({
     const formatDate = (val?: string | null) =>
         val ? new Date(val).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" }) : "—";
 
+    const CATEGORY_OPTIONS = [
+        { label: "Lương thực", value: "FOOD" },
+        { label: "Nước", value: "WATER" },
+        { label: "Y tế", value: "MEDICAL" },
+        { label: "Thiết bị", value: "EQUIPMENT" },
+        { label: "Quần áo", value: "CLOTHING" },
+        { label: "Khác", value: "OTHER" },
+    ];
+
+    const getCategoryLabel = (value: string) => {
+        const found = CATEGORY_OPTIONS.find(c => c.value === value);
+        return found ? found.label : value;
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
@@ -119,7 +133,7 @@ function ViewDetailModal({
                             <Tag className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                             <div>
                                 <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Danh mục</p>
-                                <p className="text-sm font-semibold text-gray-800">{item.category || "—"}</p>
+                                <p className="text-sm font-semibold text-gray-800">{getCategoryLabel(item.category) || "—"}</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
@@ -226,6 +240,20 @@ function EditInventoryModal({
     const [error, setError] = useState("");
     const { success, error: toastError } = useToast();
 
+    const CATEGORY_OPTIONS = [
+        { label: "Lương thực", value: "FOOD" },
+        { label: "Nước", value: "WATER" },
+        { label: "Y tế", value: "MEDICAL" },
+        { label: "Thiết bị", value: "EQUIPMENT" },
+        { label: "Quần áo", value: "CLOTHING" },
+        { label: "Khác", value: "OTHER" },
+    ];
+
+    const getCategoryLabel = (value: string) => {
+        const found = CATEGORY_OPTIONS.find(c => c.value === value);
+        return found ? found.label : value;
+    };
+
     const handleSave = async () => {
         const quantityNumber = Number(quantity);
         if (!itemName.trim()) { setError("Vui lòng nhập tên vật tư."); return; }
@@ -245,7 +273,7 @@ function EditInventoryModal({
                 itemName: itemName.trim(),
                 quantity: quantityNumber,
                 unit: unit.trim(),
-                category: category.trim(),
+                category: category.trim() as "FOOD" | "WATER" | "MEDICAL" | "EQUIPMENT" | "CLOTHING" | "OTHER",
                 description: description.trim() || undefined,
                 lowStockThreshold: parsedThreshold,
                 isActive,
@@ -297,24 +325,31 @@ function EditInventoryModal({
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Danh mục</label>
-                            <input value={category} onChange={(e) => setCategory(e.target.value)}
+                            <select value={category} onChange={(e) => setCategory(e.target.value)}
                                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                                placeholder="Ví dụ: Lương thực, Thiết yếu" />
+                            >
+                                <option value="">Chọn danh mục</option>
+                                {CATEGORY_OPTIONS.map((c) => (
+                                    <option key={c.value} value={c.value}>
+                                        {c.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                Ngưỡng cảnh báo tồn kho
-                                <span className="text-xs text-gray-400 font-normal ml-1">(tuỳ chọn)</span>
-                            </label>
-                            <input
-                                type="number"
-                                min={0}
-                                value={lowStockThreshold}
-                                onChange={(e) => setLowStockThreshold(e.target.value)}
-                                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                                placeholder="Ví dụ: 10"
-                            />
-                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Ngưỡng cảnh báo tồn kho
+                            <span className="text-xs text-gray-400 font-normal ml-1">(tuỳ chọn)</span>
+                        </label>
+                        <input
+                            type="number"
+                            min={0}
+                            value={lowStockThreshold}
+                            onChange={(e) => setLowStockThreshold(e.target.value)}
+                            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                            placeholder="Ví dụ: 10"
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú / mô tả</label>
@@ -587,6 +622,20 @@ export default function InventoryManagement() {
         }
     };
 
+    const CATEGORY_OPTIONS = [
+        { label: "Lương thực", value: "FOOD" },
+        { label: "Nước", value: "WATER" },
+        { label: "Y tế", value: "MEDICAL" },
+        { label: "Thiết bị", value: "EQUIPMENT" },
+        { label: "Quần áo", value: "CLOTHING" },
+        { label: "Khác", value: "OTHER" },
+    ];
+
+    const getCategoryLabel = (value: string) => {
+        const found = CATEGORY_OPTIONS.find(c => c.value === value);
+        return found ? found.label : value;
+    };
+
     return (
         <ManagerLayout>
             <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
@@ -741,7 +790,7 @@ export default function InventoryManagement() {
                                                     <td className="px-4 py-3 hidden md:table-cell">
                                                         {item.category ? (
                                                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100">
-                                                                {item.category}
+                                                                {getCategoryLabel(item.category)}
                                                             </span>
                                                         ) : (
                                                             <span className="text-xs text-gray-300">—</span>
@@ -846,9 +895,18 @@ export default function InventoryManagement() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1.5">Danh mục</label>
-                                        <input value={form.category} onChange={(e) => handleChange("category", e.target.value)}
-                                            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                                            placeholder="Ví dụ: Lương thực, Thiết yếu" />
+                                        <select
+                                            value={form.category}
+                                            onChange={(e) => handleChange("category", e.target.value)}
+                                            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl"
+                                        >
+                                            <option value="">Chọn danh mục</option>
+                                            {CATEGORY_OPTIONS.map((c) => (
+                                                <option key={c.value} value={c.value}>
+                                                    {c.label}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
