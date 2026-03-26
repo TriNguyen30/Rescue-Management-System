@@ -7,6 +7,7 @@ export interface InventoryItem {
     category: string;
     lowStockThreshold?: number;
     description?: string;
+    expirationDate?: string;
     isActive?: boolean;
     createdAt?: string | null;
     updatedAt?: string | null;
@@ -19,6 +20,7 @@ export interface CreateInventoryItemPayload {
     category: string;
     description?: string;
     lowStockThreshold?: number;
+    expirationDate?: string;
     isActive?: boolean;
 }
 
@@ -29,6 +31,7 @@ export interface UpdateInventoryItemPayload {
     category?: string;
     lowStockThreshold?: number;
     description?: string;
+    expirationDate?: string;
     isActive?: boolean;
 }
 

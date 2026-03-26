@@ -17,7 +17,6 @@ import {
   Bell,
   MapPin,
 } from "lucide-react";
-import { ManagerLayout } from "@/components/ui/ManagerSidebar";
 import { useAppSelector } from "@/store/hooks";
 import { changePassword } from "@/services/user.service";
 import type { ChangePasswordPayload } from "@/types/user";
@@ -122,7 +121,6 @@ export default function ManagerSetting() {
   const roleLabel = user?.role ? ROLE_LABELS[user.role] ?? user.role : "—";
 
   return (
-    <ManagerLayout>
       <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
         <div className="max-w-3xl mx-auto space-y-6">
           {/* Header */}
@@ -274,6 +272,5 @@ export default function ManagerSetting() {
           </section>
         </div>
       </div>
-    </ManagerLayout>
   );
 }

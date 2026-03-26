@@ -831,7 +831,7 @@ export default function RescueManagement() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
                 <LifeBuoy className="w-5 h-5" />
               </div>
               <div>
@@ -856,7 +856,7 @@ export default function RescueManagement() {
           {/* Summary cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                 <LifeBuoy className="w-5 h-5" />
               </div>
               <div>
@@ -865,7 +865,7 @@ export default function RescueManagement() {
               </div>
             </div>
             <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                 <Users className="w-5 h-5" />
               </div>
               <div>

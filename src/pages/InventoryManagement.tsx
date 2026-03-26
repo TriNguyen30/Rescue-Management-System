@@ -31,21 +31,24 @@ import {
     deleteInventoryItem,
 } from "@/services/inventory.service";
 import { InventoryItem, CreateInventoryItemPayload, UpdateInventoryItemPayload } from "@/types/inventory";
-import { ManagerLayout } from "@/components/ui/ManagerSidebar";
 import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 
 /** Resolve the canonical id from an InventoryItem (supports both `id` and `_id`). */
-const resolveId = (item: InventoryItem): string => (item.id ?? item._id)!;
+const resolveId = (item: InventoryItem): string => {
+    if (!item.id && !item._id) throw new Error("Missing ID");
+    return item.id ?? item._id!;
+};
 
 type FormState = {
     itemName: string;
-    quantity: number | string;
+    quantity: number;
     unit: string;
     category: string;
     description: string;
     lowStockThreshold: string;
     isActive: boolean;
+    expirationDate: string;
 };
 
 const initialForm: FormState = {
@@ -56,6 +59,21 @@ const initialForm: FormState = {
     description: "",
     lowStockThreshold: "",
     isActive: true,
+    expirationDate: "",
+};
+
+const CATEGORY_OPTIONS = [
+    { label: "Lương thực", value: "FOOD" },
+    { label: "Nước", value: "WATER" },
+    { label: "Y tế", value: "MEDICAL" },
+    { label: "Thiết bị", value: "EQUIPMENT" },
+    { label: "Quần áo", value: "CLOTHING" },
+    { label: "Khác", value: "OTHER" },
+];
+
+const getCategoryLabel = (value: string) => {
+    const found = CATEGORY_OPTIONS.find(c => c.value === value);
+    return found ? found.label : value;
 };
 
 // ── View Detail Modal ─────────────────────────────────────────────────────────
@@ -70,29 +88,15 @@ function ViewDetailModal({
     onEdit: () => void;
     onUpdateStock: () => void;
 }) {
-    const isLowStock = item.lowStockThreshold != null && item.quantity <= item.lowStockThreshold;
+    const isLowStock = (item: InventoryItem) =>
+        item.lowStockThreshold != null && item.quantity <= item.lowStockThreshold;
 
     const formatDate = (val?: string | null) =>
         val ? new Date(val).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" }) : "—";
 
-    const CATEGORY_OPTIONS = [
-        { label: "Lương thực", value: "FOOD" },
-        { label: "Nước", value: "WATER" },
-        { label: "Y tế", value: "MEDICAL" },
-        { label: "Thiết bị", value: "EQUIPMENT" },
-        { label: "Quần áo", value: "CLOTHING" },
-        { label: "Khác", value: "OTHER" },
-    ];
-
-    const getCategoryLabel = (value: string) => {
-        const found = CATEGORY_OPTIONS.find(c => c.value === value);
-        return found ? found.label : value;
-    };
-
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-                {/* Header */}
                 <div className="flex items-start justify-between px-6 py-4 border-b border-gray-100">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -108,18 +112,16 @@ function ViewDetailModal({
                     </button>
                 </div>
 
-                {/* Body */}
                 <div className="p-6 space-y-5">
-                    {/* Stock highlight */}
-                    <div className={`flex items-center justify-between p-4 rounded-2xl border ${isLowStock ? "bg-amber-50 border-amber-200" : "bg-blue-50 border-blue-100"}`}>
+                    <div className={`flex items-center justify-between p-4 rounded-2xl border ${isLowStock(item) ? "bg-amber-50 border-amber-200" : "bg-blue-50 border-blue-100"}`}>
                         <div>
                             <p className="text-xs font-medium text-gray-500 mb-0.5">Tồn kho hiện tại</p>
-                            <p className={`text-3xl font-bold ${isLowStock ? "text-amber-600" : "text-blue-600"}`}>
+                            <p className={`text-3xl font-bold ${isLowStock(item) ? "text-amber-600" : "text-blue-600"}`}>
                                 {item.quantity.toLocaleString("vi-VN")}
                                 <span className="text-base font-semibold ml-1.5">{item.unit}</span>
                             </p>
                         </div>
-                        {isLowStock && (
+                        {isLowStock(item) && (
                             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-700 text-xs font-semibold">
                                 <AlertTriangle className="w-3.5 h-3.5" />
                                 Sắp hết hàng
@@ -127,7 +129,6 @@ function ViewDetailModal({
                         )}
                     </div>
 
-                    {/* Info grid */}
                     <div className="grid grid-cols-2 gap-3">
                         <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
                             <Tag className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
@@ -167,7 +168,15 @@ function ViewDetailModal({
                         </div>
                     </div>
 
-                    {/* Description */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <p className="text-xs text-gray-400">HSD</p>
+                            <p className="text-sm font-semibold">
+                                {item.expirationDate ? new Date(item.expirationDate).toLocaleDateString("vi-VN") : "—"}
+                            </p>
+                        </div>
+                    </div>
+
                     {item.description && (
                         <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
                             <FileText className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
@@ -178,7 +187,6 @@ function ViewDetailModal({
                         </div>
                     )}
 
-                    {/* Timestamps */}
                     <div className="flex items-center gap-4 text-xs text-gray-400 pt-1 border-t border-gray-100">
                         <div className="flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5" />
@@ -192,7 +200,6 @@ function ViewDetailModal({
                         )}
                     </div>
 
-                    {/* Actions */}
                     <div className="flex gap-2 pt-1">
                         <button
                             type="button"
@@ -239,20 +246,9 @@ function EditInventoryModal({
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const { success, error: toastError } = useToast();
-
-    const CATEGORY_OPTIONS = [
-        { label: "Lương thực", value: "FOOD" },
-        { label: "Nước", value: "WATER" },
-        { label: "Y tế", value: "MEDICAL" },
-        { label: "Thiết bị", value: "EQUIPMENT" },
-        { label: "Quần áo", value: "CLOTHING" },
-        { label: "Khác", value: "OTHER" },
-    ];
-
-    const getCategoryLabel = (value: string) => {
-        const found = CATEGORY_OPTIONS.find(c => c.value === value);
-        return found ? found.label : value;
-    };
+    const formatDateForInput = (date?: string) =>
+        date ? new Date(date).toISOString().split("T")[0] : "";
+    const [expirationDate, setExpirationDate] = useState(formatDateForInput(item.expirationDate));
 
     const handleSave = async () => {
         const quantityNumber = Number(quantity);
@@ -277,6 +273,7 @@ function EditInventoryModal({
                 description: description.trim() || undefined,
                 lowStockThreshold: parsedThreshold,
                 isActive,
+                expirationDate: expirationDate ? new Date(expirationDate).toISOString() : undefined,
             };
             const updated = await updateInventoryItem(resolveId(item), payload);
             onSaved(updated);
@@ -326,30 +323,25 @@ function EditInventoryModal({
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Danh mục</label>
                             <select value={category} onChange={(e) => setCategory(e.target.value)}
-                                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                            >
+                                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition">
                                 <option value="">Chọn danh mục</option>
                                 {CATEGORY_OPTIONS.map((c) => (
-                                    <option key={c.value} value={c.value}>
-                                        {c.label}
-                                    </option>
+                                    <option key={c.value} value={c.value}>{c.label}</option>
                                 ))}
                             </select>
                         </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                             Ngưỡng cảnh báo tồn kho
                             <span className="text-xs text-gray-400 font-normal ml-1">(tuỳ chọn)</span>
                         </label>
-                        <input
-                            type="number"
-                            min={0}
-                            value={lowStockThreshold}
-                            onChange={(e) => setLowStockThreshold(e.target.value)}
+                        <input type="number" min={0} value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)}
                             className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                            placeholder="Ví dụ: 10"
-                        />
+                            placeholder="Ví dụ: 10" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú / mô tả</label>
@@ -442,7 +434,6 @@ function UpdateStockModal({
                         </span>
                     </div>
 
-                    {/* Low stock threshold hint */}
                     {item.lowStockThreshold != null && (
                         <div className={`flex items-center justify-between p-3 rounded-xl border ${item.quantity <= item.lowStockThreshold ? "bg-amber-50 border-amber-100" : "bg-gray-50 border-gray-100"}`}>
                             <span className="text-sm text-gray-500">Ngưỡng cảnh báo</span>
@@ -470,9 +461,7 @@ function UpdateStockModal({
                     {isValid && (
                         <div className={`flex items-center justify-between p-3 rounded-xl border ${preview < 0 ? "bg-red-50 border-red-100" : isPositive ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"}`}>
                             <div className={`flex items-center gap-1.5 text-sm font-medium ${preview < 0 ? "text-red-600" : isPositive ? "text-emerald-600" : "text-amber-600"}`}>
-                                {isPositive
-                                    ? <TrendingUp className="w-4 h-4" />
-                                    : <TrendingDown className="w-4 h-4" />}
+                                {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                                 {isPositive ? "Sau khi nhập kho" : "Sau khi xuất kho"}
                             </div>
                             <span className={`text-sm font-bold ${preview < 0 ? "text-red-600" : "text-gray-900"}`}>
@@ -520,6 +509,12 @@ export default function InventoryManagement() {
     const [stockItem, setStockItem] = useState<InventoryItem | null>(null);
     const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    // ── Bulk selection state ──────────────────────────────────────────────────
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
+
     const { success, error: toastError } = useToast();
 
     const fetchItems = useCallback(async () => {
@@ -536,6 +531,9 @@ export default function InventoryManagement() {
     }, []);
 
     useEffect(() => { fetchItems(); }, [fetchItems]);
+
+    // Clear selection when filter changes
+    useEffect(() => { setSelectedIds(new Set()); }, [search, categoryFilter]);
 
     const categories = useMemo(() => {
         const set = new Set<string>();
@@ -555,6 +553,57 @@ export default function InventoryManagement() {
             return matchSearch && matchCategory;
         });
     }, [items, search, categoryFilter]);
+
+    // ── Checkbox helpers ──────────────────────────────────────────────────────
+    const filteredIds = useMemo(() => filtered.map(resolveId), [filtered]);
+    const allSelected = filteredIds.length > 0 && filteredIds.every(id => selectedIds.has(id));
+    const someSelected = filteredIds.some(id => selectedIds.has(id));
+    const selectedCount = filteredIds.filter(id => selectedIds.has(id)).length;
+
+    const toggleSelectAll = () => {
+        if (allSelected) {
+            setSelectedIds(prev => {
+                const next = new Set(prev);
+                filteredIds.forEach(id => next.delete(id));
+                return next;
+            });
+        } else {
+            setSelectedIds(prev => {
+                const next = new Set(prev);
+                filteredIds.forEach(id => next.add(id));
+                return next;
+            });
+        }
+    };
+
+    const toggleSelectOne = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    };
+
+    // ── Bulk delete ───────────────────────────────────────────────────────────
+    const handleBulkDelete = async () => {
+        const ids = filteredIds.filter(id => selectedIds.has(id));
+        if (!ids.length) return;
+
+        setBulkDeleting(true);
+        try {
+            await Promise.all(ids.map(id => deleteInventoryItem(id)));
+            setItems(prev => prev.filter(i => !ids.includes(resolveId(i))));
+            setSelectedIds(new Set());
+            setBulkDeleteOpen(false);
+            success(`Đã xóa ${ids.length} vật tư thành công.`);
+            fetchItems();
+        } catch (e: any) {
+            const message = e?.response?.data?.message || e?.message || "Xóa vật tư thất bại.";
+            toastError(message);
+        } finally {
+            setBulkDeleting(false);
+        }
+    };
 
     const handleOpenModal = () => { setForm(initialForm); setFormError(""); setModalOpen(true); };
     const handleChange = (field: keyof FormState, value: string | boolean) =>
@@ -578,10 +627,13 @@ export default function InventoryManagement() {
             itemName: form.itemName.trim(),
             quantity: quantityNumber,
             unit: form.unit.trim(),
-            category: form.category.trim(),
+            category: form.category
+                ? (form.category as "FOOD" | "WATER" | "MEDICAL" | "EQUIPMENT" | "CLOTHING" | "OTHER")
+                : undefined,
             description: form.description.trim() || undefined,
             lowStockThreshold: parsedThreshold,
             isActive: form.isActive,
+            expirationDate: form.expirationDate ? new Date(form.expirationDate).toISOString() : undefined,
         };
         setSubmitting(true);
         try {
@@ -589,7 +641,6 @@ export default function InventoryManagement() {
             setItems((prev) => [created, ...prev]);
             setModalOpen(false);
             success("Vật tư đã được tạo thành công.");
-            fetchItems();
         } catch (e: any) {
             const message = e?.response?.data?.message || e?.message || "Không thể tạo vật tư.";
             setFormError(message);
@@ -622,393 +673,435 @@ export default function InventoryManagement() {
         }
     };
 
-    const CATEGORY_OPTIONS = [
-        { label: "Lương thực", value: "FOOD" },
-        { label: "Nước", value: "WATER" },
-        { label: "Y tế", value: "MEDICAL" },
-        { label: "Thiết bị", value: "EQUIPMENT" },
-        { label: "Quần áo", value: "CLOTHING" },
-        { label: "Khác", value: "OTHER" },
-    ];
-
-    const getCategoryLabel = (value: string) => {
-        const found = CATEGORY_OPTIONS.find(c => c.value === value);
-        return found ? found.label : value;
-    };
-
     return (
-            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-                <div className="max-w-7xl mx-auto space-y-6">
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                                <Boxes className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Quản lý kho vật tư</h1>
-                                <p className="text-sm text-gray-400 mt-0.5">Theo dõi vật tư cứu trợ, số lượng và phân loại</p>
-                            </div>
+        <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                            <Boxes className="w-5 h-5" />
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <button onClick={fetchItems} disabled={loading}
-                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm cursor-pointer">
-                                <Loader2 className={`w-4 h-4 ${loading ? "animate-spin" : "text-gray-400"}`} />
-                                Làm mới
-                            </button>
-                            <button onClick={handleOpenModal}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-xl shadow-sm transition-colors cursor-pointer">
-                                <Plus className="w-4 h-4" />
-                                Thêm vật tư
-                            </button>
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">Quản lý kho vật tư</h1>
+                            <p className="text-sm text-gray-400 mt-0.5">Theo dõi vật tư cứu trợ, số lượng và phân loại</p>
                         </div>
                     </div>
-
-                    {/* Summary cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                                <Package className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-400">Tổng số vật tư</p>
-                                <p className="text-xl font-bold text-gray-900">{items.length}</p>
-                            </div>
-                        </div>
-                        <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                                <Layers className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-400">Số loại danh mục</p>
-                                <p className="text-xl font-bold text-gray-900">{categories.length}</p>
-                            </div>
-                        </div>
-                        <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                                <Hash className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-400">Tổng số lượng (ước tính)</p>
-                                <p className="text-xl font-bold text-gray-900">
-                                    {items.reduce((sum, i) => sum + (i.quantity || 0), 0).toLocaleString("vi-VN")}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Filters */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input value={search} onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Tìm theo tên vật tư, mô tả, đơn vị..."
-                                className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
-                            {search && (
-                                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
-                                    <X className="w-4 h-4" />
-                                </button>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400 hidden sm:inline">Lọc theo danh mục</span>
-                            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="pl-3 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer">
-                                <option value="ALL">Tất cả</option>
-                                {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Table */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        {loading ? (
-                            <div className="flex items-center justify-center gap-3 py-20 text-gray-400">
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                <span className="text-sm">Đang tải dữ liệu kho...</span>
-                            </div>
-                        ) : error ? (
-                            <div className="flex flex-col items-center justify-center gap-3 py-16 text-red-500 px-4 text-center">
-                                <AlertTriangle className="w-8 h-8" />
-                                <p className="text-sm">{error}</p>
-                                <button onClick={fetchItems} className="text-xs text-blue-500 hover:underline">Thử lại</button>
-                            </div>
-                        ) : filtered.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center gap-3 py-16 text-gray-400">
-                                <Package className="w-10 h-10 text-gray-200" />
-                                <p className="text-sm">Chưa có vật tư nào phù hợp bộ lọc.</p>
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-gray-100 bg-gray-50/60">
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vật tư</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Số lượng</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Đơn vị</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Danh mục</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Ngày cập nhật</th>
-                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Hành động</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {filtered.map((item) => {
-                                            const id = resolveId(item);
-                                            const isLowStock =
-                                                item.lowStockThreshold != null &&
-                                                item.quantity <= item.lowStockThreshold;
-                                            return (
-                                                <tr key={id} className="group hover:bg-blue-50/40 transition-colors">
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex flex-col">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-sm font-semibold text-gray-900">{item.itemName}</span>
-                                                                {!item.isActive && (
-                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-400 border border-gray-200">
-                                                                        Ngừng HĐ
-                                                                    </span>
-                                                                )}
-                                                                {isLowStock && (
-                                                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200">
-                                                                        <AlertTriangle className="w-2.5 h-2.5" />
-                                                                        Sắp hết
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            {item.description && (
-                                                                <span className="text-xs text-gray-400 line-clamp-1">{item.description}</span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <span className={`text-sm font-medium ${isLowStock ? "text-amber-600" : "text-gray-700"}`}>
-                                                            {item.quantity.toLocaleString("vi-VN")}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-500 hidden sm:table-cell">{item.unit}</td>
-                                                    <td className="px-4 py-3 hidden md:table-cell">
-                                                        {item.category ? (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100">
-                                                                {getCategoryLabel(item.category)}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-xs text-gray-300">—</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell">
-                                                        {item.updatedAt || item.createdAt ? (
-                                                            <div className="inline-flex items-center gap-1.5">
-                                                                <Calendar className="w-3.5 h-3.5 text-gray-300" />
-                                                                <span>{new Date((item.updatedAt || item.createdAt) as string).toLocaleDateString("vi-VN")}</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-gray-300">—</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <div className="flex items-center justify-end gap-1">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setViewItem(item)}
-                                                                aria-label="Xem chi tiết"
-                                                                title="Xem chi tiết"
-                                                                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-                                                            >
-                                                                <Eye className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setStockItem(item)}
-                                                                aria-label="Cập nhật tồn kho"
-                                                                title="Cập nhật tồn kho"
-                                                                className="p-1.5 rounded-lg hover:bg-indigo-100 text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer"
-                                                            >
-                                                                <TrendingUp className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setEditItem(item)}
-                                                                aria-label="Chỉnh sửa vật tư"
-                                                                title="Chỉnh sửa vật tư"
-                                                                className="p-1.5 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
-                                                            >
-                                                                <Edit3 className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setDeleteItem(item)}
-                                                                aria-label="Xóa vật tư"
-                                                                title="Xóa vật tư"
-                                                                disabled={deletingId === id}
-                                                                className="p-1.5 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-50"
-                                                            >
-                                                                {deletingId === id ? (
-                                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                                ) : (
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                )}
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button onClick={fetchItems} disabled={loading}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm cursor-pointer">
+                            <Loader2 className={`w-4 h-4 ${loading ? "animate-spin" : "text-gray-400"}`} />
+                            Làm mới
+                        </button>
+                        <button onClick={handleOpenModal}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-xl shadow-sm transition-colors cursor-pointer">
+                            <Plus className="w-4 h-4" />
+                            Thêm vật tư
+                        </button>
                     </div>
                 </div>
 
-                {/* Create Modal */}
-                {modalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-                            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                {/* Summary cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Package className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-400">Tổng số vật tư</p>
+                            <p className="text-xl font-bold text-gray-900">{items.length}</p>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <Layers className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-400">Số loại danh mục</p>
+                            <p className="text-xl font-bold text-gray-900">{categories.length}</p>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                            <Hash className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-400">Tổng số lượng (ước tính)</p>
+                            <p className="text-xl font-bold text-gray-900">
+                                {items.reduce((sum, i) => sum + (i.quantity || 0), 0).toLocaleString("vi-VN")}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input value={search} onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Tìm theo tên vật tư, mô tả, đơn vị..."
+                            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
+                        {search && (
+                            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400 hidden sm:inline">Lọc theo danh mục</span>
+                        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
+                            className="pl-3 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white appearance-none transition cursor-pointer">
+                            <option value="ALL">Tất cả</option>
+                            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Bulk action bar — only shown when items are selected */}
+                {selectedCount > 0 && (
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-2xl">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-6 h-6 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                                <Check className="w-3.5 h-3.5 text-red-600" />
+                            </div>
+                            <span className="text-sm font-semibold text-red-700">
+                                Đã chọn {selectedCount} vật tư
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedIds(new Set())}
+                                className="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                            >
+                                Bỏ chọn
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setBulkDeleteOpen(true)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors cursor-pointer"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Xóa {selectedCount} mục
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Table */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    {loading ? (
+                        <div className="flex items-center justify-center gap-3 py-20 text-gray-400">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span className="text-sm">Đang tải dữ liệu kho...</span>
+                        </div>
+                    ) : error ? (
+                        <div className="flex flex-col items-center justify-center gap-3 py-16 text-red-500 px-4 text-center">
+                            <AlertTriangle className="w-8 h-8" />
+                            <p className="text-sm">{error}</p>
+                            <button onClick={fetchItems} className="text-xs text-blue-500 hover:underline">Thử lại</button>
+                        </div>
+                    ) : filtered.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center gap-3 py-16 text-gray-400">
+                            <Package className="w-10 h-10 text-gray-200" />
+                            <p className="text-sm">Chưa có vật tư nào phù hợp bộ lọc.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-gray-100 bg-gray-50/60">
+                                        {/* Select-all checkbox */}
+                                        <th className="w-10 px-4 py-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={allSelected}
+                                                ref={(el) => {
+                                                    if (el) el.indeterminate = someSelected && !allSelected;
+                                                }}
+                                                onChange={toggleSelectAll}
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-500 accent-blue-500 cursor-pointer"
+                                                aria-label="Chọn tất cả"
+                                            />
+                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vật tư</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Số lượng</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Đơn vị</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Danh mục</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Ngày cập nhật</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {filtered.map((item) => {
+                                        const id = resolveId(item);
+                                        const isChecked = selectedIds.has(id);
+                                        const isLowStock =
+                                            item.lowStockThreshold != null &&
+                                            item.quantity <= item.lowStockThreshold;
+                                        return (
+                                            <tr
+                                                key={id}
+                                                className={`group transition-colors ${isChecked ? "bg-red-50/60 hover:bg-red-50" : "hover:bg-blue-50/40"}`}
+                                            >
+                                                {/* Row checkbox */}
+                                                <td className="w-10 px-4 py-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isChecked}
+                                                        onChange={() => toggleSelectOne(id)}
+                                                        className="w-4 h-4 rounded border-gray-300 text-blue-500 accent-blue-500 cursor-pointer"
+                                                        aria-label={`Chọn ${item.itemName}`}
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex flex-col">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm font-semibold text-gray-900">{item.itemName}</span>
+                                                            {!item.isActive && (
+                                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-400 border border-gray-200">
+                                                                    Ngừng HĐ
+                                                                </span>
+                                                            )}
+                                                            {isLowStock && (
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200">
+                                                                    <AlertTriangle className="w-2.5 h-2.5" />
+                                                                    Sắp hết
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {item.description && (
+                                                            <span className="text-xs text-gray-400 line-clamp-1">{item.description}</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`text-sm font-medium ${isLowStock ? "text-amber-600" : "text-gray-700"}`}>
+                                                        {item.quantity.toLocaleString("vi-VN")}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-500 hidden sm:table-cell">{item.unit}</td>
+                                                <td className="px-4 py-3 hidden md:table-cell">
+                                                    {item.category ? (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100">
+                                                            {getCategoryLabel(item.category)}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-300">—</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell">
+                                                    {item.updatedAt || item.createdAt ? (
+                                                        <div className="inline-flex items-center gap-1.5">
+                                                            <Calendar className="w-3.5 h-3.5 text-gray-300" />
+                                                            <span>{new Date((item.updatedAt || item.createdAt) as string).toLocaleDateString("vi-VN")}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-300">—</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <button type="button" onClick={() => setViewItem(item)}
+                                                            aria-label="Xem chi tiết" title="Xem chi tiết"
+                                                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors cursor-pointer">
+                                                            <Eye className="w-4 h-4" />
+                                                        </button>
+                                                        <button type="button" onClick={() => setStockItem(item)}
+                                                            aria-label="Cập nhật tồn kho" title="Cập nhật tồn kho"
+                                                            className="p-1.5 rounded-lg hover:bg-indigo-100 text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer">
+                                                            <TrendingUp className="w-4 h-4" />
+                                                        </button>
+                                                        <button type="button" onClick={() => setEditItem(item)}
+                                                            aria-label="Chỉnh sửa vật tư" title="Chỉnh sửa vật tư"
+                                                            className="p-1.5 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition-colors cursor-pointer">
+                                                            <Edit3 className="w-4 h-4" />
+                                                        </button>
+                                                        <button type="button" onClick={() => setDeleteItem(item)}
+                                                            aria-label="Xóa vật tư" title="Xóa vật tư"
+                                                            disabled={deletingId === id}
+                                                            className="p-1.5 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-50">
+                                                            {deletingId === id
+                                                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                                                : <Trash2 className="w-4 h-4" />}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Create Modal */}
+            {modalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                            <div>
+                                <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Kho vật tư</p>
+                                <h3 className="text-lg font-bold text-gray-900">Thêm vật tư mới</h3>
+                            </div>
+                            <button onClick={() => setModalOpen(false)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Kho vật tư</p>
-                                    <h3 className="text-lg font-bold text-gray-900">Thêm vật tư mới</h3>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên vật tư</label>
+                                    <input value={form.itemName} onChange={(e) => handleChange("itemName", e.target.value)}
+                                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                                        placeholder="Ví dụ: Gạo, nước sạch..." />
                                 </div>
-                                <button onClick={() => setModalOpen(false)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
-                                    <X className="w-5 h-5" />
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Số lượng</label>
+                                    <input type="number" min={0} value={form.quantity} onChange={(e) => handleChange("quantity", e.target.value)}
+                                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Đơn vị</label>
+                                    <input value={form.unit} onChange={(e) => handleChange("unit", e.target.value)}
+                                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                                        placeholder="Ví dụ: kg, thùng, chai..." />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Danh mục</label>
+                                    <select value={form.category} onChange={(e) => handleChange("category", e.target.value)}
+                                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl">
+                                        <option value="">Chọn danh mục</option>
+                                        {CATEGORY_OPTIONS.map((c) => (
+                                            <option key={c.value} value={c.value}>{c.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Hạn sử dụng (HSD)</label>
+                                    <input type="date" value={form.expirationDate} onChange={(e) => handleChange("expirationDate", e.target.value)}
+                                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Ngưỡng cảnh báo tồn kho
+                                    <span className="text-xs text-gray-400 font-normal ml-1">(tuỳ chọn)</span>
+                                </label>
+                                <input type="number" min={0} value={form.lowStockThreshold}
+                                    onChange={(e) => handleChange("lowStockThreshold", e.target.value)}
+                                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
+                                    placeholder="Ví dụ: 10" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú / mô tả</label>
+                                <textarea rows={3} value={form.description} onChange={(e) => handleChange("description", e.target.value)}
+                                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-none"
+                                    placeholder="Thông tin thêm về tình trạng, nơi lưu trữ..." />
+                            </div>
+                            {formError && (
+                                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-xl">
+                                    <AlertTriangle className="w-4 h-4 shrink-0" /> {formError}
+                                </div>
+                            )}
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button type="button" onClick={() => setModalOpen(false)} disabled={submitting}
+                                    className="px-4 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer">
+                                    Hủy
+                                </button>
+                                <button type="submit" disabled={submitting}
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 rounded-xl transition-colors cursor-pointer">
+                                    {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Đang lưu...</> : <><Plus className="w-4 h-4" />Lưu vật tư</>}
                                 </button>
                             </div>
-                            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên vật tư</label>
-                                        <input value={form.itemName} onChange={(e) => handleChange("itemName", e.target.value)}
-                                            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                                            placeholder="Ví dụ: Gạo, nước sạch..." />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Số lượng</label>
-                                        <input type="number" min={0} value={form.quantity} onChange={(e) => handleChange("quantity", e.target.value)}
-                                            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Đơn vị</label>
-                                        <input value={form.unit} onChange={(e) => handleChange("unit", e.target.value)}
-                                            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                                            placeholder="Ví dụ: kg, thùng, chai..." />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Danh mục</label>
-                                        <select
-                                            value={form.category}
-                                            onChange={(e) => handleChange("category", e.target.value)}
-                                            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl"
-                                        >
-                                            <option value="">Chọn danh mục</option>
-                                            {CATEGORY_OPTIONS.map((c) => (
-                                                <option key={c.value} value={c.value}>
-                                                    {c.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                        Ngưỡng cảnh báo tồn kho
-                                        <span className="text-xs text-gray-400 font-normal ml-1">(tuỳ chọn)</span>
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min={0}
-                                        value={form.lowStockThreshold}
-                                        onChange={(e) => handleChange("lowStockThreshold", e.target.value)}
-                                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                                        placeholder="Ví dụ: 10"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú / mô tả</label>
-                                    <textarea rows={3} value={form.description} onChange={(e) => handleChange("description", e.target.value)}
-                                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-none"
-                                        placeholder="Thông tin thêm về tình trạng, nơi lưu trữ..." />
-                                </div>
-                                {formError && (
-                                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-xl">
-                                        <AlertTriangle className="w-4 h-4 shrink-0" /> {formError}
-                                    </div>
-                                )}
-                                <div className="flex justify-end gap-3 pt-2">
-                                    <button type="button" onClick={() => setModalOpen(false)} disabled={submitting}
-                                        className="px-4 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer">
-                                        Hủy
-                                    </button>
-                                    <button type="submit" disabled={submitting}
-                                        className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 rounded-xl transition-colors cursor-pointer">
-                                        {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Đang lưu...</> : <><Plus className="w-4 h-4" />Lưu vật tư</>}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                        </form>
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* View Detail Modal */}
-                {viewItem && (
-                    <ViewDetailModal
-                        item={viewItem}
-                        onClose={() => setViewItem(null)}
-                        onEdit={() => setEditItem(viewItem)}
-                        onUpdateStock={() => setStockItem(viewItem)}
-                    />
-                )}
+            {/* View Detail Modal */}
+            {viewItem && (
+                <ViewDetailModal
+                    item={viewItem}
+                    onClose={() => setViewItem(null)}
+                    onEdit={() => setEditItem(viewItem)}
+                    onUpdateStock={() => setStockItem(viewItem)}
+                />
+            )}
 
-                {/* Edit Modal */}
-                {editItem && (
-                    <EditInventoryModal
-                        item={editItem}
-                        onClose={() => setEditItem(null)}
-                        onSaved={(updated) => { patchItem(updated); setEditItem(null); fetchItems(); }}
-                    />
-                )}
+            {/* Edit Modal */}
+            {editItem && (
+                <EditInventoryModal
+                    item={editItem}
+                    onClose={() => setEditItem(null)}
+                    onSaved={(updated) => { patchItem(updated); setEditItem(null); fetchItems(); }}
+                />
+            )}
 
-                {/* Update Stock Modal */}
-                {stockItem && (
-                    <UpdateStockModal
-                        item={stockItem}
-                        onClose={() => setStockItem(null)}
-                        onSaved={(updated) => { patchItem(updated); setStockItem(null); fetchItems(); }}
-                    />
-                )}
+            {/* Update Stock Modal */}
+            {stockItem && (
+                <UpdateStockModal
+                    item={stockItem}
+                    onClose={() => setStockItem(null)}
+                    onSaved={(updated) => { patchItem(updated); setStockItem(null); fetchItems(); }}
+                />
+            )}
 
-                {/* Delete confirmation modal */}
-                <Modal
-                    open={!!deleteItem}
-                    onClose={() => { if (!deletingId) setDeleteItem(null); }}
-                    title="Xác nhận xóa vật tư"
-                    size="sm"
-                >
-                    <div className="space-y-4">
-                        <p className="text-sm text-gray-600">
-                            Bạn có chắc muốn xóa vật tư
-                            <span className="font-semibold text-gray-900"> {deleteItem?.itemName}</span>? Hành động này không thể hoàn tác.
-                        </p>
-                        <div className="flex justify-end gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setDeleteItem(null)}
-                                disabled={!!deletingId}
-                                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60 cursor-pointer"
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                type="button"
-                                onClick={confirmDeleteItem}
-                                disabled={!!deletingId}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-red-300 rounded-xl transition-colors cursor-pointer"
-                            >
-                                {deletingId ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                                {deletingId ? "Đang xóa..." : "Xóa"}
-                            </button>
-                        </div>
+            {/* Single delete confirmation modal */}
+            <Modal
+                open={!!deleteItem}
+                onClose={() => { if (!deletingId) setDeleteItem(null); }}
+                title="Xác nhận xóa vật tư"
+                size="sm"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                        Bạn có chắc muốn xóa vật tư
+                        <span className="font-semibold text-gray-900"> {deleteItem?.itemName}</span>? Hành động này không thể hoàn tác.
+                    </p>
+                    <div className="flex justify-end gap-2">
+                        <button type="button" onClick={() => setDeleteItem(null)} disabled={!!deletingId}
+                            className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60 cursor-pointer">
+                            Hủy
+                        </button>
+                        <button type="button" onClick={confirmDeleteItem} disabled={!!deletingId}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-red-300 rounded-xl transition-colors cursor-pointer">
+                            {deletingId ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                            {deletingId ? "Đang xóa..." : "Xóa"}
+                        </button>
                     </div>
-                </Modal>
-            </div>
+                </div>
+            </Modal>
+
+            {/* Bulk delete confirmation modal */}
+            <Modal
+                open={bulkDeleteOpen}
+                onClose={() => { if (!bulkDeleting) setBulkDeleteOpen(false); }}
+                title="Xác nhận xóa hàng loạt"
+                size="sm"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                        Bạn có chắc muốn xóa
+                        <span className="font-semibold text-gray-900"> {selectedCount} vật tư</span> đã chọn? Hành động này không thể hoàn tác.
+                    </p>
+                    <div className="flex justify-end gap-2">
+                        <button type="button" onClick={() => setBulkDeleteOpen(false)} disabled={bulkDeleting}
+                            className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-60 cursor-pointer">
+                            Hủy
+                        </button>
+                        <button type="button" onClick={handleBulkDelete} disabled={bulkDeleting}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-red-300 rounded-xl transition-colors cursor-pointer">
+                            {bulkDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            {bulkDeleting ? "Đang xóa..." : `Xóa ${selectedCount} mục`}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+        </div>
     );
 }
