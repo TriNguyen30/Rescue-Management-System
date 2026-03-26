@@ -98,6 +98,19 @@ function ViewDetailModal({
   const formatDate = (val?: string | null) =>
     val ? new Date(val).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" }) : "—";
 
+  const VEHICLE_TYPE_OPTIONS = [
+    { label: "Thuyền", value: "BOAT" },
+    { label: "Xe hơi", value: "CAR" },
+    { label: "Trực thăng", value: "HELICOPTER" },
+    { label: "Xe tải", value: "TRUCK" },
+    { label: "Xuồng", value: "CANOE" },
+  ];
+
+  const getVehicleTypeLabel = (value: string) => {
+    const found = VEHICLE_TYPE_OPTIONS.find(v => v.value === value);
+    return found ? found.label : value;
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
@@ -141,7 +154,7 @@ function ViewDetailModal({
               <Tag className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
               <div>
                 <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Loại xe</p>
-                <p className="text-sm font-semibold text-gray-800">{vehicle.type || "—"}</p>
+                <p className="text-sm font-semibold text-gray-800">{getVehicleTypeLabel(vehicle.type) || "—"}</p>
               </div>
             </div>
             <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
@@ -258,6 +271,19 @@ function EditVehicleModal({
     }
   };
 
+  const VEHICLE_TYPE_OPTIONS = [
+    { label: "Thuyền", value: "BOAT" },
+    { label: "Xe hơi", value: "CAR" },
+    { label: "Trực thăng", value: "HELICOPTER" },
+    { label: "Xe tải", value: "TRUCK" },
+    { label: "Xuồng", value: "CANOE" },
+  ];
+
+  const getVehicleTypeLabel = (value: string) => {
+    const found = VEHICLE_TYPE_OPTIONS.find(v => v.value === value);
+    return found ? found.label : value;
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
@@ -287,9 +313,12 @@ function EditVehicleModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Loại xe</label>
-              <input value={type} onChange={(e) => setType(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                placeholder="VD: Xe tải, xuồng cao tốc..." />
+              <select value={type} onChange={(e) => setType(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl" >
+                  {VEHICLE_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Sức chứa (người / kg)</label>
@@ -472,6 +501,19 @@ export default function VehicleManagement() {
   const totalCapacity = useMemo(() => vehicles.reduce((sum, v) => sum + (v.capacity || 0), 0), [vehicles]);
   const inUseCount = useMemo(() => vehicles.filter((v) => v.status === "IN_USE").length, [vehicles]);
 
+  const VEHICLE_TYPE_OPTIONS = [
+    { label: "Thuyền", value: "BOAT" },
+    { label: "Xe hơi", value: "CAR" },
+    { label: "Trực thăng", value: "HELICOPTER" },
+    { label: "Xe tải", value: "TRUCK" },
+    { label: "Xuồng", value: "CANOE" },
+  ];
+
+  const getVehicleTypeLabel = (value: string) => {
+    const found = VEHICLE_TYPE_OPTIONS.find(v => v.value === value);
+    return found ? found.label : value;
+  };
+
   return (
     <ManagerLayout>
       <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
@@ -606,7 +648,7 @@ export default function VehicleManagement() {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-700">{v.type}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{getVehicleTypeLabel(v.type)}</td>
                           <td className="px-4 py-3 text-sm text-gray-700 hidden sm:table-cell">
                             {v.capacity?.toLocaleString("vi-VN")}
                           </td>
@@ -719,9 +761,13 @@ export default function VehicleManagement() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Loại xe</label>
-                    <input value={form.type} onChange={(e) => handleChange("type", e.target.value)}
-                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                      placeholder="VD: Xe tải, xuồng cao tốc..." />
+                    <select value={form.type} onChange={(e) => handleChange("type", e.target.value)}
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl" >
+                        <option value="">Chọn loại xe</option>
+                        {VEHICLE_TYPE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Sức chứa (người / kg)</label>
