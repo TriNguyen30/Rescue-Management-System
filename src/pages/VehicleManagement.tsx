@@ -58,7 +58,7 @@ type FormState = {
   name: string;
   plateNumber: string;
   type: string;
-  capacity: string;
+  capacity: number | string;
   status: string;
   assignedTeam: string;
   isActive: boolean;
@@ -68,7 +68,7 @@ const initialForm: FormState = {
   name: "",
   plateNumber: "",
   type: "",
-  capacity: "",
+  capacity: 1,
   status: "AVAILABLE",
   assignedTeam: "",
   isActive: true,
