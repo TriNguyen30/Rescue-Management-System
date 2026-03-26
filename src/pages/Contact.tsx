@@ -261,23 +261,31 @@ export default function ContactPage() {
                     </div>
                   ) : (
                     /* Form */
-                    <>
-                      <div className="mb-7">
-                        <h2 className="text-2xl font-black text-gray-900">Gửi tin nhắn</h2>
-                        <p className="text-sm text-gray-400 mt-1">Điền thông tin và chúng tôi sẽ liên hệ lại sớm nhất.</p>
-                      </div>
+                    <div className="flex items-center justify-center py-10">
+                      <div className="w-full max-w-md space-y-5">
 
-                      <form onSubmit={handleSubmit} noValidate className="space-y-5">
-                        <div className="grid sm:grid-cols-2 gap-5">
-                          <Field label="Họ và tên" required error={errors.name}>
-                            <input
-                              type="text"
-                              placeholder="Nguyễn Văn A"
-                              value={form.name}
-                              onChange={set("name")}
-                              className={inputCls(errors.name)}
-                            />
-                          </Field>
+                        <div className="text-center">
+                          <h2 className="text-2xl font-black text-gray-900">Yêu cầu liên hệ</h2>
+                          <p className="text-sm text-gray-400 mt-1">
+                            Nhập số điện thoại, chúng tôi sẽ gọi lại
+                          </p>
+                        </div>
+
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (!form.phone.trim()) {
+                              setErrors({ phone: "Vui lòng nhập số điện thoại" });
+                              return;
+                            }
+                            setSending(true);
+                            setTimeout(() => {
+                              setSending(false);
+                              setSent(true);
+                            }, 1200);
+                          }}
+                          className="space-y-4"
+                        >
                           <Field label="Số điện thoại" required error={errors.phone}>
                             <input
                               type="tel"
@@ -287,91 +295,18 @@ export default function ContactPage() {
                               className={inputCls(errors.phone)}
                             />
                           </Field>
-                        </div>
 
-                        <Field label="Email" error={errors.email}>
-                          <input
-                            type="email"
-                            placeholder="email@example.com"
-                            value={form.email}
-                            onChange={set("email")}
-                            className={inputCls(errors.email)}
-                          />
-                        </Field>
+                          <button
+                            type="submit"
+                            disabled={sending}
+                            className="w-full py-3 rounded-2xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-60"
+                          >
+                            {sending ? "Đang gửi..." : "Yêu cầu gọi lại"}
+                          </button>
+                        </form>
 
-                        <Field label="Chủ đề" required error={errors.subject}>
-                          <div className="relative">
-                            <select
-                              value={form.subject}
-                              onChange={set("subject")}
-                              className={`${inputCls(errors.subject)} appearance-none pr-10 cursor-pointer`}
-                            >
-                              <option value="">Chọn chủ đề liên hệ...</option>
-                              {SUBJECTS.map((s) => (
-                                <option key={s} value={s}>{s}</option>
-                              ))}
-                            </select>
-                            <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 rotate-90 pointer-events-none" />
-                          </div>
-                        </Field>
-
-                        <Field label="Nội dung" required error={errors.message}>
-                          <textarea
-                            rows={5}
-                            placeholder="Mô tả chi tiết vấn đề hoặc yêu cầu của bạn..."
-                            value={form.message}
-                            onChange={set("message")}
-                            style={{ resize: "vertical" }}
-                            className={inputCls(errors.message)}
-                          />
-                          <div className="flex justify-end">
-                            <span className={`text-xs font-mono ${form.message.length > 450 ? "text-amber-500" : "text-gray-300"}`}>
-                              {form.message.length}/500
-                            </span>
-                          </div>
-                        </Field>
-
-                        {/* Subject quick-pick chips */}
-                        <div className="space-y-2">
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Chọn nhanh</p>
-                          <div className="flex flex-wrap gap-2">
-                            {SUBJECTS.slice(0, 4).map((s) => (
-                              <button
-                                key={s}
-                                type="button"
-                                onClick={() => {
-                                  setForm((f) => ({ ...f, subject: s }));
-                                  setErrors((er) => { const c = { ...er }; delete c.subject; return c; });
-                                }}
-                                className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-colors duration-150 cursor-pointer
-                                                                    ${form.subject === s
-                                    ? "bg-blue-600 text-white border-blue-600"
-                                    : "bg-gray-50 text-gray-500 border-gray-200 hover:border-blue-300 hover:text-blue-600"
-                                  }`}
-                              >
-                                {s}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <button
-                          type="submit"
-                          disabled={sending}
-                          className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 hover:-translate-y-0.5"
-                        >
-                          {sending ? (
-                            <><Loader2 className="w-4 h-4 animate-spin" /> Đang gửi...</>
-                          ) : (
-                            <><Send className="w-4 h-4" /> Gửi tin nhắn</>
-                          )}
-                        </button>
-
-                        <p className="text-center text-xs text-gray-400">
-                          Thông tin của bạn được bảo mật và chỉ dùng để hỗ trợ.
-                        </p>
-                      </form>
-                    </>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
