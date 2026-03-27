@@ -234,47 +234,44 @@ function EditVehicleModal({
   const [capacity, setCapacity] = useState(String(vehicle.capacity ?? ""));
   const [status, setStatus] = useState(vehicle.status ?? "AVAILABLE");
   const [assignedTeam, setAssignedTeam] = useState(vehicle.assignedTeamId?.teamName ?? "");
-  const [isActive, setIsActive] = useState(vehicle.isActive ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const { success, error: toastError } = useToast();
-  const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>({});
-  const [vehicles, setVehicles] = useState<VehicleItem[]>([]);
 
-  const fetchVehicles = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const data = await getVehicles();
-      setVehicles(data ?? []);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || e?.message || "Không thể tải danh sách phương tiện.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const patchVehicle = (updated: VehicleItem) =>
-    setVehicles((prev) => prev.map((v) => resolveId(v) === resolveId(updated) ? updated : v));
+  const VEHICLE_TYPE_OPTIONS = [
+    { label: "Thuyền", value: "BOAT" },
+    { label: "Xe hơi", value: "CAR" },
+    { label: "Trực thăng", value: "HELICOPTER" },
+    { label: "Xe tải", value: "TRUCK" },
+    { label: "Xuồng", value: "CANOE" },
+  ];
 
   const handleSave = async () => {
     if (!plateNumber.trim()) { setError("Vui lòng nhập biển số xe."); return; }
     if (!type.trim()) { setError("Vui lòng nhập loại xe."); return; }
     const capacityNumber = Number(capacity);
-    if (!Number.isFinite(capacityNumber) || capacityNumber < 0) { setError("Sức chứa không hợp lệ."); return; }
+    if (!Number.isFinite(capacityNumber) || capacityNumber < 0) {
+      setError("Sức chứa không hợp lệ."); return;
+    }
 
     setSaving(true);
     setError("");
     try {
+      // 1. Update main fields (no status here)
       const payload: UpdateVehicleItemPayload = {
         name: name.trim() || undefined,
         plateNumber: plateNumber.trim(),
         type: type.trim(),
         capacity: capacityNumber,
-        status,
         assignedTeam: assignedTeam.trim() || undefined,
       };
-      const updated = await updateVehicle(resolveId(vehicle), payload);
+      let updated = await updateVehicle(resolveId(vehicle), payload);
+
+      // 2. Only call status API if it actually changed
+      if (status !== vehicle.status) {
+        updated = await updateVehicleStatus(resolveId(vehicle), { status });
+      }
+
       onSaved(updated);
       onClose();
       success("Phương tiện đã được cập nhật thành công.");
@@ -287,19 +284,6 @@ function EditVehicleModal({
     }
   };
 
-  const VEHICLE_TYPE_OPTIONS = [
-    { label: "Thuyền", value: "BOAT" },
-    { label: "Xe hơi", value: "CAR" },
-    { label: "Trực thăng", value: "HELICOPTER" },
-    { label: "Xe tải", value: "TRUCK" },
-    { label: "Xuồng", value: "CANOE" },
-  ];
-
-  const getVehicleTypeLabel = (value: string) => {
-    const found = VEHICLE_TYPE_OPTIONS.find(v => v.value === value);
-    return found ? found.label : value;
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
@@ -308,7 +292,8 @@ function EditVehicleModal({
             <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Chỉnh sửa phương tiện</p>
             <h3 className="text-lg font-bold text-gray-900">{vehicle.plateNumber}</h3>
           </div>
-          <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+          <button type="button" onClick={onClose}
+            className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -316,7 +301,9 @@ function EditVehicleModal({
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên xe <span className="text-gray-400 font-normal">(tuỳ chọn)</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Tên xe <span className="text-gray-400 font-normal">(tuỳ chọn)</span>
+              </label>
               <input value={name} onChange={(e) => setName(e.target.value)}
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
                 placeholder="VD: Xe cứu hộ số 1" />
@@ -330,7 +317,7 @@ function EditVehicleModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Loại xe</label>
               <select value={type} onChange={(e) => setType(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl" >
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition cursor-pointer">
                 {VEHICLE_TYPE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
@@ -343,6 +330,7 @@ function EditVehicleModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Trạng thái</label>
+              {/* onChange only updates local state — API fires on Save */}
               <select value={status} onChange={(e) => setStatus(e.target.value)}
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition cursor-pointer">
                 {Object.entries(STATUS_LABELS).map(([val, label]) => (
@@ -352,9 +340,9 @@ function EditVehicleModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Đội phụ trách</label>
-              <input value={assignedTeam} onChange={(e) => setAssignedTeam(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition cursor-not-allowed"
-                placeholder="VD: Đội cứu hộ Q1" disabled />
+              <input value={assignedTeam} disabled
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 cursor-not-allowed"
+                placeholder="VD: Đội cứu hộ Q1" />
             </div>
           </div>
 
@@ -476,16 +464,26 @@ export default function VehicleManagement() {
     if (!ids.length) return;
 
     setBulkDeleting(true);
+    const failed: string[] = [];
     try {
-      await Promise.all(ids.map(id => deleteInventoryItem(id)));
-      setItems(prev => prev.filter(i => !ids.includes(resolveId(i))));
+      for (const id of ids) {
+        try {
+          await deleteVehicle(id);
+        } catch {
+          failed.push(id);
+        }
+      }
+      setVehicles(prev =>
+        prev.filter(v => !ids.includes(resolveId(v)) || failed.includes(resolveId(v)))
+      );
       setSelectedIds(new Set());
       setBulkDeleteOpen(false);
-      success(`Đã xóa ${ids.length} vật tư thành công.`);
-      fetchItems();
-    } catch (e: any) {
-      const message = e?.response?.data?.message || e?.message || "Xóa vật tư thất bại.";
-      toastError(message);
+      if (failed.length === 0) {
+        success(`Đã xóa ${ids.length} phương tiện thành công.`);
+      } else {
+        toastError(`Xóa thành công ${ids.length - failed.length}/${ids.length} phương tiện. ${failed.length} phương tiện xóa thất bại.`);
+      }
+      fetchVehicles();
     } finally {
       setBulkDeleting(false);
     }
@@ -530,27 +528,6 @@ export default function VehicleManagement() {
   const patchVehicle = (updated: VehicleItem) =>
     setVehicles((prev) => prev.map((v) => resolveId(v) === resolveId(updated) ? updated : v));
 
-  const handleUpdateStatus = async (vehicle: VehicleItem, nextStatus: string) => {
-    const id = resolveId(vehicle);
-    const prevStatus = vehicle.status;
-    if (prevStatus === nextStatus) return;
-
-    setVehicles((prev) => prev.map((v) => resolveId(v) === id ? { ...v, status: nextStatus } : v));
-    setUpdatingStatus((prev) => ({ ...prev, [id]: true }));
-
-    try {
-      const updated = await updateVehicleStatus(id, { status: nextStatus });
-      patchVehicle(updated);
-      success("Cập nhật trạng thái phương tiện thành công.");
-      fetchVehicles();
-    } catch (e: any) {
-      setVehicles((prev) => prev.map((v) => resolveId(v) === id ? { ...v, status: prevStatus } : v));
-      const message = e?.response?.data?.message || e?.message || "Không thể cập nhật trạng thái.";
-      toastError(message);
-    } finally {
-      setUpdatingStatus((prev) => { const { [id]: _, ...rest } = prev; return rest; });
-    }
-  };
 
   const confirmDelete = async () => {
     const item = deleteVehicleItem;
@@ -786,23 +763,6 @@ export default function VehicleManagement() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <StatusBadge status={v.status} />
-                            {/* <div className="relative">
-                                <select
-                                  value={v.status}
-                                  disabled={isUpdating}
-                                  onChange={(e) => handleUpdateStatus(v, e.target.value)}
-                                  className="pl-2 pr-7 py-1 text-[11px] border border-gray-200 rounded-lg bg-gray-50 hover:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                                  aria-label="Cập nhật trạng thái"
-                                  title="Cập nhật trạng thái"
-                                >
-                                  {Object.entries(STATUS_LABELS).map(([val, label]) => (
-                                    <option key={val} value={val}>{label}</option>
-                                  ))}
-                                </select>
-                                {isUpdating && (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                                )}
-                              </div> */}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">
