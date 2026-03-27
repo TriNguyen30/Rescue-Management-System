@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, Loader2, RefreshCw, Search, X } from "lucide-react";
-import { ManagerLayout } from "@/components/ui/ManagerSidebar";
 import Pagination from "@/components/ui/Pagination";
 import { PageProvider, usePage } from "@/context/PageContext";
 import { getRescueRequests } from "@/services/rescue-request.service";
@@ -101,7 +100,6 @@ function RTRequestManagementContent() {
     }, [search, statusFilter, setPage]);
 
     return (
-        <ManagerLayout>
             <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
                 <div className="max-w-7xl mx-auto space-y-5">
                     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
@@ -286,6 +284,5 @@ function RTRequestManagementContent() {
                     </div>
                 </div>
             </div>
-        </ManagerLayout>
     );
 }

@@ -190,7 +190,6 @@ export default function AdminOperationsReport() {
   const handlePrint = () => window.print();
 
   return (
-    <AdminLayout>
       <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 print:bg-white print:p-4">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
@@ -407,6 +406,5 @@ export default function AdminOperationsReport() {
           )}
         </div>
       </div>
-    </AdminLayout>
   );
 }
