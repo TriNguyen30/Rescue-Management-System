@@ -46,7 +46,7 @@ export default function AppRoutes() {
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/donation-result" element={<DonationResult />} />
+      <Route path="/vnpay-return" element={<DonationResult />} />
       <Route
         path="/admin"
         element={

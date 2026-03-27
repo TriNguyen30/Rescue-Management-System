@@ -67,18 +67,30 @@ function VNPayForm() {
 
   const handleSubmit = async () => {
     if (submitting) return;
+
     setError("");
+
     if (!finalAmount || isNaN(finalAmount)) {
       setError("Số tiền không hợp lệ.");
       return;
     }
+
     if (finalAmount < 10_000) {
       setError("Số tiền tối thiểu là 10.000₫.");
       return;
     }
+
     try {
       setSubmitting(true);
-      await createDonation({ amount: finalAmount, message: message.trim() });
+
+      const res = await createDonation({
+        amount: finalAmount,
+        message: message.trim(),
+      });
+
+      // 🔥 QUAN TRỌNG: redirect ở đây
+      window.location.href = res.paymentUrl;
+
     } catch (e: any) {
       setError(
         e?.response?.data?.message ||
