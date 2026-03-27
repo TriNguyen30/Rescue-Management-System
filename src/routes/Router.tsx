@@ -30,6 +30,7 @@ import SearchNearbyRequests from "@/pages/SearchNearbyRequests";
 import ManagerSetting from "@/pages/ManagerSetting";
 import ManagerLayout from "@/layouts/ManagerLayout";
 import AdminLayout from "@/layouts/AdminLayout";
+import DonationResult from "@/pages/DonationResult";
 
 export default function AppRoutes() {
   return (
@@ -45,6 +46,7 @@ export default function AppRoutes() {
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/donation-result" element={<DonationResult />} />
       <Route
         path="/admin"
         element={
