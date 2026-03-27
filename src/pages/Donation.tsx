@@ -236,20 +236,20 @@ export default function DonationPage() {
         </section>
 
         {/* ══ PAYMENT METHODS ═══════════════════════════════════════ */}
-        <section className="py-16">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-
+        <section className="py-10">
+          {/* <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"> */}
+{/* 
             <div className="text-center mb-10">
-              {/* <span className="inline-block text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 border border-emerald-100 px-4 py-1.5 rounded-full mb-3">
+              <span className="inline-block text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 border border-emerald-100 px-4 py-1.5 rounded-full mb-3">
                 Chọn hình thức quyên góp
-              </span> */}
-              {/* <h2 className="text-2xl font-black text-gray-900">Hai cách để đóng góp</h2> */}
-            </div>
+              </span>
+              <h2 className="text-2xl font-black text-gray-900">Hai cách để đóng góp</h2>
+            </div> */}
 
-            <div className="flex justify-center gap-12 flex-wrap">
+            <div className="flex justify-center flex-wrap">
 
               {/* ── Left: VNPay form ── */}
-              <div className="da4">
+            <div className="w-full max-w-2xl">
                 <VNPayForm />
               </div>
 
@@ -311,7 +311,7 @@ export default function DonationPage() {
                 </div>
               </div> */}
             </div>
-          </div>
+          {/* </div> */}
         </section>
       </div>
     </>
