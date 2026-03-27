@@ -44,6 +44,16 @@ function QRCodeDisplay() {
 }
 
 // ── VNPay Donation Form ───────────────────────────────────────────────────────
+const QUICK_AMOUNTS = [
+  { label: "10000", value: 10_000 },
+  { label: "20000", value: 20_000 },
+  { label: "50000", value: 50_000 },
+  { label: "100000", value: 100_000 },
+  { label: "200000", value: 200_000 },
+  { label: "500000", value: 500_000 },
+  { label: "1 triệu", value: 1_000_000 },
+];
+
 function VNPayForm() {
   const [amount, setAmount] = useState<number | "">("");
   const [message, setMessage] = useState("");
@@ -57,27 +67,18 @@ function VNPayForm() {
 
   const handleSubmit = async () => {
     if (submitting) return;
-
     setError("");
-
     if (!finalAmount || isNaN(finalAmount)) {
       setError("Số tiền không hợp lệ.");
       return;
     }
-
     if (finalAmount < 10_000) {
       setError("Số tiền tối thiểu là 10.000₫.");
       return;
     }
-
     try {
       setSubmitting(true);
-
-      await createDonation({
-        amount: finalAmount,
-        message: message.trim(),
-      });
-
+      await createDonation({ amount: finalAmount, message: message.trim() });
     } catch (e: any) {
       setError(
         e?.response?.data?.message ||
@@ -107,6 +108,29 @@ function VNPayForm() {
           <label className="block text-xs font-black text-gray-500 uppercase tracking-wider">
             Nhập số tiền quyên góp
           </label>
+
+          {/* Quick-select badges */}
+          <div className="flex flex-wrap gap-2">
+            {QUICK_AMOUNTS.map(({ label, value }) => {
+              const active = amount === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setAmount(active ? "" : value)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-black border-2 transition-all duration-150 cursor-pointer
+                    ${active
+                      ? "border-blue-500 bg-blue-500 text-white shadow-sm shadow-blue-200"
+                      : "border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+                    }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Manual input */}
           <div className="relative">
             <input
               type="text"
@@ -116,7 +140,7 @@ function VNPayForm() {
                 const raw = e.target.value.replace(/\D/g, "");
                 setAmount(raw ? Number(raw) : "");
               }}
-              placeholder="Nhập số tiền (tối thiểu 10.000₫)"
+              placeholder="Hoặc nhập số tiền khác..."
               className="w-full pl-4 pr-16 py-3 text-sm font-bold border-2 border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-blue-50/30 transition"
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-gray-400">VNĐ</span>
@@ -167,7 +191,7 @@ function VNPayForm() {
         >
           {submitting
             ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang chuyển hướng...</>
-            : <> Quyên góp ngay qua VNPay <ArrowRight className="w-4 h-4" /></>}
+            : <>Quyên góp ngay qua VNPay <ArrowRight className="w-4 h-4" /></>}
         </button>
 
         <p className="text-center text-[11px] text-gray-400">
@@ -234,84 +258,14 @@ export default function DonationPage() {
             </div>
           </div>
         </section>
-
         {/* ══ PAYMENT METHODS ═══════════════════════════════════════ */}
         <section className="py-10">
-          {/* <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"> */}
-{/* 
-            <div className="text-center mb-10">
-              <span className="inline-block text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 border border-emerald-100 px-4 py-1.5 rounded-full mb-3">
-                Chọn hình thức quyên góp
-              </span>
-              <h2 className="text-2xl font-black text-gray-900">Hai cách để đóng góp</h2>
-            </div> */}
-
             <div className="flex justify-center flex-wrap">
-
               {/* ── Left: VNPay form ── */}
             <div className="w-full max-w-2xl">
                 <VNPayForm />
               </div>
-
-              {/* ── Right: QR / Bank transfer ── */}
-              {/* <div className="da5 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="bg-emerald-50 border-b border-emerald-100 px-7 py-5 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-2xl bg-emerald-100 flex items-center justify-center">
-                    <QrCode className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-black text-gray-900">Quét mã QR / Chuyển khoản</h2>
-                    <p className="text-xs text-emerald-600 font-medium">Hỗ trợ tất cả ứng dụng ngân hàng Việt Nam</p>
-                  </div>
-                </div>
-
-                <div className="p-7 space-y-6">
-                  <div className="flex justify-center">
-                    <QRCodeDisplay />
-                  </div>
-
-                  <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 space-y-3">
-                    <p className="text-xs font-black text-blue-700 uppercase tracking-wider mb-1">Thông tin tài khoản</p>
-                    {[
-                      { label: "Ngân hàng", value: "TP Bank" },
-                      { label: "Số tài khoản", value: "0754 4295 701" },
-                      { label: "Tên tài khoản", value: "Nguyễn Công Trí" },
-                      { label: "Nội dung CK", value: "Quyên góp cứu hộ" },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="flex items-center justify-between gap-3">
-                        <span className="text-xs text-blue-600 shrink-0">{label}</span>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs font-black text-blue-800 truncate">{value}</span>
-                          <CopyBtn text={value} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="space-y-3">
-                    <p className="text-xs font-black text-gray-500 uppercase tracking-wider">Hướng dẫn</p>
-                    {[
-                      "Mở ứng dụng ngân hàng hoặc ví điện tử của bạn",
-                      "Chọn tính năng \"Quét mã QR\"",
-                      "Quét mã QR bên trên và nhập số tiền muốn đóng góp",
-                      "Xác nhận giao dịch — cảm ơn bạn rất nhiều!",
-                    ].map((text, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-xl bg-emerald-100 text-emerald-700 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">
-                          {i + 1}
-                        </div>
-                        <p className="text-sm text-gray-600 leading-relaxed">{text}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <p className="text-center text-xs text-gray-400">
-                    Thanh toán an toàn · Mã hóa SSL 256-bit
-                  </p>
-                </div>
-              </div> */}
             </div>
-          {/* </div> */}
         </section>
       </div>
     </>
