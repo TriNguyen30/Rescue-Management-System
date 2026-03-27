@@ -50,7 +50,7 @@ export default function DonationResult() {
 
         {/* Title */}
         <h2 className="text-xl font-black text-gray-900 mb-2">
-          {isSuccess ? "Thanh toán thành công 🎉" : "Thanh toán thất bại"}
+          {isSuccess ? "Thanh toán thành công" : "Thanh toán thất bại"}
         </h2>
 
         {/* Description */}
