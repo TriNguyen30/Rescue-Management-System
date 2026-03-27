@@ -35,10 +35,7 @@ import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 
 /** Resolve the canonical id from an InventoryItem (supports both `id` and `_id`). */
-const resolveId = (item: InventoryItem): string => {
-    if (!item.id && !item._id) throw new Error("Missing ID");
-    return item.id ?? item._id!;
-};
+const resolveId = (item: InventoryItem): string => (item.id ?? item._id)!;
 
 type FormState = {
     itemName: string;
@@ -76,28 +73,148 @@ const getCategoryLabel = (value: string) => {
     return found ? found.label : value;
 };
 
+// ── Expiration helpers ────────────────────────────────────────────────────────
+type ExpiryStatus = "expired" | "critical" | "warning" | "ok" | null;
+
+/**
+ * "expired"  — past today
+ * "critical" — within 7 days
+ * "warning"  — within 30 days
+ * "ok"       — more than 30 days away
+ * null       — no expiration date
+ */
+function getExpiryStatus(expirationDate?: string | null): ExpiryStatus {
+    if (!expirationDate) return null;
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const exp = new Date(expirationDate); exp.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((exp.getTime() - now.getTime()) / 86_400_000);
+    if (diffDays < 0) return "expired";
+    if (diffDays <= 7) return "critical";
+    if (diffDays <= 30) return "warning";
+    return "ok";
+}
+
+function getDaysUntilExpiry(expirationDate?: string | null): number | null {
+    if (!expirationDate) return null;
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const exp = new Date(expirationDate); exp.setHours(0, 0, 0, 0);
+    return Math.ceil((exp.getTime() - now.getTime()) / 86_400_000);
+}
+
+/** Small pill badge shown next to item name in the table */
+function ExpiryBadge({ expirationDate }: { expirationDate?: string | null }) {
+    const status = getExpiryStatus(expirationDate);
+    const days = getDaysUntilExpiry(expirationDate);
+    if (!status || status === "ok") return null;
+
+    const map = {
+        expired: { cls: "bg-red-100 text-red-700 border-red-200", label: "Đã hết hạn" },
+        critical: { cls: "bg-red-50 text-red-600 border-red-200", label: days === 0 ? "Hết hạn hôm nay" : `Còn ${days}d` },
+        warning: { cls: "bg-amber-50 text-amber-600 border-amber-200", label: `Còn ${days}d` },
+    } as const;
+
+    const { cls, label } = map[status];
+    return (
+        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${cls}`}>
+            <Clock className="w-2.5 h-2.5" />
+            {label}
+        </span>
+    );
+}
+
+/** Alert banner shown at the top of the detail modal */
+function ExpiryBanner({ expirationDate }: { expirationDate?: string | null }) {
+    const status = getExpiryStatus(expirationDate);
+    const days = getDaysUntilExpiry(expirationDate);
+    if (!status || status === "ok") return null;
+
+    const map = {
+        expired: {
+            wrap: "bg-red-50 border-red-200",
+            icon: "text-red-500",
+            title: "Vật tư đã hết hạn sử dụng",
+            body: `Hạn sử dụng đã qua ${Math.abs(days!)} ngày. Vui lòng kiểm tra và xử lý ngay.`,
+            badge: "bg-red-100 text-red-700",
+            tag: "Hết hạn",
+            text: "text-red-700",
+            sub: "text-red-600",
+        },
+        critical: {
+            wrap: "bg-red-50 border-red-200",
+            icon: "text-red-500",
+            title: days === 0 ? "Hết hạn hôm nay!" : `Sắp hết hạn trong ${days} ngày`,
+            body: "Vật tư cần được sử dụng hoặc xử lý khẩn cấp.",
+            badge: "bg-red-100 text-red-700",
+            tag: "Khẩn cấp",
+            text: "text-red-700",
+            sub: "text-red-600",
+        },
+        warning: {
+            wrap: "bg-amber-50 border-amber-200",
+            icon: "text-amber-500",
+            title: `Sắp hết hạn trong ${days} ngày`,
+            body: "Hạn sử dụng sẽ đến trong vòng 30 ngày. Hãy lên kế hoạch sử dụng sớm.",
+            badge: "bg-amber-100 text-amber-700",
+            tag: "Cảnh báo",
+            text: "text-amber-700",
+            sub: "text-amber-600",
+        },
+    } as const;
+
+    const c = map[status];
+    return (
+        <div className={`flex items-start gap-3 p-3.5 rounded-xl border ${c.wrap}`}>
+            <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${c.icon}`} />
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <p className={`text-xs font-bold ${c.text}`}>{c.title}</p>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${c.badge}`}>{c.tag}</span>
+                </div>
+                <p className={`text-xs mt-0.5 ${c.sub}`}>{c.body}</p>
+            </div>
+        </div>
+    );
+}
+
 // ── View Detail Modal ─────────────────────────────────────────────────────────
 function ViewDetailModal({
-    item,
-    onClose,
-    onEdit,
-    onUpdateStock,
+    item, onClose, onEdit, onUpdateStock,
 }: {
     item: InventoryItem;
     onClose: () => void;
     onEdit: () => void;
     onUpdateStock: () => void;
 }) {
-    const isLowStock = (item: InventoryItem) =>
-        item.lowStockThreshold != null && item.quantity <= item.lowStockThreshold;
+    const isLowStock = item.lowStockThreshold != null && item.quantity <= item.lowStockThreshold;
+    const expiryStatus = getExpiryStatus(item.expirationDate);
 
     const formatDate = (val?: string | null) =>
         val ? new Date(val).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" }) : "—";
 
+    const expiryCardCls = {
+        expired: "bg-red-50 border-red-200",
+        critical: "bg-red-50 border-red-200",
+        warning: "bg-amber-50 border-amber-200",
+        ok: "bg-gray-50 border-gray-100",
+    };
+    const expiryIconCls = {
+        expired: "text-red-400",
+        critical: "text-red-400",
+        warning: "text-amber-400",
+        ok: "text-gray-400",
+    };
+    const expiryTextCls = {
+        expired: "text-red-700",
+        critical: "text-red-700",
+        warning: "text-amber-700",
+        ok: "text-gray-800",
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-                <div className="flex items-start justify-between px-6 py-4 border-b border-gray-100">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="flex items-start justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-2xl">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                             <Package className="w-5 h-5" />
@@ -112,16 +229,20 @@ function ViewDetailModal({
                     </button>
                 </div>
 
-                <div className="p-6 space-y-5">
-                    <div className={`flex items-center justify-between p-4 rounded-2xl border ${isLowStock(item) ? "bg-amber-50 border-amber-200" : "bg-blue-50 border-blue-100"}`}>
+                <div className="p-6 space-y-4">
+                    {/* Expiry alert banner — rendered first when applicable */}
+                    <ExpiryBanner expirationDate={item.expirationDate} />
+
+                    {/* Stock highlight */}
+                    <div className={`flex items-center justify-between p-4 rounded-2xl border ${isLowStock ? "bg-amber-50 border-amber-200" : "bg-blue-50 border-blue-100"}`}>
                         <div>
                             <p className="text-xs font-medium text-gray-500 mb-0.5">Tồn kho hiện tại</p>
-                            <p className={`text-3xl font-bold ${isLowStock(item) ? "text-amber-600" : "text-blue-600"}`}>
+                            <p className={`text-3xl font-bold ${isLowStock ? "text-amber-600" : "text-blue-600"}`}>
                                 {item.quantity.toLocaleString("vi-VN")}
                                 <span className="text-base font-semibold ml-1.5">{item.unit}</span>
                             </p>
                         </div>
-                        {isLowStock(item) && (
+                        {isLowStock && (
                             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-700 text-xs font-semibold">
                                 <AlertTriangle className="w-3.5 h-3.5" />
                                 Sắp hết hàng
@@ -129,6 +250,7 @@ function ViewDetailModal({
                         )}
                     </div>
 
+                    {/* Info grid */}
                     <div className="grid grid-cols-2 gap-3">
                         <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
                             <Tag className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
@@ -168,15 +290,20 @@ function ViewDetailModal({
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* Expiration date card — colour-coded by status */}
+                    <div className={`flex items-start gap-2.5 p-3 rounded-xl border ${expiryCardCls[expiryStatus ?? "ok"]}`}>
+                        <Calendar className={`w-4 h-4 mt-0.5 shrink-0 ${expiryIconCls[expiryStatus ?? "ok"]}`} />
                         <div>
-                            <p className="text-xs text-gray-400">HSD</p>
-                            <p className="text-sm font-semibold">
-                                {item.expirationDate ? new Date(item.expirationDate).toLocaleDateString("vi-VN") : "—"}
+                            <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Hạn sử dụng (HSD)</p>
+                            <p className={`text-sm font-semibold ${expiryTextCls[expiryStatus ?? "ok"]}`}>
+                                {item.expirationDate
+                                    ? new Date(item.expirationDate).toLocaleDateString("vi-VN")
+                                    : "Không có"}
                             </p>
                         </div>
                     </div>
 
+                    {/* Description */}
                     {item.description && (
                         <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
                             <FileText className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
@@ -187,6 +314,7 @@ function ViewDetailModal({
                         </div>
                     )}
 
+                    {/* Timestamps */}
                     <div className="flex items-center gap-4 text-xs text-gray-400 pt-1 border-t border-gray-100">
                         <div className="flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5" />
@@ -200,20 +328,15 @@ function ViewDetailModal({
                         )}
                     </div>
 
+                    {/* Actions */}
                     <div className="flex gap-2 pt-1">
-                        <button
-                            type="button"
-                            onClick={() => { onClose(); onUpdateStock(); }}
-                            className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors cursor-pointer"
-                        >
+                        <button type="button" onClick={() => { onClose(); onUpdateStock(); }}
+                            className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors cursor-pointer">
                             <TrendingUp className="w-4 h-4" />
                             Cập nhật kho
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => { onClose(); onEdit(); }}
-                            className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-xl transition-colors cursor-pointer"
-                        >
+                        <button type="button" onClick={() => { onClose(); onEdit(); }}
+                            className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-xl transition-colors cursor-pointer">
                             <Edit3 className="w-4 h-4" />
                             Chỉnh sửa
                         </button>
@@ -226,9 +349,7 @@ function ViewDetailModal({
 
 // ── Edit Inventory Item Modal ─────────────────────────────────────────────────
 function EditInventoryModal({
-    item,
-    onClose,
-    onSaved,
+    item, onClose, onSaved,
 }: {
     item: InventoryItem;
     onClose: () => void;
@@ -255,37 +376,26 @@ function EditInventoryModal({
         if (!itemName.trim()) { setError("Vui lòng nhập tên vật tư."); return; }
         if (!Number.isFinite(quantityNumber) || quantityNumber < 0) { setError("Số lượng không hợp lệ."); return; }
         if (!unit.trim()) { setError("Vui lòng nhập đơn vị."); return; }
-
         const parsedThreshold = lowStockThreshold.trim() !== "" ? Number(lowStockThreshold) : undefined;
         if (parsedThreshold !== undefined && (!Number.isFinite(parsedThreshold) || parsedThreshold < 0)) {
-            setError("Ngưỡng cảnh báo tồn kho không hợp lệ.");
-            return;
+            setError("Ngưỡng cảnh báo tồn kho không hợp lệ."); return;
         }
-
-        setSaving(true);
-        setError("");
+        setSaving(true); setError("");
         try {
             const payload: UpdateInventoryItemPayload = {
-                itemName: itemName.trim(),
-                quantity: quantityNumber,
-                unit: unit.trim(),
-                category: category.trim() as "FOOD" | "WATER" | "MEDICAL" | "EQUIPMENT" | "CLOTHING" | "OTHER",
+                itemName: itemName.trim(), quantity: quantityNumber, unit: unit.trim(),
+                category: category.trim() as any,
                 description: description.trim() || undefined,
-                lowStockThreshold: parsedThreshold,
-                isActive,
+                lowStockThreshold: parsedThreshold, isActive,
                 expirationDate: expirationDate ? new Date(expirationDate).toISOString() : undefined,
             };
             const updated = await updateInventoryItem(resolveId(item), payload);
-            onSaved(updated);
-            onClose();
+            onSaved(updated); onClose();
             success("Vật tư đã được cập nhật thành công.");
         } catch (e: any) {
             const message = e?.response?.data?.message || "Cập nhật vật tư thất bại.";
-            setError(message);
-            toastError(message);
-        } finally {
-            setSaving(false);
-        }
+            setError(message); toastError(message);
+        } finally { setSaving(false); }
     };
 
     return (
@@ -300,7 +410,6 @@ function EditInventoryModal({
                         <X className="w-5 h-5" />
                     </button>
                 </div>
-
                 <div className="p-6 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -325,14 +434,16 @@ function EditInventoryModal({
                             <select value={category} onChange={(e) => setCategory(e.target.value)}
                                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition">
                                 <option value="">Chọn danh mục</option>
-                                {CATEGORY_OPTIONS.map((c) => (
-                                    <option key={c.value} value={c.value}>{c.label}</option>
-                                ))}
+                                {CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                             </select>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Hạn sử dụng (HSD)</label>
+                            <input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)}
+                                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
+                        </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -349,13 +460,11 @@ function EditInventoryModal({
                             className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition resize-none"
                             placeholder="Thông tin thêm về tình trạng, nơi lưu trữ..." />
                     </div>
-
                     {error && (
                         <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-xl">
                             <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
                         </div>
                     )}
-
                     <div className="flex gap-3 pt-1">
                         <button type="button" onClick={onClose} disabled={saving}
                             className="flex-1 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer disabled:opacity-60">
@@ -375,9 +484,7 @@ function EditInventoryModal({
 
 // ── Update Stock Modal ────────────────────────────────────────────────────────
 function UpdateStockModal({
-    item,
-    onClose,
-    onSaved,
+    item, onClose, onSaved,
 }: {
     item: InventoryItem;
     onClose: () => void;
@@ -394,23 +501,17 @@ function UpdateStockModal({
     const isPositive = parsedAmount > 0;
 
     const handleSave = async () => {
-        if (!isValid) { setError("Vui lòng nhập số lượng thay đổi (dương để nhập kho, âm để xuất kho)."); return; }
+        if (!isValid) { setError("Vui lòng nhập số lượng thay đổi."); return; }
         if (preview < 0) { setError("Số lượng tồn kho không thể âm."); return; }
-
-        setSaving(true);
-        setError("");
+        setSaving(true); setError("");
         try {
             const updated = await updateInventoryStock(resolveId(item), parsedAmount);
-            onSaved(updated);
-            onClose();
+            onSaved(updated); onClose();
             success("Cập nhật tồn kho thành công.");
         } catch (e: any) {
             const message = e?.response?.data?.message || "Cập nhật số lượng thất bại.";
-            setError(message);
-            toastError(message);
-        } finally {
-            setSaving(false);
-        }
+            setError(message); toastError(message);
+        } finally { setSaving(false); }
     };
 
     return (
@@ -425,15 +526,11 @@ function UpdateStockModal({
                         <X className="w-5 h-5" />
                     </button>
                 </div>
-
                 <div className="p-6 space-y-4">
                     <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
                         <span className="text-sm text-gray-500">Tồn kho hiện tại</span>
-                        <span className="text-sm font-bold text-gray-900">
-                            {item.quantity.toLocaleString("vi-VN")} {item.unit}
-                        </span>
+                        <span className="text-sm font-bold text-gray-900">{item.quantity.toLocaleString("vi-VN")} {item.unit}</span>
                     </div>
-
                     {item.lowStockThreshold != null && (
                         <div className={`flex items-center justify-between p-3 rounded-xl border ${item.quantity <= item.lowStockThreshold ? "bg-amber-50 border-amber-100" : "bg-gray-50 border-gray-100"}`}>
                             <span className="text-sm text-gray-500">Ngưỡng cảnh báo</span>
@@ -442,22 +539,17 @@ function UpdateStockModal({
                             </span>
                         </div>
                     )}
-
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                             Số lượng thay đổi
                             <span className="text-xs text-gray-400 font-normal ml-1.5">(+ nhập kho / − xuất kho)</span>
                         </label>
-                        <input
-                            type="number"
-                            value={amount}
+                        <input type="number" value={amount}
                             onChange={(e) => { setAmount(e.target.value); setError(""); }}
                             onKeyDown={(e) => e.key === "Enter" && handleSave()}
                             className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition"
-                            placeholder="Ví dụ: 50 hoặc -20"
-                        />
+                            placeholder="Ví dụ: 50 hoặc -20" />
                     </div>
-
                     {isValid && (
                         <div className={`flex items-center justify-between p-3 rounded-xl border ${preview < 0 ? "bg-red-50 border-red-100" : isPositive ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"}`}>
                             <div className={`flex items-center gap-1.5 text-sm font-medium ${preview < 0 ? "text-red-600" : isPositive ? "text-emerald-600" : "text-amber-600"}`}>
@@ -469,13 +561,11 @@ function UpdateStockModal({
                             </span>
                         </div>
                     )}
-
                     {error && (
                         <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-xl">
                             <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
                         </div>
                     )}
-
                     <div className="flex gap-3 pt-1">
                         <button type="button" onClick={onClose} disabled={saving}
                             className="flex-1 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer disabled:opacity-60">
@@ -510,7 +600,7 @@ export default function InventoryManagement() {
     const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    // ── Bulk selection state ──────────────────────────────────────────────────
+    // ── Bulk selection ────────────────────────────────────────────────────────
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
     const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -518,21 +608,16 @@ export default function InventoryManagement() {
     const { success, error: toastError } = useToast();
 
     const fetchItems = useCallback(async () => {
-        setLoading(true);
-        setError("");
+        setLoading(true); setError("");
         try {
             const data = await getInventoryItems();
             setItems(data ?? []);
         } catch (e: any) {
             setError(e?.response?.data?.message || e?.message || "Không thể tải kho vật tư.");
-        } finally {
-            setLoading(false);
-        }
+        } finally { setLoading(false); }
     }, []);
 
     useEffect(() => { fetchItems(); }, [fetchItems]);
-
-    // Clear selection when filter changes
     useEffect(() => { setSelectedIds(new Set()); }, [search, categoryFilter]);
 
     const categories = useMemo(() => {
@@ -544,15 +629,21 @@ export default function InventoryManagement() {
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
         return items.filter((item) => {
-            const matchSearch =
-                !q ||
-                item.itemName.toLowerCase().includes(q) ||
-                item.description?.toLowerCase().includes(q) ||
-                item.unit.toLowerCase().includes(q);
+            const matchSearch = !q || item.itemName.toLowerCase().includes(q)
+                || item.description?.toLowerCase().includes(q) || item.unit.toLowerCase().includes(q);
             const matchCategory = categoryFilter === "ALL" || item.category === categoryFilter;
             return matchSearch && matchCategory;
         });
     }, [items, search, categoryFilter]);
+
+    // Total count of items with expiry alerts across entire inventory
+    const expiringCount = useMemo(() =>
+        items.filter(i => {
+            const s = getExpiryStatus(i.expirationDate);
+            return s === "expired" || s === "critical" || s === "warning";
+        }).length,
+        [items]
+    );
 
     // ── Checkbox helpers ──────────────────────────────────────────────────────
     const filteredIds = useMemo(() => filtered.map(resolveId), [filtered]);
@@ -562,47 +653,29 @@ export default function InventoryManagement() {
 
     const toggleSelectAll = () => {
         if (allSelected) {
-            setSelectedIds(prev => {
-                const next = new Set(prev);
-                filteredIds.forEach(id => next.delete(id));
-                return next;
-            });
+            setSelectedIds(prev => { const n = new Set(prev); filteredIds.forEach(id => n.delete(id)); return n; });
         } else {
-            setSelectedIds(prev => {
-                const next = new Set(prev);
-                filteredIds.forEach(id => next.add(id));
-                return next;
-            });
+            setSelectedIds(prev => { const n = new Set(prev); filteredIds.forEach(id => n.add(id)); return n; });
         }
     };
-
     const toggleSelectOne = (id: string) => {
-        setSelectedIds(prev => {
-            const next = new Set(prev);
-            next.has(id) ? next.delete(id) : next.add(id);
-            return next;
-        });
+        setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
     };
 
     // ── Bulk delete ───────────────────────────────────────────────────────────
     const handleBulkDelete = async () => {
         const ids = filteredIds.filter(id => selectedIds.has(id));
         if (!ids.length) return;
-
         setBulkDeleting(true);
         try {
             await Promise.all(ids.map(id => deleteInventoryItem(id)));
             setItems(prev => prev.filter(i => !ids.includes(resolveId(i))));
-            setSelectedIds(new Set());
-            setBulkDeleteOpen(false);
+            setSelectedIds(new Set()); setBulkDeleteOpen(false);
             success(`Đã xóa ${ids.length} vật tư thành công.`);
             fetchItems();
         } catch (e: any) {
-            const message = e?.response?.data?.message || e?.message || "Xóa vật tư thất bại.";
-            toastError(message);
-        } finally {
-            setBulkDeleting(false);
-        }
+            toastError(e?.response?.data?.message || e?.message || "Xóa vật tư thất bại.");
+        } finally { setBulkDeleting(false); }
     };
 
     const handleOpenModal = () => { setForm(initialForm); setFormError(""); setModalOpen(true); };
@@ -610,29 +683,20 @@ export default function InventoryManagement() {
         setForm((prev) => ({ ...prev, [field]: value }));
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setFormError("");
+        e.preventDefault(); setFormError("");
         const quantityNumber = Number(form.quantity);
         if (!form.itemName.trim()) { setFormError("Vui lòng nhập tên vật tư."); return; }
         if (!Number.isFinite(quantityNumber) || quantityNumber < 0) { setFormError("Số lượng không hợp lệ."); return; }
         if (!form.unit.trim()) { setFormError("Vui lòng nhập đơn vị."); return; }
-
         const parsedThreshold = form.lowStockThreshold.trim() !== "" ? Number(form.lowStockThreshold) : undefined;
         if (parsedThreshold !== undefined && (!Number.isFinite(parsedThreshold) || parsedThreshold < 0)) {
-            setFormError("Ngưỡng cảnh báo tồn kho không hợp lệ.");
-            return;
+            setFormError("Ngưỡng cảnh báo tồn kho không hợp lệ."); return;
         }
-
         const payload: CreateInventoryItemPayload = {
-            itemName: form.itemName.trim(),
-            quantity: quantityNumber,
-            unit: form.unit.trim(),
-            category: form.category
-                ? (form.category as "FOOD" | "WATER" | "MEDICAL" | "EQUIPMENT" | "CLOTHING" | "OTHER")
-                : undefined,
+            itemName: form.itemName.trim(), quantity: quantityNumber, unit: form.unit.trim(),
+            category: form.category ? (form.category as any) : undefined,
             description: form.description.trim() || undefined,
-            lowStockThreshold: parsedThreshold,
-            isActive: form.isActive,
+            lowStockThreshold: parsedThreshold, isActive: form.isActive,
             expirationDate: form.expirationDate ? new Date(form.expirationDate).toISOString() : undefined,
         };
         setSubmitting(true);
@@ -643,21 +707,16 @@ export default function InventoryManagement() {
             success("Vật tư đã được tạo thành công.");
         } catch (e: any) {
             const message = e?.response?.data?.message || e?.message || "Không thể tạo vật tư.";
-            setFormError(message);
-            toastError(message);
-        } finally {
-            setSubmitting(false);
-        }
+            setFormError(message); toastError(message);
+        } finally { setSubmitting(false); }
     };
 
     const patchItem = (updated: InventoryItem) =>
         setItems((prev) => prev.map((i) => resolveId(i) === resolveId(updated) ? updated : i));
 
     const confirmDeleteItem = async () => {
-        const item = deleteItem;
-        const id = item ? resolveId(item) : null;
+        const id = deleteItem ? resolveId(deleteItem) : null;
         if (!id || deletingId) return;
-
         setDeletingId(id);
         try {
             await deleteInventoryItem(id);
@@ -666,16 +725,14 @@ export default function InventoryManagement() {
             success("Đã xóa vật tư thành công.");
             fetchItems();
         } catch (e: any) {
-            const message = e?.response?.data?.message || e?.message || "Xóa vật tư thất bại.";
-            toastError(message);
-        } finally {
-            setDeletingId(null);
-        }
+            toastError(e?.response?.data?.message || e?.message || "Xóa vật tư thất bại.");
+        } finally { setDeletingId(null); }
     };
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto space-y-6">
+
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -701,30 +758,34 @@ export default function InventoryManagement() {
                     </div>
                 </div>
 
+                {/* Global expiry alert banner */}
+                {expiringCount > 0 && (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-2xl">
+                        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                        <p className="text-sm font-medium text-amber-700">
+                            Có <span className="font-bold">{expiringCount}</span> vật tư đang sắp hết hạn hoặc đã hết hạn. Vui lòng kiểm tra và xử lý.
+                        </p>
+                    </div>
+                )}
+
                 {/* Summary cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                            <Package className="w-5 h-5" />
-                        </div>
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center"><Package className="w-5 h-5" /></div>
                         <div>
                             <p className="text-xs text-gray-400">Tổng số vật tư</p>
                             <p className="text-xl font-bold text-gray-900">{items.length}</p>
                         </div>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                            <Layers className="w-5 h-5" />
-                        </div>
+                        <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Layers className="w-5 h-5" /></div>
                         <div>
                             <p className="text-xs text-gray-400">Số loại danh mục</p>
                             <p className="text-xl font-bold text-gray-900">{categories.length}</p>
                         </div>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                            <Hash className="w-5 h-5" />
-                        </div>
+                        <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><Hash className="w-5 h-5" /></div>
                         <div>
                             <p className="text-xs text-gray-400">Tổng số lượng (ước tính)</p>
                             <p className="text-xl font-bold text-gray-900">
@@ -757,30 +818,22 @@ export default function InventoryManagement() {
                     </div>
                 </div>
 
-                {/* Bulk action bar — only shown when items are selected */}
+                {/* Bulk action bar */}
                 {selectedCount > 0 && (
                     <div className="flex items-center justify-between gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-2xl">
                         <div className="flex items-center gap-2.5">
                             <div className="w-6 h-6 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
                                 <Check className="w-3.5 h-3.5 text-red-600" />
                             </div>
-                            <span className="text-sm font-semibold text-red-700">
-                                Đã chọn {selectedCount} vật tư
-                            </span>
+                            <span className="text-sm font-semibold text-red-700">Đã chọn {selectedCount} vật tư</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setSelectedIds(new Set())}
-                                className="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                            >
+                            <button type="button" onClick={() => setSelectedIds(new Set())}
+                                className="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                                 Bỏ chọn
                             </button>
-                            <button
-                                type="button"
-                                onClick={() => setBulkDeleteOpen(true)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors cursor-pointer"
-                            >
+                            <button type="button" onClick={() => setBulkDeleteOpen(true)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors cursor-pointer">
                                 <Trash2 className="w-3.5 h-3.5" />
                                 Xóa {selectedCount} mục
                             </button>
@@ -811,24 +864,19 @@ export default function InventoryManagement() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-gray-100 bg-gray-50/60">
-                                        {/* Select-all checkbox */}
                                         <th className="w-10 px-4 py-3">
-                                            <input
-                                                type="checkbox"
-                                                checked={allSelected}
-                                                ref={(el) => {
-                                                    if (el) el.indeterminate = someSelected && !allSelected;
-                                                }}
+                                            <input type="checkbox" checked={allSelected}
+                                                ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
                                                 onChange={toggleSelectAll}
-                                                className="w-4 h-4 rounded border-gray-300 text-blue-500 accent-blue-500 cursor-pointer"
-                                                aria-label="Chọn tất cả"
-                                            />
+                                                className="w-4 h-4 rounded border-gray-300 accent-blue-500 cursor-pointer"
+                                                aria-label="Chọn tất cả" />
                                         </th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vật tư</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Số lượng</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Đơn vị</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Danh mục</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Ngày cập nhật</th>
+                                        {/* HSD column — replaces old "Ngày cập nhật" */}
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">HSD</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Hành động</th>
                                     </tr>
                                 </thead>
@@ -836,27 +884,21 @@ export default function InventoryManagement() {
                                     {filtered.map((item) => {
                                         const id = resolveId(item);
                                         const isChecked = selectedIds.has(id);
-                                        const isLowStock =
-                                            item.lowStockThreshold != null &&
-                                            item.quantity <= item.lowStockThreshold;
+                                        const isLowStock = item.lowStockThreshold != null && item.quantity <= item.lowStockThreshold;
+                                        const expiryStatus = getExpiryStatus(item.expirationDate);
+
                                         return (
-                                            <tr
-                                                key={id}
-                                                className={`group transition-colors ${isChecked ? "bg-red-50/60 hover:bg-red-50" : "hover:bg-blue-50/40"}`}
-                                            >
-                                                {/* Row checkbox */}
+                                            <tr key={id} className={`group transition-colors ${isChecked ? "bg-red-50/60 hover:bg-red-50" : "hover:bg-blue-50/40"}`}>
                                                 <td className="w-10 px-4 py-3">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isChecked}
-                                                        onChange={() => toggleSelectOne(id)}
-                                                        className="w-4 h-4 rounded border-gray-300 text-blue-500 accent-blue-500 cursor-pointer"
-                                                        aria-label={`Chọn ${item.itemName}`}
-                                                    />
+                                                    <input type="checkbox" checked={isChecked} onChange={() => toggleSelectOne(id)}
+                                                        className="w-4 h-4 rounded border-gray-300 accent-blue-500 cursor-pointer"
+                                                        aria-label={`Chọn ${item.itemName}`} />
                                                 </td>
+
+                                                {/* Name + inline badges */}
                                                 <td className="px-4 py-3">
-                                                    <div className="flex flex-col">
-                                                        <div className="flex items-center gap-2">
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
                                                             <span className="text-sm font-semibold text-gray-900">{item.itemName}</span>
                                                             {!item.isActive && (
                                                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-400 border border-gray-200">
@@ -869,12 +911,15 @@ export default function InventoryManagement() {
                                                                     Sắp hết
                                                                 </span>
                                                             )}
+                                                            {/* Expiry pill — always visible regardless of screen size */}
+                                                            <ExpiryBadge expirationDate={item.expirationDate} />
                                                         </div>
                                                         {item.description && (
                                                             <span className="text-xs text-gray-400 line-clamp-1">{item.description}</span>
                                                         )}
                                                     </div>
                                                 </td>
+
                                                 <td className="px-4 py-3">
                                                     <span className={`text-sm font-medium ${isLowStock ? "text-amber-600" : "text-gray-700"}`}>
                                                         {item.quantity.toLocaleString("vi-VN")}
@@ -886,20 +931,23 @@ export default function InventoryManagement() {
                                                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100">
                                                             {getCategoryLabel(item.category)}
                                                         </span>
-                                                    ) : (
-                                                        <span className="text-xs text-gray-300">—</span>
-                                                    )}
+                                                    ) : <span className="text-xs text-gray-300">—</span>}
                                                 </td>
-                                                <td className="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell">
-                                                    {item.updatedAt || item.createdAt ? (
-                                                        <div className="inline-flex items-center gap-1.5">
-                                                            <Calendar className="w-3.5 h-3.5 text-gray-300" />
-                                                            <span>{new Date((item.updatedAt || item.createdAt) as string).toLocaleDateString("vi-VN")}</span>
+
+                                                {/* HSD column — colour-coded date */}
+                                                <td className="px-4 py-3 hidden lg:table-cell">
+                                                    {item.expirationDate ? (
+                                                        <div className={`inline-flex items-center gap-1.5 text-xs font-medium ${expiryStatus === "expired" || expiryStatus === "critical" ? "text-red-600" :
+                                                                expiryStatus === "warning" ? "text-amber-600" : "text-gray-500"
+                                                            }`}>
+                                                            <Calendar className={`w-3.5 h-3.5 ${expiryStatus === "expired" || expiryStatus === "critical" ? "text-red-400" :
+                                                                    expiryStatus === "warning" ? "text-amber-400" : "text-gray-300"
+                                                                }`} />
+                                                            {new Date(item.expirationDate).toLocaleDateString("vi-VN")}
                                                         </div>
-                                                    ) : (
-                                                        <span className="text-gray-300">—</span>
-                                                    )}
+                                                    ) : <span className="text-xs text-gray-300">—</span>}
                                                 </td>
+
                                                 <td className="px-4 py-3 text-right">
                                                     <div className="flex items-center justify-end gap-1">
                                                         <button type="button" onClick={() => setViewItem(item)}
@@ -918,12 +966,9 @@ export default function InventoryManagement() {
                                                             <Edit3 className="w-4 h-4" />
                                                         </button>
                                                         <button type="button" onClick={() => setDeleteItem(item)}
-                                                            aria-label="Xóa vật tư" title="Xóa vật tư"
-                                                            disabled={deletingId === id}
+                                                            aria-label="Xóa vật tư" title="Xóa vật tư" disabled={deletingId === id}
                                                             className="p-1.5 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-50">
-                                                            {deletingId === id
-                                                                ? <Loader2 className="w-4 h-4 animate-spin" />
-                                                                : <Trash2 className="w-4 h-4" />}
+                                                            {deletingId === id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                                                         </button>
                                                     </div>
                                                 </td>
@@ -974,9 +1019,7 @@ export default function InventoryManagement() {
                                     <select value={form.category} onChange={(e) => handleChange("category", e.target.value)}
                                         className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl">
                                         <option value="">Chọn danh mục</option>
-                                        {CATEGORY_OPTIONS.map((c) => (
-                                            <option key={c.value} value={c.value}>{c.label}</option>
-                                        ))}
+                                        {CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                                     </select>
                                 </div>
                             </div>
@@ -1023,45 +1066,23 @@ export default function InventoryManagement() {
                 </div>
             )}
 
-            {/* View Detail Modal */}
             {viewItem && (
-                <ViewDetailModal
-                    item={viewItem}
-                    onClose={() => setViewItem(null)}
-                    onEdit={() => setEditItem(viewItem)}
-                    onUpdateStock={() => setStockItem(viewItem)}
-                />
+                <ViewDetailModal item={viewItem} onClose={() => setViewItem(null)}
+                    onEdit={() => setEditItem(viewItem)} onUpdateStock={() => setStockItem(viewItem)} />
             )}
-
-            {/* Edit Modal */}
             {editItem && (
-                <EditInventoryModal
-                    item={editItem}
-                    onClose={() => setEditItem(null)}
-                    onSaved={(updated) => { patchItem(updated); setEditItem(null); fetchItems(); }}
-                />
+                <EditInventoryModal item={editItem} onClose={() => setEditItem(null)}
+                    onSaved={(updated) => { patchItem(updated); setEditItem(null); fetchItems(); }} />
             )}
-
-            {/* Update Stock Modal */}
             {stockItem && (
-                <UpdateStockModal
-                    item={stockItem}
-                    onClose={() => setStockItem(null)}
-                    onSaved={(updated) => { patchItem(updated); setStockItem(null); fetchItems(); }}
-                />
+                <UpdateStockModal item={stockItem} onClose={() => setStockItem(null)}
+                    onSaved={(updated) => { patchItem(updated); setStockItem(null); fetchItems(); }} />
             )}
 
-            {/* Single delete confirmation modal */}
-            <Modal
-                open={!!deleteItem}
-                onClose={() => { if (!deletingId) setDeleteItem(null); }}
-                title="Xác nhận xóa vật tư"
-                size="sm"
-            >
+            <Modal open={!!deleteItem} onClose={() => { if (!deletingId) setDeleteItem(null); }} title="Xác nhận xóa vật tư" size="sm">
                 <div className="space-y-4">
                     <p className="text-sm text-gray-600">
-                        Bạn có chắc muốn xóa vật tư
-                        <span className="font-semibold text-gray-900"> {deleteItem?.itemName}</span>? Hành động này không thể hoàn tác.
+                        Bạn có chắc muốn xóa vật tư <span className="font-semibold text-gray-900">{deleteItem?.itemName}</span>? Hành động này không thể hoàn tác.
                     </p>
                     <div className="flex justify-end gap-2">
                         <button type="button" onClick={() => setDeleteItem(null)} disabled={!!deletingId}
@@ -1077,17 +1098,10 @@ export default function InventoryManagement() {
                 </div>
             </Modal>
 
-            {/* Bulk delete confirmation modal */}
-            <Modal
-                open={bulkDeleteOpen}
-                onClose={() => { if (!bulkDeleting) setBulkDeleteOpen(false); }}
-                title="Xác nhận xóa hàng loạt"
-                size="sm"
-            >
+            <Modal open={bulkDeleteOpen} onClose={() => { if (!bulkDeleting) setBulkDeleteOpen(false); }} title="Xác nhận xóa hàng loạt" size="sm">
                 <div className="space-y-4">
                     <p className="text-sm text-gray-600">
-                        Bạn có chắc muốn xóa
-                        <span className="font-semibold text-gray-900"> {selectedCount} vật tư</span> đã chọn? Hành động này không thể hoàn tác.
+                        Bạn có chắc muốn xóa <span className="font-semibold text-gray-900">{selectedCount} vật tư</span> đã chọn? Hành động này không thể hoàn tác.
                     </p>
                     <div className="flex justify-end gap-2">
                         <button type="button" onClick={() => setBulkDeleteOpen(false)} disabled={bulkDeleting}
