@@ -1,4 +1,5 @@
-import { Bell, Menu, X, LogOut, User, ChevronDown, Shield, ClipboardList } from "lucide-react";
+import { Bell, Menu, X, LogOut, User, ChevronDown, Shield, ClipboardList, Receipt, Cross } from "lucide-react";
+import { PiFirstAidFill } from "react-icons/pi";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, NavLink } from "react-router";
 import Logo from "@/assets/image/LogoV2.png";
@@ -146,9 +147,15 @@ export default function Navbar() {
             <div className="flex items-center justify-center overflow-hidden transition-transform duration-200 group-hover:scale-105">
               <img src={Logo} alt="Logo" className="w-12 h-12 object-contain" />
             </div>
-            <div className="leading-none">
-              <span className="block text-[16px] font-bold tracking-widest text-blue-400 uppercase">Rescue AID</span>
-              <span className="block text-[12px] font-light text-gray-900 tracking-tight">Chung tay hỗ trợ lũ lụt</span>
+            <div className="flex flex-col">
+              <span className="flex items-center gap-2 text-[16px] font-bold tracking-widest text-blue-400 uppercase">
+                <PiFirstAidFill className="text-red-500 w-5 h-5" />
+                Rescue AID
+              </span>
+
+              <span className="text-[12px] font-light text-gray-900 tracking-tight">
+                Chung tay hỗ trợ lũ lụt
+              </span>
             </div>
           </div>
 
@@ -156,7 +163,7 @@ export default function Navbar() {
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map(({ to, label }) => (
               <NavLink key={to} to={to}
-              onClick={scrollToTop}
+                onClick={scrollToTop}
                 className={({ isActive }) =>
                   `px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                   }`
@@ -316,6 +323,12 @@ export default function Navbar() {
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
                       >
                         <ClipboardList className="w-4 h-4" /> Lịch sử cầu cứu
+                      </button>
+                      <button
+                        onClick={() => { goTo("/donation-history"); setProfileOpen(false); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                      >
+                        <Receipt className="w-4 h-4" /> Lịch sử quyên góp
                       </button>
                       <button
                         onClick={() => { handleLogout(); setProfileOpen(false); }}
