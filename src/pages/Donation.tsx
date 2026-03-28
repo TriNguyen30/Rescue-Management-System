@@ -271,13 +271,12 @@ export default function DonationPage() {
           </div>
         </section>
         {/* ══ PAYMENT METHODS ═══════════════════════════════════════ */}
-        <section className="py-10">
-            <div className="flex justify-center flex-wrap">
-              {/* ── Left: VNPay form ── */}
-            <div className="w-full max-w-2xl">
-                <VNPayForm />
-              </div>
+        <section className="py-10 px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-center">
+            <div className="w-full max-w-md sm:max-w-xl lg:max-w-2xl">
+              <VNPayForm />
             </div>
+          </div>
         </section>
       </div>
     </>
