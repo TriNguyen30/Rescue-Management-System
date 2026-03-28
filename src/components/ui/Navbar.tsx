@@ -147,8 +147,8 @@ export default function Navbar() {
               <img src={Logo} alt="Logo" className="w-12 h-12 object-contain" />
             </div>
             <div className="leading-none">
-              <span className="block text-[12px] font-bold tracking-widest text-blue-400 uppercase">Rescue AID</span>
-              {/* <span className="block text-sm font-extrabold text-gray-900 tracking-tight">AID</span> */}
+              <span className="block text-[16px] font-bold tracking-widest text-blue-400 uppercase">Rescue AID</span>
+              <span className="block text-[12px] font-light text-gray-900 tracking-tight">Chung tay hỗ trợ lũ lụt</span>
             </div>
           </div>
 
