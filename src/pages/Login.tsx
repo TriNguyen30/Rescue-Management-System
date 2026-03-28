@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
-import { Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone } from "lucide-react";
+import { Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Cross } from "lucide-react";
+import { PiFirstAidFill } from "react-icons/pi";
 import { useNavigate } from "react-router-dom";
 // import Logo from "@/assets/image/Logo.png";
 import Logo from "@/assets/image/LogoV2.png";
@@ -105,7 +106,9 @@ export default function Login() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="flex flex-col items-center mb-8">
             <img src={Logo} alt="Logo" className="w-16 h-auto mb-3" />
-            <h1 className="text-xl font-bold text-gray-800 tracking-wide">
+
+            <h1 className="flex items-center gap-2 text-xl font-bold text-blue-400 tracking-wide">
+              <PiFirstAidFill className="text-red-500 w-5 h-5" />
               RESCUE AID
             </h1>
           </div>
@@ -150,7 +153,7 @@ export default function Login() {
               <Form className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Số điện thoại
+                    Số điện thoại *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -181,7 +184,7 @@ export default function Login() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Mật khẩu
+                    Mật khẩu *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">

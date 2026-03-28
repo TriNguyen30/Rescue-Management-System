@@ -1,5 +1,11 @@
 import { axiosInstance } from "@/lib/axios";
 
+export interface ApiResponse<T> {
+    data: T;
+    message: string;
+    success: boolean;
+}
+
 export interface Donation {
     amount: number;
     message: string;
@@ -10,26 +16,34 @@ export interface DonationResponse {
 }
 
 export interface DonationList {
-    page: number;
-    limit: number;
-    status: number;
+    page?: number;
+    limit?: number;
+    status?: DonationStatus;
 }
 
+export type DonationStatus = "PENDING" | "SUCCESS" | "FAILED";
+
 export interface DonationItem {
-    id: string;
     _id: string;
     orderId: string;
     amount: number;
     message: string;
-    status: string;
-    vnp_TransactionNo: string;
+    status: DonationStatus;
+    vnp_TransactionNo?: string;
     createdAt: string;
     updatedAt: string;
 }
 
+export interface DonationMeta {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}
+
 export interface DonationListResponse {
     data: DonationItem[];
-    total: number;
+    meta: DonationMeta;
 }
 
 export const createDonation = async (
@@ -48,17 +62,20 @@ export const createDonation = async (
     }
 };
 
-export const getDonations = async (
-    params: DonationList
-): Promise<DonationListResponse> => {
-    const res = await axiosInstance.get("/donations", { params });
-    return res.data;
+export const getDonations = async (params: DonationList) => {
+    const res = await axiosInstance.get<ApiResponse<DonationListResponse>>(
+        "/donations",
+        { params }
+    );
+    return res.data.data;
 };
 
 export const getDonationDetail = async (orderId: string): Promise<DonationItem> => {
     try {
-        const res = await axiosInstance.get<DonationItem>(`/donations/${orderId}`);
-        return res.data;
+        const res = await axiosInstance.get<{ data: DonationItem }>(
+            `/donations/${orderId}`
+        );
+        return res.data.data;
     } catch (error) {
         console.error("Error fetching donation detail:", error);
         throw error;

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, User, Phone, CheckCircle, AlertCircle } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, User, Phone, CheckCircle, AlertCircle, Cross } from "lucide-react";
+import { PiFirstAidFill } from "react-icons/pi";
 import { useNavigate } from "react-router-dom";
 import Logo from "@/assets/image/LogoV2.png";
 import { register } from "@/services/auth.service";
@@ -23,6 +24,7 @@ const registerSchema = Yup.object().shape({
     .trim()
     .test("email-format", "Vui lòng nhập đúng định dạng email.", (value) => !value || EMAIL_REGEX.test(value)),
   phone: Yup.string()
+    .required("Vui lòng nhập số điện thoại.")
     .trim()
     .test("phone-format", "Số điện thoại chỉ được chứa chữ số và ký tự + - ( ).", (value) => !value || PHONE_REGEX.test(value)),
   password: Yup.string()
@@ -96,10 +98,10 @@ export default function Register() {
   };
 
   const fields: { label: string; field: keyof RegisterValues; type: string; placeholder: string; icon: React.ReactNode }[] = [
-    { label: "Họ và tên", field: "fullName", type: "text", placeholder: "Nguyễn Văn A", icon: <User className="w-4 h-4 text-gray-400" /> },
-    { label: "Tên đăng nhập", field: "username", type: "text", placeholder: "Tên đăng nhập", icon: <User className="w-4 h-4 text-gray-400" /> },
-    { label: "Email (Tùy chọn)", field: "email", type: "email", placeholder: "Nhập email của bạn", icon: <Mail className="w-4 h-4 text-gray-400" /> },
-    { label: "Số điện thoại (Tùy chọn)", field: "phone", type: "tel", placeholder: "Nhập số điện thoại", icon: <Phone className="w-4 h-4 text-gray-400" /> },
+    { label: "Họ và tên *", field: "fullName", type: "text", placeholder: "Nguyễn Văn A", icon: <User className="w-4 h-4 text-gray-400" /> },
+    { label: "Tên đăng nhập *", field: "username", type: "text", placeholder: "Tên đăng nhập", icon: <User className="w-4 h-4 text-gray-400" /> },
+    // { label: "Email (Tùy chọn)", field: "email", type: "email", placeholder: "Nhập email của bạn", icon: <Mail className="w-4 h-4 text-gray-400" /> },
+    { label: "Số điện thoại *", field: "phone", type: "tel", placeholder: "Nhập số điện thoại", icon: <Phone className="w-4 h-4 text-gray-400" /> },
   ];
 
   return (
@@ -116,7 +118,11 @@ export default function Register() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="flex flex-col items-center mb-8">
             <img src={Logo} alt="Logo" className="w-16 h-auto mb-3" />
-            <h1 className="text-xl font-bold text-gray-800 tracking-wide">RESCUE AID</h1>
+
+            <h1 className="flex items-center gap-2 text-xl font-bold text-blue-400 tracking-wide">
+              <PiFirstAidFill className="text-red-500 w-5 h-5" />
+              RESCUE AID
+            </h1>
           </div>
 
           <div className="flex border-b border-gray-200 mb-8">
@@ -189,7 +195,7 @@ export default function Register() {
                 ))}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu *</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                       <Lock className="w-4 h-4 text-gray-400" />
