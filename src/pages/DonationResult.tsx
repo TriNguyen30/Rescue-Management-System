@@ -84,7 +84,7 @@ export default function DonationResult() {
         <button
           onClick={() => navigate("/")}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-white
-          bg-blue-600 hover:bg-blue-700 transition"
+          bg-blue-600 hover:bg-blue-700 transition cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Quay về trang chủ
