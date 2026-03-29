@@ -25,7 +25,6 @@ import {
     RefreshCw,
     Download,
     BarChart3,
-    Receipt
 } from "lucide-react";
 import { getDonations, DonationItem, DonationStatus } from "@/services/donation.service";
 
@@ -237,8 +236,8 @@ export default function DonationHistory() {
                 {/* ── Header ── */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-                            <Receipt className="w-6 h-6" />
+                        <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20">
+                            <BarChart3 className="w-6 h-6" />
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Lịch sử quyên góp</h1>
@@ -323,13 +322,39 @@ export default function DonationHistory() {
                         <div className="h-64 flex items-center justify-center text-gray-400 text-sm">Đang tải dữ liệu...</div>
                     ) : chartData.length === 0 ? (
                         <div className="h-64 flex items-center justify-center text-gray-400 text-sm">Không có dữ liệu</div>
+                    ) : chartView === "month" ? (
+                        /* ── Month view: full-width revenue bar chart only ── */
+                        <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Doanh thu theo tháng (VNĐ)</p>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={monthData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }} barSize={40}>
+                                    <defs>
+                                        <linearGradient id="colorMonthBar" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                                            <stop offset="100%" stopColor="#6366f1" stopOpacity={0.8} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                                    <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#6b7280", fontWeight: 600 }} tickLine={false} axisLine={false} />
+                                    <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickLine={false} axisLine={false}
+                                        tickFormatter={(v) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(0)}M` : `${(v / 1000).toFixed(0)}K`} />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Bar dataKey="total" name="Doanh thu" fill="url(#colorMonthBar)" radius={[6, 6, 0, 0]}
+                                        label={{
+                                            position: "top", fontSize: 10, fill: "#6b7280",
+                                            formatter: (v: number) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)
+                                        }} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     ) : (
+                        /* ── Day view: area + transaction bar side by side ── */
                         <div className="grid lg:grid-cols-2 gap-6">
                             {/* Area chart — revenue */}
                             <div>
                                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Doanh thu (VNĐ)</p>
                                 <ResponsiveContainer width="100%" height={220}>
-                                    <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                                    <AreaChart data={dayData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                                         <defs>
                                             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.18} />
@@ -351,7 +376,7 @@ export default function DonationHistory() {
                             <div>
                                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Số giao dịch</p>
                                 <ResponsiveContainer width="100%" height={220}>
-                                    <BarChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }} barSize={chartView === "day" ? 8 : 20}>
+                                    <BarChart data={dayData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }} barSize={8}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                                         <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#9ca3af" }} tickLine={false} axisLine={false} />
                                         <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickLine={false} axisLine={false} allowDecimals={false} />
