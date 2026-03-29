@@ -67,7 +67,7 @@ export const getDonations = async (params: DonationList) => {
         "/donations",
         { params }
     );
-    return res.data.data;
+    return res.data;
 };
 
 export const getDonationDetail = async (orderId: string): Promise<DonationItem> => {
@@ -80,4 +80,12 @@ export const getDonationDetail = async (orderId: string): Promise<DonationItem> 
         console.error("Error fetching donation detail:", error);
         throw error;
     }
+}
+
+export const getMyDonations = async (params: DonationList) => {
+    const res = await axiosInstance.get<ApiResponse<DonationListResponse>>(
+        "/donations/my-history",
+        { params }
+    );
+    return res.data;
 }

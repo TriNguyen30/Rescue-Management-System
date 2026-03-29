@@ -7,6 +7,7 @@ import {
   Shield,
   ArrowRight,
   FileText,
+  Receipt
 } from "lucide-react";
 
 const cards = [
@@ -25,10 +26,10 @@ const cards = [
     color: "bg-emerald-50 text-emerald-700 border-emerald-100",
   },
   {
-    title: "Cấu hình hệ thống",
-    desc: "Danh mục vật tư và tham số vận hành",
-    to: "/admin/settings",
-    icon: Settings,
+    title: "Lịch sử quyên góp",
+    desc: "Xem và quản lý các khoản quyên góp đã nhận",
+    to: "/admin/donation-history",
+    icon: Receipt,
     color: "bg-violet-50 text-violet-700 border-violet-100",
   },
 ];
