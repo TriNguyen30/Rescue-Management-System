@@ -88,5 +88,5 @@ export const getMyDonations = async (params: DonationList) => {
         "/donations/my-history",
         { params }
     );
-    return res.data.data;
+    return res.data;
 }

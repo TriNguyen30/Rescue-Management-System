@@ -184,7 +184,7 @@ export default function ReceiptHistory() {
           </div>
           <button
             onClick={() => { setPage(1); fetchData(); }}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
             Làm mới
