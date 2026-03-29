@@ -25,6 +25,7 @@ export type DonationStatus = "PENDING" | "SUCCESS" | "FAILED";
 
 export interface DonationItem {
     _id: string;
+    userId: string;
     orderId: string;
     amount: number;
     message: string;
@@ -87,5 +88,5 @@ export const getMyDonations = async (params: DonationList) => {
         "/donations/my-history",
         { params }
     );
-    return res.data;
+    return res.data.data;
 }

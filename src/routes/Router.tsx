@@ -31,7 +31,7 @@ import ManagerSetting from "@/pages/ManagerSetting";
 import ManagerLayout from "@/layouts/ManagerLayout";
 import AdminLayout from "@/layouts/AdminLayout";
 import DonationResult from "@/pages/DonationResult";
-import ReceiptHistory from "@/pages/ReceiptHistory";
+import MyDonation from "@/pages/MyDonation";
 import DonationHistory from "@/pages/DonationHistory";
 
 
@@ -46,7 +46,7 @@ export default function AppRoutes() {
         <Route path="/donate" element={<Donation />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/profile" element={<UserProfile />} />
-        <Route path="/donation-history" element={<ReceiptHistory />} />
+        <Route path="/donation-history" element={<MyDonation />} />
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
