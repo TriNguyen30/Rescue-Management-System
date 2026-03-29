@@ -17,6 +17,7 @@ import {
     HeartPulse,
     Menu,
     X,
+    Receipt
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -54,6 +55,7 @@ const NAV_ITEMS: NavItem[] = [
     // { key: "requests", label: "Yêu cầu cứu hộ", icon: <Bell className="w-4 h-4" />, path: "/admin/requests", badge: 12 },
     // { key: "reports", label: "Báo cáo", icon: <FileText className="w-4 h-4" />, path: "/admin/reports" },
     { key: "analytics", label: "Báo cáo cứu trợ", icon: <BarChart3 className="w-4 h-4" />, path: "/admin/analytics", section: "Phân tích" },
+    { key: "donations", label: "Lịch sử quyên góp", icon: <Receipt className="w-4 h-4" />, path: "/admin/donation-history"},
     { key: "settings", label: "Cài đặt", icon: <Settings className="w-4 h-4" />, path: "/admin/settings", section: "Hệ thống" },
 ];
 

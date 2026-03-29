@@ -87,7 +87,7 @@ export default function Map() {
                   {picked && (
                     <button
                       type="button"
-                      className="ml-auto text-xs font-semibold text-blue-600 hover:text-blue-700"
+                      className="ml-auto text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
                       onClick={() => setPicked(null)}
                     >
                       Dùng GPS
