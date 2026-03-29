@@ -362,7 +362,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       <div
-        className={`md:hidden overflow-hidden transition-all duration-300 ${mobileOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
+        className={`md:hidden overflow-hidden transition-all duration-300 ${mobileOpen ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"}`}
         style={{ borderTop: "1px solid #f3f4f6" }}
       >
         <div className="px-4 py-3 space-y-1 bg-white">
@@ -392,6 +392,14 @@ export default function Navbar() {
                 <button onClick={() => { goTo("/profile"); setMobileOpen(false); }}
                   className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
                   <User className="w-4 h-4" /> Hồ sơ cá nhân
+                </button>
+                <button onClick={() => { goTo("/requests-history"); setMobileOpen(false); }}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+                  <ClipboardList className="w-4 h-4" /> Lịch sử cầu cứu
+                </button>
+                <button onClick={() => { goTo("/donation-history"); setMobileOpen(false); }}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+                  <Receipt className="w-4 h-4" /> Lịch sử quyên góp
                 </button>
                 <button onClick={() => { handleLogout(); setMobileOpen(false); }}
                   className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition">

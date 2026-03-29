@@ -63,7 +63,7 @@ export default function AppRoutes() {
         <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/analytics" element={<AdminOperationsReport />} />
         <Route path="/admin/settings" element={<AdminSystemSettings />} />
-        <Route path="/admin/donation-history" element={<DonationHistory />} />
+        <Route path="/admin/revenue" element={<DonationHistory />} />
       </Route>
       <Route
         path="/manager"
