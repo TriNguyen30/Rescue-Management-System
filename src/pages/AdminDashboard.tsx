@@ -7,7 +7,8 @@ import {
   Shield,
   ArrowRight,
   FileText,
-  Receipt
+  Receipt,
+  ChartColumnBig
 } from "lucide-react";
 
 const cards = [
@@ -28,8 +29,8 @@ const cards = [
   {
     title: "Lịch sử quyên góp",
     desc: "Xem và quản lý các khoản quyên góp đã nhận",
-    to: "/admin/donation-history",
-    icon: Receipt,
+    to: "/admin/revenue",
+    icon: ChartColumnBig,
     color: "bg-violet-50 text-violet-700 border-violet-100",
   },
 ];
