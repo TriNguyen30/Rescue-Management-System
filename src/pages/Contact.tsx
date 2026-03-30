@@ -138,176 +138,94 @@ export default function ContactPage() {
         {/* ── Main content ── */}
         <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-5 gap-10">
+            <div className="flex justify-center">
+              <div className="w-full max-w-2xl space-y-6 ca5">
 
-              {/* ── Left — info cards ── */}
-              <div className="lg:col-span-2 space-y-4 ca5">
+                {/* ── Left — info cards ── */}
+                <div className="flex justify-center px-4">
+                  <div className="w-full max-w-3xl space-y-6 ca5">
 
-                {/* Contact info */}
-                {[
-                  {
-                    icon: <Phone className="w-5 h-5 text-blue-600" />,
-                    bg: "bg-blue-50 border-blue-100",
-                    title: "Đường dây nóng",
-                    lines: ["0902 345 678", "1800 599 920 (miễn phí)"],
-                    sub: "Hỗ trợ 24/7 — không nghỉ lễ",
-                  },
-                  {
-                    icon: <Mail className="w-5 h-5 text-emerald-600" />,
-                    bg: "bg-emerald-50 border-emerald-100",
-                    title: "Email hỗ trợ",
-                    lines: ["support@rescueaid.vn", "rescue@rescueaid.vn"],
-                    sub: "Phản hồi trong vòng 2 giờ",
-                  },
-                  {
-                    icon: <MapPin className="w-5 h-5 text-purple-600" />,
-                    bg: "bg-purple-50 border-purple-100",
-                    title: "Văn phòng",
-                    lines: ["Tòa nhà ABC, 123 Lê Lợi", "Quận 1, TP. Hồ Chí Minh"],
-                    sub: "Thứ 2 – 6, 8:00 – 17:30",
-                  },
-                  {
-                    icon: <Clock className="w-5 h-5 text-orange-600" />,
-                    bg: "bg-orange-50 border-orange-100",
-                    title: "Giờ hoạt động",
-                    lines: ["Trung tâm điều phối: 24/7"],
-                    sub: "Hệ thống tự động: luôn trực tuyến",
-                  },
-                ].map(({ icon, bg, title, lines, sub }) => (
-                  <div key={title} className={`info-card rounded-3xl border p-5 flex gap-4 ${bg}`}>
-                    <div className={`w-10 h-10 rounded-2xl bg-white border flex items-center justify-center shrink-0 shadow-sm ${bg.replace("bg-", "border-")}`}>
-                      {icon}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{title}</p>
-                      {lines.map((l) => (
-                        <p key={l} className="text-sm font-bold text-gray-800 leading-snug">{l}</p>
-                      ))}
-                      <p className="text-xs text-gray-500 mt-1">{sub}</p>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Emergency banner */}
-                <div className="rounded-3xl bg-red-600 p-5 text-white">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-                    </span>
-                    <span className="text-xs font-black uppercase tracking-widest text-red-100">Khẩn cấp</span>
-                  </div>
-                  <p className="text-lg font-black leading-tight mb-1">Cần cứu hộ ngay?</p>
-                  <p className="text-sm text-red-100 mb-4">Đừng điền form — hãy gọi ngay đường dây khẩn cấp.</p>
-                  <a href="tel:0902345678"
-                    className="inline-flex items-center gap-2 bg-white text-red-600 text-sm font-black px-4 py-2.5 rounded-2xl hover:bg-red-50 transition-colors">
-                    <Phone className="w-4 h-4" /> Gọi ngay: 0902 345 678
-                    <ChevronRight className="w-4 h-4" />
-                  </a>
-                </div>
-
-                {/* Channel chips */}
-                <div className="rounded-3xl bg-gray-50 border border-gray-100 p-5 space-y-3">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kênh hỗ trợ khác</p>
-                  {[
-                    { icon: <Radio className="w-4 h-4 text-purple-500" />, label: "Zalo OA: Rescue AID", badge: "Nhanh nhất" },
-                    { icon: <MessageSquare className="w-4 h-4 text-blue-500" />, label: "Facebook: /rescueaid.vn" },
-                    { icon: <HeartHandshake className="w-4 h-4 text-emerald-500" />, label: "Cộng đồng tình nguyện viên" },
-                  ].map(({ icon, label, badge }) => (
-                    <div key={label} className="flex items-center gap-3 text-sm text-gray-600">
-                      <div className="w-8 h-8 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm shrink-0">
-                        {icon}
-                      </div>
-                      <span className="font-medium flex-1">{label}</span>
-                      {badge && <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full">{badge}</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Right — contact form ── */}
-              <div className="lg:col-span-3">
-                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
-
-                  {sent ? (
-                    /* Success state */
-                    <div className="flex flex-col items-center text-center py-8 gap-5"
-                      style={{ animation: "cp-up .5s cubic-bezier(.22,1,.36,1) both" }}>
-                      <div className="relative w-20 h-20 rounded-3xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-                        <div className="absolute inset-0 rounded-3xl bg-emerald-100 animate-ping opacity-40" />
-                        <CheckCircle2 className="w-9 h-9 text-emerald-500 relative" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-black text-gray-900 mb-2">Gửi thành công!</h3>
-                        <p className="text-gray-500 leading-relaxed max-w-xs">
-                          Cảm ơn bạn đã liên hệ. Chúng tôi sẽ phản hồi trong vòng <strong className="text-gray-800">2 giờ làm việc</strong>.
-                        </p>
-                      </div>
-                      <div className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left space-y-2">
-                        {[
-                          { label: "Họ tên", value: form.name },
-                          { label: "Chủ đề", value: form.subject },
-                        ].map(({ label, value }) => (
-                          <div key={label} className="flex justify-between text-sm">
-                            <span className="text-gray-400">{label}</span>
-                            <span className="font-semibold text-gray-700">{value}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <button onClick={reset}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gray-900 text-white text-sm font-bold hover:bg-gray-700 transition-colors">
-                        Gửi yêu cầu khác
-                      </button>
-                    </div>
-                  ) : (
-                    /* Form */
-                    <div className="flex items-center justify-center py-10">
-                      <div className="w-full max-w-md space-y-5">
-
-                        <div className="text-center">
-                          <h2 className="text-2xl font-black text-gray-900">Yêu cầu liên hệ</h2>
-                          <p className="text-sm text-gray-400 mt-1">
-                            Nhập số điện thoại, chúng tôi sẽ gọi lại
-                          </p>
+                    {/* Contact info */}
+                    {[
+                      {
+                        icon: <Phone className="w-5 h-5 text-blue-600" />,
+                        bg: "bg-blue-50 border-blue-100",
+                        title: "Đường dây nóng",
+                        lines: ["0902 345 678", "1800 599 920 (miễn phí)"],
+                        sub: "Hỗ trợ 24/7 — không nghỉ lễ",
+                      },
+                      {
+                        icon: <Mail className="w-5 h-5 text-emerald-600" />,
+                        bg: "bg-emerald-50 border-emerald-100",
+                        title: "Email hỗ trợ",
+                        lines: ["support@rescueaid.vn", "rescue@rescueaid.vn"],
+                        sub: "Phản hồi trong vòng 2 giờ",
+                      },
+                      {
+                        icon: <MapPin className="w-5 h-5 text-purple-600" />,
+                        bg: "bg-purple-50 border-purple-100",
+                        title: "Văn phòng",
+                        lines: ["Tòa nhà ABC, 123 Lê Lợi", "Quận 1, TP. Hồ Chí Minh"],
+                        sub: "Thứ 2 – 6, 8:00 – 17:30",
+                      },
+                      {
+                        icon: <Clock className="w-5 h-5 text-orange-600" />,
+                        bg: "bg-orange-50 border-orange-100",
+                        title: "Giờ hoạt động",
+                        lines: ["Trung tâm điều phối: 24/7"],
+                        sub: "Hệ thống tự động: luôn trực tuyến",
+                      },
+                    ].map(({ icon, bg, title, lines, sub }) => (
+                      <div key={title} className={`info-card rounded-3xl border p-5 flex gap-4 ${bg}`}>
+                        <div className={`w-10 h-10 rounded-2xl bg-white border flex items-center justify-center shrink-0 shadow-sm ${bg.replace("bg-", "border-")}`}>
+                          {icon}
                         </div>
-
-                        <form
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            if (!form.phone.trim()) {
-                              setErrors({ phone: "Vui lòng nhập số điện thoại" });
-                              return;
-                            }
-                            setSending(true);
-                            setTimeout(() => {
-                              setSending(false);
-                              setSent(true);
-                            }, 1200);
-                          }}
-                          className="space-y-4"
-                        >
-                          <Field label="Số điện thoại" required error={errors.phone}>
-                            <input
-                              type="tel"
-                              placeholder="0902 345 678"
-                              value={form.phone}
-                              onChange={set("phone")}
-                              className={inputCls(errors.phone)}
-                            />
-                          </Field>
-
-                          <button
-                            type="submit"
-                            disabled={sending}
-                            className="w-full py-3 rounded-2xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-60"
-                          >
-                            {sending ? "Đang gửi..." : "Yêu cầu gọi lại"}
-                          </button>
-                        </form>
-
+                        <div>
+                          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{title}</p>
+                          {lines.map((l) => (
+                            <p key={l} className="text-sm font-bold text-gray-800 leading-snug">{l}</p>
+                          ))}
+                          <p className="text-xs text-gray-500 mt-1">{sub}</p>
+                        </div>
                       </div>
+                    ))}
+
+                    {/* Emergency banner */}
+                    <div className="rounded-3xl bg-red-600 p-5 text-white">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                        </span>
+                        <span className="text-xs font-black uppercase tracking-widest text-red-100">Khẩn cấp</span>
+                      </div>
+                      <p className="text-lg font-black leading-tight mb-1">Cần cứu hộ ngay?</p>
+                      <p className="text-sm text-red-100 mb-4">Đừng điền form — hãy gọi ngay đường dây khẩn cấp.</p>
+                      <a href="tel:0902345678"
+                        className="inline-flex items-center gap-2 bg-white text-red-600 text-sm font-black px-4 py-2.5 rounded-2xl hover:bg-red-50 transition-colors">
+                        <Phone className="w-4 h-4" /> Gọi ngay: 0902 345 678
+                        <ChevronRight className="w-4 h-4" />
+                      </a>
                     </div>
-                  )}
+
+                    {/* Channel chips */}
+                    <div className="rounded-3xl bg-gray-50 border border-gray-100 p-5 space-y-3">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kênh hỗ trợ khác</p>
+                      {[
+                        { icon: <Radio className="w-4 h-4 text-purple-500" />, label: "Zalo OA: Rescue AID", badge: "Nhanh nhất" },
+                        { icon: <MessageSquare className="w-4 h-4 text-blue-500" />, label: "Facebook: /rescueaid.vn" },
+                        { icon: <HeartHandshake className="w-4 h-4 text-emerald-500" />, label: "Cộng đồng tình nguyện viên" },
+                      ].map(({ icon, label, badge }) => (
+                        <div key={label} className="flex items-center gap-3 text-sm text-gray-600">
+                          <div className="w-8 h-8 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm shrink-0">
+                            {icon}
+                          </div>
+                          <span className="font-medium flex-1">{label}</span>
+                          {badge && <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full">{badge}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
