@@ -56,8 +56,12 @@ export interface RescueRequest {
     urgencyLevel?: UrgencyLevel;
     createdAt: string;
     updatedAt: string;
+    evidenceImage?: string;
+    cancelReason?: string;
 }
 
 export interface UpdateRescueRequestStatusPayload {
     status: RescueRequestStatus;
+    evidenceImage?: string;
+    cancelReason?: string;
 }

@@ -10,6 +10,7 @@ import { getResuceTeamById } from "@/services/rescue-team.service";
 import type { RescueRequest, RescueRequestStatus } from "@/types/rescue-requests";
 import type { RescueTeam } from "@/types/rescue-teams";
 import { API_BASE_URL } from "@/config/env";
+import { uploadFile } from "@/services/upload.service";
 
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -63,6 +64,9 @@ export default function AssignedTaskDetails() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [updateStatusError, setUpdateStatusError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<RescueRequestStatus | "">("");
+  const [cancelReason, setCancelReason] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [evidencePreview, setEvidencePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -107,13 +111,55 @@ export default function AssignedTaskDetails() {
     }
   }, [request]);
 
+  useEffect(() => {
+    return () => {
+      if (evidencePreview) URL.revokeObjectURL(evidencePreview);
+    };
+  }, [evidencePreview]);
+
   const handleUpdateStatus = async () => {
     if (!id || !selectedStatus) return;
     setUpdatingStatus(true);
     setUpdateStatusError(null);
     try {
-      const updated = await updateRescueRequestStatus(id, selectedStatus);
+      if (selectedStatus === "COMPLETED") {
+        if (!evidenceFile) {
+          setUpdateStatusError("Vui lòng tải lên ảnh chứng thực khi hoàn thành.");
+          return;
+        }
+      }
+
+      if (selectedStatus === "CANCELLED") {
+        if (!cancelReason.trim()) {
+          setUpdateStatusError("Vui lòng nhập lý do hủy.");
+          return;
+        }
+      }
+
+      let evidenceImage: string | undefined = undefined;
+
+      if (selectedStatus === "COMPLETED" && evidenceFile) {
+        const res = await uploadFile(evidenceFile);
+        const data = res.data as { path?: string; url?: string; data?: { path?: string } };
+        const path = data?.path ?? data?.url ?? data?.data?.path;
+        if (typeof path !== "string" || !path) {
+          throw new Error("Upload ảnh chứng thực thất bại");
+        }
+        evidenceImage = path;
+      }
+
+      const updated = await updateRescueRequestStatus(id, {
+        status: selectedStatus,
+        evidenceImage,
+        cancelReason: selectedStatus === "CANCELLED" ? cancelReason.trim() : undefined,
+      });
       setRequest(updated);
+      if (selectedStatus !== "COMPLETED") {
+        if (evidencePreview) URL.revokeObjectURL(evidencePreview);
+        setEvidenceFile(null);
+        setEvidencePreview(null);
+      }
+      if (selectedStatus !== "CANCELLED") setCancelReason("");
     } catch (e) {
       setUpdateStatusError(
         e instanceof Error ? e.message : "Không thể cập nhật tiến độ nhiệm vụ",
@@ -255,7 +301,7 @@ export default function AssignedTaskDetails() {
                 <button
                   type="button"
                   onClick={handleUpdateStatus}
-                  disabled={updatingStatus || !selectedStatus}
+                  disabled={updatingStatus || !selectedStatus }
                   className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {updatingStatus ? (
@@ -268,8 +314,78 @@ export default function AssignedTaskDetails() {
                   )}
                 </button>
               </div>
+
+              {selectedStatus === "COMPLETED" && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase">
+                    Ảnh chứng thực (bắt buộc)
+                  </p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      if (evidencePreview) URL.revokeObjectURL(evidencePreview);
+                      setEvidenceFile(f);
+                      setEvidencePreview(f ? URL.createObjectURL(f) : null);
+                    }}
+                    className="block w-full text-sm text-gray-700"
+                  />
+                  {evidencePreview && (
+                    <img
+                      src={evidencePreview}
+                      alt="Ảnh chứng thực"
+                      className="w-full max-w-[260px] rounded-lg border border-gray-200 object-cover"
+                    />
+                  )}
+                </div>
+              )}
+
+              {selectedStatus === "CANCELLED" && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase">
+                    Lý do hủy
+                  </p>
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    rows={3}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ví dụ: Đã có đội khác đến cứu..."
+                  />
+                </div>
+              )}
+
               {updateStatusError && (
                 <p className="text-xs text-red-600">{updateStatusError}</p>
+              )}
+
+              {request.status === "COMPLETED" && request.evidenceImage && (
+                <div className="mt-3 space-y-2 pt-3 border-t border-gray-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    Ảnh chứng thực
+                  </p>
+                  <a
+                    href={imgUrl(request.evidenceImage)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-lg overflow-hidden border border-gray-200 hover:border-blue-300 hover:scale-105 transition-all w-fit"
+                  >
+                    <img
+                      src={imgUrl(request.evidenceImage)}
+                      alt="Ảnh chứng thực"
+                      className="w-full max-w-[260px] object-cover rounded-lg"
+                    />
+                  </a>
+                </div>
+              )}
+
+              {request.status === "CANCELLED" && request.cancelReason && (
+                <div className="mt-3 pt-3 border-t border-gray-100 space-y-1">
+                  <p className="text-xs font-semibold text-red-500 uppercase">Lý do hủy</p>
+                  <p className="text-sm text-gray-700">{request.cancelReason}</p>
+                </div>
               )}
             </div>
           </div>
