@@ -272,7 +272,7 @@ function RTRequestManagementContent() {
                                         onClick={() => setStatusFilter(s)}
                                         className={`px-3 py-2.5 transition-colors whitespace-nowrap cursor-pointer
                       ${statusFilter === s
-                                                ? "bg-gray-900 text-white"
+                                                ? "bg-blue-500 text-white"
                                                 : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"}`}
                                     >
                                         {s === "ALL" ? "Tất cả" : STATUS_META[s]?.label || s}

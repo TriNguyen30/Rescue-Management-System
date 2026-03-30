@@ -118,7 +118,7 @@ function Leaderboard({ items }: { items: DonationItem[] }) {
         <div className="flex rounded-xl overflow-hidden border border-gray-200 text-xs font-bold">
           {(["day", "month", "total"] as Period[]).map((p) => (
             <button key={p} onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 transition-colors ${period === p ? "bg-gray-900 text-white" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50 cursor-pointer"}`}>
+              className={`px-3 py-1.5 transition-colors ${period === p ? "bg-blue-500 text-white" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50 cursor-pointer"}`}>
               {p === "day" ? "Ngày" : p === "month" ? "Tháng" : "Tổng"}
             </button>
           ))}
