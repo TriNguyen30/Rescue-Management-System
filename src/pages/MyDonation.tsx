@@ -173,8 +173,8 @@ export default function ReceiptHistory() {
 
         {/* ── Header ── */}
         <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-sm">
               <Receipt className="w-5 h-5" />
             </div>
             <div>

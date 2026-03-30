@@ -368,7 +368,7 @@ export function RescueRequestPanel({
                                         <button
                                             type="button"
                                             onClick={() => setPickOnMapOpen(true)}
-                                            className="text-[11px] font-semibold text-blue-600 bg-white border border-gray-100 rounded-md px-2 py-0.5 hover:bg-gray-50 transition"
+                                            className="text-[11px] font-semibold text-blue-600 bg-white border border-gray-100 rounded-md px-2 py-0.5 hover:bg-gray-50 transition cursor-pointer"
                                         >
                                             Chọn trên bản đồ
                                         </button>
