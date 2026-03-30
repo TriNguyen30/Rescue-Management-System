@@ -11,7 +11,7 @@ import { getRescueRequests } from "@/services/rescue-request.service";
 import type { RescueRequest } from "@/types/rescue-requests";
 
 // ── Status config ──────────────────────────────────────────────────────────────
-const STATUS_META: Record<string, {
+const STATUS_META: Record<RescueRequestStatus, {
     label: string;
     bg: string;
     text: string;
@@ -27,6 +27,14 @@ const STATUS_META: Record<string, {
         dot: "bg-blue-500",
         icon: <Clock className="w-3 h-3" />,
     },
+    VERIFIED: {
+        label: "Đã xác minh",
+        bg: "bg-indigo-50",
+        text: "text-indigo-700",
+        border: "border-indigo-200",
+        dot: "bg-indigo-500",
+        icon: <ShieldAlert className="w-3 h-3" />,
+    },
     IN_PROGRESS: {
         label: "Đang xử lý",
         bg: "bg-amber-50",
@@ -35,13 +43,21 @@ const STATUS_META: Record<string, {
         dot: "bg-amber-500",
         icon: <Loader2 className="w-3 h-3 animate-spin" />,
     },
-    DONE: {
+    COMPLETED: {
         label: "Hoàn thành",
         bg: "bg-emerald-50",
         text: "text-emerald-700",
         border: "border-emerald-200",
         dot: "bg-emerald-500",
         icon: <CheckCircle2 className="w-3 h-3" />,
+    },
+    CANCELLED: {
+        label: "Đã hủy",
+        bg: "bg-red-50",
+        text: "text-red-700",
+        border: "border-red-200",
+        dot: "bg-red-500",
+        icon: <X className="w-3 h-3" />,
     },
 };
 
@@ -150,8 +166,10 @@ function RTRequestManagementContent() {
     const stats = useMemo(() => ({
         total: requests.length,
         pending: requests.filter((r) => r.status === "PENDING").length,
+        verified: requests.filter((r) => r.status === "VERIFIED").length,
         inProgress: requests.filter((r) => r.status === "IN_PROGRESS").length,
-        done: requests.filter((r) => r.status === "DONE").length,
+        completed: requests.filter((r) => r.status === "COMPLETED").length,
+        cancelled: requests.filter((r) => r.status === "CANCELLED").length,
     }), [requests]);
 
     const filtered = useMemo(() => {
@@ -238,7 +256,20 @@ function RTRequestManagementContent() {
                             <StatCard label="Tổng yêu cầu" value={stats.total} icon={<Users className="w-5 h-5 text-gray-500" />} color="border-gray-200" />
                             <StatCard label="Chờ xử lý" value={stats.pending} icon={<Clock className="w-5 h-5 text-blue-500" />} color="border-blue-200" />
                             <StatCard label="Đang xử lý" value={stats.inProgress} icon={<Flame className="w-5 h-5 text-amber-500" />} color="border-amber-200" />
-                            <StatCard label="Hoàn thành" value={stats.done} icon={<CheckCircle2 className="w-5 h-5 text-emerald-500" />} color="border-emerald-200" />
+                            <StatCard label="Hoàn thành" value={stats.completed} icon={<CheckCircle2 className="w-5 h-5 text-emerald-500" />} color="border-emerald-200" />
+                            <StatCard
+                                label="Đã xác minh"
+                                value={stats.verified}
+                                icon={<ShieldAlert className="w-5 h-5 text-indigo-500" />}
+                                color="border-indigo-200"
+                            />
+
+                            <StatCard
+                                label="Đã hủy"
+                                value={stats.cancelled}
+                                icon={<X className="w-5 h-5 text-red-500" />}
+                                color="border-red-200"
+                            />
                         </div>
                     )}
 
@@ -371,10 +402,12 @@ function RTRequestManagementContent() {
                                                 {/* Assigned team */}
                                                 <div className="min-w-0">
                                                     {r.assignedTeamId?.teamName ? (
-                                                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-700 truncate">
+                                                        <div className="flex items-center gap-1.5 min-w-0">
                                                             <Users className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                                                            {r.assignedTeamId.teamName}
-                                                        </span>
+                                                            <span className="truncate text-sm font-semibold text-gray-700 max-w-[120px]" title={r.assignedTeamId.teamName}>
+                                                                {r.assignedTeamId.teamName}
+                                                            </span>
+                                                        </div>
                                                     ) : (
                                                         <span className="text-xs text-gray-300 italic">Chưa gán</span>
                                                     )}
