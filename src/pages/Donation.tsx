@@ -128,7 +128,7 @@ function Leaderboard({ items }: { items: DonationItem[] }) {
       {/* List */}
       <div className="divide-y divide-gray-100 flex-1">
         {donors.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-400">Vui lòng đăng nhập để có thể thông tin</div>
+          <div className="py-12 text-center text-sm text-gray-400">Vui lòng đăng nhập để có thể xem thông tin</div>
         ) : (
           donors.map((d, i) => {
             const uid = d.userId;
@@ -217,7 +217,7 @@ function RecentMessages({ items }: { items: DonationItem[] }) {
       {/* Scrollable feed */}
       <div className="overflow-y-auto flex-1 divide-y divide-gray-100">
         {messages.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-400">Vui lòng đăng nhập để có xem thông tin</div>
+          <div className="py-12 text-center text-sm text-gray-400">Vui lòng đăng nhập để có thể xem thông tin</div>
         ) : (
           messages.map((d) => {
             const uid =
