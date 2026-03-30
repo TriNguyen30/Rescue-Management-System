@@ -117,6 +117,41 @@ export default function UserProfile() {
     const [pwError, setPwError] = useState("");
     const [pwSuccess, setPwSuccess] = useState(false);
 
+    const [isEditingInfo, setIsEditingInfo] = useState(false);
+    const [fullName, setFullName] = useState(user.fullName || "");
+    const [phone, setPhone] = useState(user.phone || "");
+    const [infoSaving, setInfoSaving] = useState(false);
+    const [infoError, setInfoError] = useState("");
+
+    useEffect(() => {
+        setFullName(user.fullName || "");
+        setPhone(user.phone || "");
+    }, [user.fullName, user.phone]);
+
+    const handleUpdateProfile = async () => {
+        setInfoError("");
+
+        if (!fullName.trim()) {
+            setInfoError("Họ tên không được để trống");
+            return;
+        }
+
+        setInfoSaving(true);
+        try {
+            const updated = await updateMyProfile({
+                fullName,
+                phone,
+            });
+
+            dispatch(setUser({ ...user, ...updated }));
+            setIsEditingInfo(false);
+        } catch (e: any) {
+            setInfoError(e?.response?.data?.message || "Cập nhật thất bại");
+        } finally {
+            setInfoSaving(false);
+        }
+    };
+
     if (!user) return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3 text-gray-400">
@@ -353,7 +388,15 @@ export default function UserProfile() {
                                     <User className="w-3.5 h-3.5 text-blue-500" />
                                 </div>
                                 <h2 className="text-sm font-bold text-gray-800">Thông tin cá nhân</h2>
+                                <button
+                                    onClick={() => setIsEditingInfo(true)}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 active:scale-95 transition-all cursor-pointer"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                    Chỉnh sửa
+                                </button>
                             </div>
+
                             <div className="flex items-center gap-2">
                                 {avatarError && (
                                     <span className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 px-3 py-1 rounded-full">
@@ -369,22 +412,65 @@ export default function UserProfile() {
                         </div>
 
                         <div className="divide-y divide-gray-50">
-                            <InfoRow
-                                icon={<User className="w-4 h-4" />}
-                                label="Họ và tên"
-                                value={displayName}
-                            />
-                            {/* <InfoRow
-                                icon={<User className="w-4 h-4" />}
-                                label="Tên đăng nhập"
-                                value={`@${user.username}`}
-                                mono
-                            /> */}
-                            <InfoRow
-                                icon={<Phone className="w-4 h-4" />}
-                                label="Số điện thoại"
-                                value={user.phone}
-                            />
+                            <div className="px-6 py-5 space-y-4">
+
+                                {/* Full name */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                        Họ và tên
+                                    </label>
+
+                                    {isEditingInfo ? (
+                                        <input
+                                            value={fullName}
+                                            onChange={(e) => setFullName(e.target.value)}
+                                            className="w-full px-4 py-3 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:border-blue-400 focus:bg-white transition-all"
+                                        />
+                                    ) : (
+                                        <div className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold text-gray-800">
+                                            {fullName || "—"}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Phone */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                        Số điện thoại
+                                    </label>
+
+                                    {isEditingInfo ? (
+                                        <input
+                                            value={phone}
+                                            onChange={(e) => setPhone(e.target.value)}
+                                            className="w-full px-4 py-3 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:border-blue-400 focus:bg-white transition-all"
+                                        />
+                                    ) : (
+                                        <div className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold text-gray-800">
+                                            {phone || "—"}
+                                        </div>
+                                    )}
+                                </div>
+                                {isEditingInfo && (
+                                    <div className="flex gap-2 pb-4">
+                                        <button
+                                            onClick={handleUpdateProfile}
+                                            disabled={infoSaving}
+                                            className="px-4 py-2 text-sm bg-gray-900 hover:bg-gray-700 font-bold text-white rounded-xl disabled:bg-gray-300 disabled:cursor-not-allowed duration-200 shadow-sm cursor-pointer active:scale-95 transition-all"
+                                        >
+                                            Lưu
+                                        </button>
+                                        <button
+                                            onClick={() => setIsEditingInfo(false)}
+                                            className="px-4 py-2 text-sm bg-red-400 hover:bg-red-500 font-bold text-white rounded-xl disabled:bg-gray-300 disabled:cursor-not-allowed duration-200 shadow-sm cursor-pointer active:scale-95 transition-all"
+                                        >
+                                            Hủy
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Các field readonly */}
                             <InfoRow
                                 icon={<Shield className="w-4 h-4" />}
                                 label="Vai trò"
@@ -395,12 +481,14 @@ export default function UserProfile() {
                                     </span>
                                 }
                             />
+
                             <InfoRow
                                 icon={<Hash className="w-4 h-4" />}
                                 label="Mã người dùng"
                                 value={user.userCode}
                                 mono
                             />
+
                             {createdAt && (
                                 <InfoRow
                                     icon={<CalendarDays className="w-4 h-4" />}
@@ -448,11 +536,11 @@ export default function UserProfile() {
                                             const strength = newPassword.length >= 12 ? 4 : newPassword.length >= 8 ? 3 : newPassword.length >= 6 ? 2 : 1;
                                             return (
                                                 <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= strength
-                                                        ? strength >= 4 ? "bg-emerald-400"
-                                                            : strength >= 3 ? "bg-blue-400"
-                                                                : strength >= 2 ? "bg-amber-400"
-                                                                    : "bg-red-400"
-                                                        : "bg-gray-100"
+                                                    ? strength >= 4 ? "bg-emerald-400"
+                                                        : strength >= 3 ? "bg-blue-400"
+                                                            : strength >= 2 ? "bg-amber-400"
+                                                                : "bg-red-400"
+                                                    : "bg-gray-100"
                                                     }`} />
                                             );
                                         })}
@@ -480,7 +568,7 @@ export default function UserProfile() {
                             <button
                                 onClick={handleChangePassword}
                                 disabled={pwSaving}
-                                className="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-2xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+                                className="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-2xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 shadow-sm cursor-pointer"
                             >
                                 {pwSaving ? (
                                     <><Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...</>
