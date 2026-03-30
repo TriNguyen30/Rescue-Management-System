@@ -132,6 +132,11 @@ export default function RescueTeamDashboard() {
                                                         {task.urgencyLevel}
                                                     </span>
                                                 )}
+                                                {task.status && (
+                                                    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-700">
+                                                        {task.status}
+                                                    </span>
+                                                )}
                                             </div>
                                             <p className="text-gray-700">{task.description}</p>
                                             <div className="flex flex-wrap gap-4 text-sm text-gray-500">

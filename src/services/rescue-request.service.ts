@@ -99,10 +99,9 @@ export const assignRescueRequest = async (id: string, payload: AssignRequestPayl
  */
 export const updateRescueRequestStatus = async (
     id: string,
-    status: RescueRequestStatus,
+    payload: UpdateRescueRequestStatusPayload,
 ): Promise<RescueRequest> => {
     try {
-        const payload: UpdateRescueRequestStatusPayload = { status };
         const response = await axiosInstance.patch<RescueRequest | { data: RescueRequest }>(
             `/rescue-requests/${id}/status`,
             payload,

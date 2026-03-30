@@ -235,9 +235,9 @@ export default function DonationHistory() {
 
                 {/* ── Header ── */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20">
-                            <BarChart3 className="w-6 h-6" />
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shadow-sm">
+                            <BarChart3 className="w-5 h-5" />
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Lịch sử quyên góp</h1>

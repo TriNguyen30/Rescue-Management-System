@@ -39,9 +39,9 @@ export default function AdminDashboard() {
   return (
       <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
         <div className="max-w-5xl mx-auto space-y-8">
-          <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20">
-              <Shield className="w-7 h-7" />
+          <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shadow-sm">
+              <Shield className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Bảng điều khiển quản trị</h1>

@@ -266,8 +266,58 @@ export default function RequestDetails() {
       ? (request.assignedTeamId as NonNullable<RescueRequest["assignedTeamId"]>)
       : null;
   const isAssigned = Boolean(request.assignedTeamId);
-  const assignedVehicleNames =
-    assignedTeam?.vehicles?.map((vid: string) => vehicleMap[vid]?.plateNumber).filter(Boolean) ?? [];
+  const assignedVehiclePlateNumbers = (() => {
+    const r = request as any;
+
+    const candidates: Array<string | undefined> = [];
+
+    // Common patterns from backend responses
+    candidates.push(
+      typeof r?.vehicleId === "string" ? r.vehicleId : undefined,
+      typeof r?.assignedVehicleId === "string" ? r.assignedVehicleId : undefined,
+      typeof r?.vehicle?._id === "string" ? r.vehicle._id : undefined,
+      typeof r?.assignedVehicle?._id === "string" ? r.assignedVehicle._id : undefined,
+      typeof r?.assignedVehicleId?._id === "string" ? r.assignedVehicleId._id : undefined,
+      typeof r?.vehicleId?._id === "string" ? r.vehicleId._id : undefined,
+    );
+
+    // Some APIs return an array
+    if (Array.isArray(r?.vehicles)) {
+      for (const v of r.vehicles) {
+        if (typeof v === "string") candidates.push(v);
+        if (v && typeof v === "object" && typeof v._id === "string") candidates.push(v._id);
+      }
+    }
+
+    // Legacy: sometimes stored under team assignment
+    if (Array.isArray(assignedTeam?.vehicles)) {
+      for (const v of assignedTeam.vehicles as any[]) {
+        if (typeof v === "string") candidates.push(v);
+        if (v && typeof v === "object" && typeof v._id === "string") candidates.push(v._id);
+      }
+    }
+
+    const ids = Array.from(new Set(candidates.filter(Boolean))) as string[];
+
+    const byId = ids
+      .map((id) => vehicleMap[id]?.plateNumber)
+      .filter(Boolean) as string[];
+
+    const direct =
+      (typeof r?.vehicle?.plateNumber === "string" ? [r.vehicle.plateNumber] : [])
+        .concat(typeof r?.assignedVehicle?.plateNumber === "string" ? [r.assignedVehicle.plateNumber] : []);
+
+    return Array.from(new Set([...direct, ...byId]));
+  })();
+  const assignedVehicleCount = assignedVehiclePlateNumbers.length;
+
+  const assignedSupplies = (
+    (request as any)?.supplies ??
+    (request as any)?.suppliesMangTheo ??
+    (request as any)?.assignedSupplies ??
+    (request as any)?.supplyItems ??
+    []
+  ) as { inventoryId: string; quantity: number }[];
 
   /* ─── Render: sidebar + map layout ─── */
   return (
@@ -327,8 +377,32 @@ export default function RequestDetails() {
               <div className="text-sm">
                 <p className="font-semibold text-blue-800">Đội đã điều phối</p>
                 <p className="text-blue-700">{assignedTeam.teamName}</p>
-                {assignedVehicleNames.length > 0 && (
-                  <p className="text-xs text-blue-500 mt-0.5">Phương tiện: {assignedVehicleNames.join(", ")}</p>
+                {assignedVehicleCount > 0 && (
+                  <p className="text-xs text-blue-500 mt-0.5">
+                    Phương tiện ({assignedVehicleCount}):{" "}
+                    {assignedVehiclePlateNumbers.join(", ")}
+                  </p>
+                )}
+                {assignedSupplies?.length > 0 && (
+                  <div className="mt-1.5 text-xs space-y-1">
+                    <p className="text-blue-600 font-medium">
+                      Vật tư mang theo
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {assignedSupplies.map((s) => {
+                        const item = inventoryMap[s.inventoryId];
+                        return (
+                          <span
+                            key={s.inventoryId}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-blue-200 bg-white/60 text-blue-700"
+                          >
+                            {item?.itemName ?? s.inventoryId}:{" "}
+                            {s.quantity}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

@@ -193,9 +193,9 @@ export default function AdminOperationsReport() {
       <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 print:bg-white print:p-4">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
-            <div className="flex items-start gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-                <FileText className="w-6 h-6" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shadow-sm">
+                <FileText className="w-5 h-5" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Báo cáo cứu trợ & hoạt động</h1>

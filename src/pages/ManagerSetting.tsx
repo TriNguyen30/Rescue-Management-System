@@ -124,9 +124,9 @@ export default function ManagerSetting() {
       <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
         <div className="max-w-3xl mx-auto space-y-6">
           {/* Header */}
-          <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-sm shrink-0">
-              <Settings className="w-6 h-6" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shadow-sm shrink-0">
+              <Settings className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Cài đặt</h1>
@@ -226,7 +226,7 @@ export default function ManagerSetting() {
               <button
                 type="submit"
                 disabled={pwSaving}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 rounded-xl transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-emerald-300 rounded-xl transition-colors cursor-pointer"
               >
                 {pwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
                 {pwSaving ? "Đang lưu..." : "Đổi mật khẩu"}
@@ -265,7 +265,7 @@ export default function ManagerSetting() {
                   className="flex items-center justify-between px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <span className="font-medium">Yêu cầu cứu hộ</span>
-                  <Bell className="w-4 h-4 text-gray-400" />
+                  <ExternalLink className="w-4 h-4 text-gray-400" />
                 </Link>
               </li>
             </ul>
