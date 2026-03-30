@@ -23,9 +23,15 @@ export interface DonationList {
 
 export type DonationStatus = "PENDING" | "SUCCESS" | "FAILED";
 
+export interface UserInfo {
+    _id: string;
+    username?: string;
+    fullName?: string;
+}
+
 export interface DonationItem {
     _id: string;
-    userId: string;
+    userId: string | UserInfo;
     orderId: string;
     amount: number;
     message: string;

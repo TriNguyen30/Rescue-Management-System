@@ -20,7 +20,11 @@ const timeAgo = (iso: string) => {
   return `${Math.floor(diff / 86400)} ngày trước`;
 };
 
-function idToColor(id: string) {
+function idToColor(id: any) {
+  const realId = typeof id === "string" ? id : id?._id;
+
+  if (!realId) return "bg-gray-100 text-gray-600";
+
   const colors = [
     "bg-violet-100 text-violet-600",
     "bg-blue-100 text-blue-600",
@@ -33,7 +37,8 @@ function idToColor(id: string) {
     "bg-orange-100 text-orange-600",
     "bg-teal-100 text-teal-600",
   ];
-  const hash = id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+
+  const hash = realId.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
   return colors[hash % colors.length];
 }
 
@@ -53,7 +58,13 @@ function CopyBtn({ text }: { text: string }) {
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface Donor { userId: string; total: number; count: number; }
+interface Donor {
+  userId: string;
+  name?: string;
+  total: number;
+  count: number;
+  fullName?: string;
+}
 type Period = "day" | "month" | "total";
 
 // ── Leaderboard ───────────────────────────────────────────────────────────────
@@ -71,15 +82,30 @@ function Leaderboard({ items }: { items: DonationItem[] }) {
     });
     const map: Record<string, Donor> = {};
     filtered.forEach((d) => {
-      if (!d.userId) return;
-      if (!map[d.userId]) map[d.userId] = { userId: d.userId, total: 0, count: 0 };
-      map[d.userId].total += d.amount;
-      map[d.userId].count++;
+      const uid = typeof d.userId === "string" ? d.userId : d.userId?._id;
+      if (!uid) return;
+
+      const name =
+        typeof d.userId === "string"
+          ? shortId(d.userId) // fallback nếu BE không populate
+          : d.userId.fullName || d.userId.username || shortId(uid);
+
+      if (!map[uid]) map[uid] = { userId: uid, name, total: 0, count: 0 };
+
+      map[uid].total += d.amount;
+      map[uid].count++;
     });
     return Object.values(map).sort((a, b) => b.total - a.total).slice(0, 10);
   }, [items, period]);
 
   const crownColors = ["text-yellow-500", "text-gray-400", "text-amber-600"];
+
+  function getInitials(name?: string) {
+    if (!name) return "?";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0][0]?.toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full flex flex-col">
@@ -102,34 +128,57 @@ function Leaderboard({ items }: { items: DonationItem[] }) {
       {/* List */}
       <div className="divide-y divide-gray-100 flex-1">
         {donors.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-400">Chưa có dữ liệu cho kỳ này</div>
+          <div className="py-12 text-center text-sm text-gray-400">Vui lòng đăng nhập để có thể thông tin</div>
         ) : (
-          donors.map((d, i) => (
-            <div key={d.userId} className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors">
-              {/* Crown / rank */}
-              <div className="w-7 flex items-center justify-center shrink-0">
-                {i < 3
-                  ? <Crown className={`w-5 h-5 ${crownColors[i]}`} />
-                  : <span className="text-xs font-bold text-gray-400">#{i + 1}</span>}
-              </div>
+          donors.map((d, i) => {
+            const uid = d.userId;
+            const initials = getInitials(d.name);
 
-              {/* Avatar */}
-              <div className={`w-10 h-10 rounded-full ${idToColor(d.userId)} flex items-center justify-center text-sm font-black shrink-0 ring-2 ring-white`}>
-                {d.userId[0]?.toUpperCase()}
-              </div>
+            return (
+              <div
+                key={`${uid}-${i}`}
+                className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
+              >
+                {/* Crown */}
+                <div className="w-7 flex items-center justify-center shrink-0">
+                  {i < 3 ? (
+                    <Crown className={`w-5 h-5 ${crownColors[i]}`} />
+                  ) : (
+                    <span className="text-xs font-bold text-gray-400">
+                      #{i + 1}
+                    </span>
+                  )}
+                </div>
 
-              {/* ID + count */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-gray-800 truncate font-mono">{shortId(d.userId)}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">{d.count} lần quyên góp</p>
-              </div>
+                {/* Avatar */}
 
-              {/* Amount */}
-              <p className={`text-sm font-black shrink-0 ${i === 0 ? "text-yellow-600" : i === 1 ? "text-gray-500" : i === 2 ? "text-amber-600" : "text-gray-700"}`}>
-                {fmtVND(d.total)}
-              </p>
-            </div>
-          ))
+                <div
+                  className={`w-10 h-10 rounded-full ${idToColor(d.name || uid)} flex items-center justify-center text-sm font-black shrink-0 ring-2 ring-white`}
+                >
+                  {initials}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-gray-800 truncate">
+                    {d.name}
+                  </p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    {d.count} lần quyên góp
+                  </p>
+                </div>
+
+                {/* Amount */}
+                <p className={`text-sm font-black shrink-0 ${i === 0 ? "text-yellow-600"
+                  : i === 1 ? "text-gray-500"
+                    : i === 2 ? "text-amber-600"
+                      : "text-gray-700"
+                  }`}>
+                  {fmtVND(d.total)}
+                </p>
+              </div>
+            );
+          })
         )}
       </div>
     </div>
@@ -146,6 +195,17 @@ function RecentMessages({ items }: { items: DonationItem[] }) {
     [items]
   );
 
+  const getInitials = (name?: string) => {
+    if (!name) return "?";
+
+    const words = name.trim().split(" ");
+    if (words.length === 1) return words[0][0]?.toUpperCase();
+
+    return (
+      words[0][0] + words[words.length - 1][0]
+    ).toUpperCase();
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full flex flex-col" style={{ maxHeight: "600px" }}>
       {/* Header */}
@@ -157,22 +217,32 @@ function RecentMessages({ items }: { items: DonationItem[] }) {
       {/* Scrollable feed */}
       <div className="overflow-y-auto flex-1 divide-y divide-gray-100">
         {messages.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-400">Chưa có lời nhắn</div>
+          <div className="py-12 text-center text-sm text-gray-400">Vui lòng đăng nhập để có xem thông tin</div>
         ) : (
           messages.map((d) => {
-            const avatarId = d.userId ?? d._id;
+            const uid =
+              typeof d.userId === "string"
+                ? d.userId
+                : d.userId?._id || d._id;
+
+            const name =
+              typeof d.userId === "string"
+                ? shortId(d.userId)
+                : d.userId?.fullName || d.userId?.username || shortId(uid);
+
+            const initials = getInitials(name);
             return (
               <div key={d._id} className="px-5 py-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start gap-3">
                   {/* Avatar */}
-                  <div className={`w-9 h-9 rounded-full ${idToColor(avatarId)} flex items-center justify-center text-xs font-black shrink-0 mt-0.5`}>
-                    {avatarId[0]?.toUpperCase()}
+                  <div className={`w-9 h-9 rounded-full ${idToColor(uid)} flex items-center justify-center text-xs font-black shrink-0 mt-0.5`}>
+                    {initials}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     {/* Name + time */}
                     <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <span className="text-sm font-bold text-gray-800 truncate font-mono">{shortId(avatarId)}</span>
+                      <span className="text-sm font-bold text-gray-800 truncate">{name || shortId(uid)}</span>
                       <span className="text-[11px] text-gray-400 shrink-0">{timeAgo(d.createdAt)}</span>
                     </div>
                     {/* Amount sub-label */}
@@ -224,6 +294,8 @@ function VNPayForm() {
       setSubmitting(false);
     }
   };
+
+  const isLoggedIn = !!localStorage.getItem("token");
 
   return (
     <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
@@ -284,14 +356,32 @@ function VNPayForm() {
           </div>
         )}
 
-        <button type="button" onClick={handleSubmit} disabled={submitting || finalAmount < 10_000}
+
+        <button
+          type="button"
+          onClick={() => {
+            if (!isLoggedIn) {
+              window.location.href = "/login"; // route login của bạn
+              return;
+            }
+            handleSubmit();
+          }}
+          disabled={
+            submitting ||
+            (isLoggedIn && finalAmount < 10_000)
+          }
           className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-sm font-black text-white
-            bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600
-            disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed
-            shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all cursor-pointer">
-          {submitting
-            ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang chuyển hướng...</>
-            : <>Quyên góp ngay qua VNPay <ArrowRight className="w-4 h-4" /></>}
+    bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600
+    disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed
+    shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all cursor-pointer"
+        >
+          {!isLoggedIn ? (
+            <>Đăng nhập để quyên góp <ArrowRight className="w-4 h-4" /></>
+          ) : submitting ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Đang chuyển hướng...</>
+          ) : (
+            <>Quyên góp ngay qua VNPay <ArrowRight className="w-4 h-4" /></>
+          )}
         </button>
 
         <p className="text-center text-[11px] text-gray-400">
