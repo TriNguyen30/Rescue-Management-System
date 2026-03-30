@@ -172,8 +172,8 @@ export default function ManagerDashboard() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-sm">
-                <LayoutDashboard className="w-6 h-6" />
+              <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shadow-sm">
+                <LayoutDashboard className="w-5 h-5" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Tổng quan vận hành</h1>
