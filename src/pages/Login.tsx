@@ -3,7 +3,7 @@ import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
 import { Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Cross } from "lucide-react";
 import { PiFirstAidFill } from "react-icons/pi";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 // import Logo from "@/assets/image/Logo.png";
 import Logo from "@/assets/image/LogoV2.png";
 import { login } from "@/services/auth.service";
@@ -95,13 +95,13 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <button
-          onClick={() => navigate("/")}
+        <NavLink
+          to="/"
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-8 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Quay lại trang chủ
-        </button>
+        </NavLink>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="flex flex-col items-center mb-8">
