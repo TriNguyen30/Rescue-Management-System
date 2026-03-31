@@ -285,13 +285,19 @@ export default function AssignedTaskDetails() {
               <p className="text-xs font-semibold text-gray-500 uppercase">
                 Cập nhật tiến độ
               </p>
+              {(request.status === "COMPLETED" || request.status === "CANCELLED") && (
+                <p className="text-xs text-gray-400 italic">
+                  Nhiệm vụ đã kết thúc, không thể cập nhật thêm.
+                </p>
+              )}
               <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                 <select
                   value={selectedStatus}
                   onChange={(e) =>
                     setSelectedStatus(e.target.value as RescueRequestStatus | "")
                   }
-                  className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={request.status === "COMPLETED" || request.status === "CANCELLED"}
+                  className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
                 >
                   <option value="">-- Chọn trạng thái --</option>
                   <option value="IN_PROGRESS">Đang thực hiện</option>
@@ -301,7 +307,7 @@ export default function AssignedTaskDetails() {
                 <button
                   type="button"
                   onClick={handleUpdateStatus}
-                  disabled={updatingStatus || !selectedStatus }
+                  disabled={updatingStatus || !selectedStatus || request.status === "COMPLETED" || request.status === "CANCELLED"}
                   className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {updatingStatus ? (
