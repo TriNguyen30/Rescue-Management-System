@@ -455,7 +455,7 @@ export default function RequestDetails() {
             <Select value={vehicleId} onChange={setVehicleId} className="w-full">
               <option value="">Chọn phương tiện</option>
               {vehicles.filter(v => v.status === "AVAILABLE").map(v => (
-                <option key={v._id} value={v._id}>{v.plateNumber}</option>
+                <option key={v._id} value={v._id}>{v.plateNumber} ({v.name}: {v.type})</option>
               ))}
             </Select>
 
