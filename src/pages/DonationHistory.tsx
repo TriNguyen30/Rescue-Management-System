@@ -26,7 +26,7 @@ import {
     Download,
     BarChart3,
 } from "lucide-react";
-import { getDonations, DonationItem, DonationStatus } from "@/services/donation.service";
+import { getDonations, DonationItem, DonationStatus, UserInfo } from "@/services/donation.service";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const fmtVND = (n: number) =>
@@ -37,6 +37,13 @@ const fmtDate = (iso: string) =>
 
 const fmtTime = (iso: string) =>
     new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+
+// ── Resolve userId to display name ────────────────────────────────────────────
+const getDisplayName = (userId: string | UserInfo | undefined): string => {
+    if (!userId) return "—";
+    if (typeof userId === "string") return userId.slice(0, 8) + "…";
+    return userId.fullName || userId.username || userId._id?.slice(0, 8) + "…";
+};
 
 const statusMeta: Record<DonationStatus, { label: string; color: string; icon: React.ReactNode }> = {
     SUCCESS: {
@@ -235,9 +242,9 @@ export default function DonationHistory() {
 
                 {/* ── Header ── */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shadow-sm">
-                            <BarChart3 className="w-5 h-5" />
+                    <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20">
+                            <BarChart3 className="w-6 h-6" />
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Lịch sử quyên góp</h1>
@@ -425,7 +432,7 @@ export default function DonationHistory() {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100">
-                                    {["Mã đơn", "Số tiền", "Lời nhắn", "Trạng thái", "Mã giao dịch VNPay", "Thời gian"].map((h) => (
+                                    {["Khách hàng", "Mã đơn", "Số tiền", "Lời nhắn", "Trạng thái", "Mã giao dịch VNPay", "Thời gian"].map((h) => (
                                         <th key={h} className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-3 whitespace-nowrap">
                                             {h}
                                         </th>
@@ -435,17 +442,27 @@ export default function DonationHistory() {
                             <tbody className="divide-y divide-gray-50">
                                 {tableLoading ? (
                                     <tr>
-                                        <td colSpan={6} className="text-center py-12 text-gray-400 text-sm">Đang tải...</td>
+                                        <td colSpan={7} className="text-center py-12 text-gray-400 text-sm">Đang tải...</td>
                                     </tr>
                                 ) : tableItems.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="text-center py-12 text-gray-400 text-sm">Không có giao dịch nào</td>
+                                        <td colSpan={7} className="text-center py-12 text-gray-400 text-sm">Không có giao dịch nào</td>
                                     </tr>
                                 ) : (
                                     tableItems.map((item) => {
                                         const s = statusMeta[item.status];
                                         return (
                                             <tr key={item._id} className="hover:bg-gray-50/60 transition-colors">
+                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                    <div className="flex items-center gap-2">
+                                                        {/* <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 shrink-0">
+                                                            {getDisplayName(item.userId)[0]?.toUpperCase() ?? "?"}
+                                                        </div> */}
+                                                        <span className="text-xs font-semibold text-gray-700 truncate max-w-[120px]" title={item.userId && typeof item.userId !== "string" ? (item.userId.fullName || item.userId.username) : undefined}>
+                                                            {getDisplayName(item.userId)}
+                                                        </span>
+                                                    </div>
+                                                </td>
                                                 <td className="px-4 py-3 font-mono text-xs text-gray-500 whitespace-nowrap">
                                                     {item.orderId}
                                                 </td>
