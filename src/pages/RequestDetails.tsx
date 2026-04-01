@@ -266,86 +266,53 @@ export default function RequestDetails() {
       ? (request.assignedTeamId as NonNullable<RescueRequest["assignedTeamId"]>)
       : null;
   const isAssigned = Boolean(request.assignedTeamId);
-  const isLocked = ["IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(
-    (request.status ?? "").toUpperCase()
-  );
+  const statusUpper = (request.status ?? "").toUpperCase();
+  const isLocked = ["IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(statusUpper);
+  const isCompleted = statusUpper === "COMPLETED";
+  const isCancelled = statusUpper === "CANCELLED";
+
+  const evidenceImage: string | undefined = (request as any).evidenceImage;
+  const cancelReason: string | undefined = (request as any).cancelReason;
+
   const assignedVehicles = (() => {
     const r = request as any;
-
-    const fromTeam: any[] = Array.isArray(assignedTeam?.vehicles)
-      ? (assignedTeam!.vehicles as any[])
-      : [];
-
-    const fromRequest: any[] = Array.isArray(r?.vehicles)
-      ? r.vehicles
-      : [];
-
-    // Single vehicle (common patterns)
+    const fromTeam: any[] = Array.isArray(assignedTeam?.vehicles) ? (assignedTeam!.vehicles as any[]) : [];
+    const fromRequest: any[] = Array.isArray(r?.vehicles) ? r.vehicles : [];
     const singleCandidates: any[] = [];
     if (r?.vehicle) singleCandidates.push(r.vehicle);
     if (r?.assignedVehicle) singleCandidates.push(r.assignedVehicle);
     if (r?.vehicleId && typeof r.vehicleId === "object") singleCandidates.push(r.vehicleId);
     if (r?.assignedVehicleId && typeof r.assignedVehicleId === "object") singleCandidates.push(r.assignedVehicleId);
-
-    // Collect string ids to resolve via vehicleMap
     const idCandidates: string[] = [];
     const pushId = (v: any) => {
       if (!v) return;
       if (typeof v === "string") idCandidates.push(v);
       else if (typeof v === "object" && typeof v._id === "string") idCandidates.push(v._id);
     };
-
-    pushId(r?.vehicleId);
-    pushId(r?.assignedVehicleId);
+    pushId(r?.vehicleId); pushId(r?.assignedVehicleId);
     for (const v of fromTeam) pushId(v);
     for (const v of fromRequest) pushId(v);
-
-    const resolvedById = Array.from(new Set(idCandidates))
-      .map((id) => vehicleMap[id])
-      .filter(Boolean) as any[];
-
+    const resolvedById = Array.from(new Set(idCandidates)).map((id) => vehicleMap[id]).filter(Boolean) as any[];
     const merged = [...fromTeam, ...fromRequest, ...singleCandidates, ...resolvedById]
       .filter(Boolean)
       .map((v) => {
         const obj = typeof v === "string" ? vehicleMap[v] : v;
         if (!obj) return null;
-        return {
-          _id: obj._id || obj.id || (typeof v === "string" ? v : undefined),
-          name: obj.name ?? obj.vehicleName ?? obj.itemName,
-          plateNumber: obj.plateNumber,
-          type: obj.type,
-          capacity: obj.capacity,
-        };
+        return { _id: obj._id || obj.id, name: obj.name ?? obj.vehicleName ?? obj.itemName, plateNumber: obj.plateNumber, type: obj.type, capacity: obj.capacity };
       })
-      .filter((v) => v && v.plateNumber) as Array<{
-        _id?: string;
-        name?: string;
-        plateNumber: string;
-        type?: string;
-        capacity?: number;
-      }>;
-
-    // unique by plateNumber
+      .filter((v) => v && v.plateNumber) as Array<{ _id?: string; name?: string; plateNumber: string; type?: string; capacity?: number }>;
     const seen = new Set<string>();
     const unique: typeof merged = [];
-    for (const v of merged) {
-      if (seen.has(v.plateNumber)) continue;
-      seen.add(v.plateNumber);
-      unique.push(v);
-    }
+    for (const v of merged) { if (seen.has(v.plateNumber)) continue; seen.add(v.plateNumber); unique.push(v); }
     return unique;
   })();
-  const assignedVehicleCount = assignedVehicles.length;
 
   const assignedSupplies = (
-    (request as any)?.supplies ??
-    (request as any)?.suppliesMangTheo ??
-    (request as any)?.assignedSupplies ??
-    (request as any)?.supplyItems ??
-    []
+    (request as any)?.supplies ?? (request as any)?.suppliesMangTheo ??
+    (request as any)?.assignedSupplies ?? (request as any)?.supplyItems ?? []
   ) as { inventoryId: string; quantity: number }[];
 
-  /* ─── Render: sidebar + map layout ─── */
+  /* ─── Render ─── */
   return (
     <div className="min-h-screen flex bg-gray-50">
 
@@ -367,9 +334,9 @@ export default function RequestDetails() {
               <p className="font-semibold text-gray-900 leading-snug">{request.description}</p>
             </div>
             {request.urgencyLevel && request.status?.toUpperCase() !== "PENDING" && (
-                <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${URGENCY_BADGE[request.urgencyLevel] ?? "bg-gray-100 text-gray-600"}`}>
-                  {URGENCY_LABEL[request.urgencyLevel] ?? request.urgencyLevel}
-                </span>
+              <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${URGENCY_BADGE[request.urgencyLevel] ?? "bg-gray-100 text-gray-600"}`}>
+                {URGENCY_LABEL[request.urgencyLevel] ?? request.urgencyLevel}
+              </span>
             )}
           </div>
         </div>
@@ -403,20 +370,16 @@ export default function RequestDetails() {
               <div className="text-sm">
                 <p className="font-semibold text-blue-800">Đội đã điều phối</p>
                 <p className="text-blue-700">{assignedTeam.teamName}</p>
-                {assignedVehicleCount > 0 && (
+                {assignedVehicles.length > 0 && (
                   <div className="text-xs text-blue-500 mt-0.5 space-y-1">
-                    <p>
-                      Phương tiện:
-                    </p>
+                    <p>Phương tiện:</p>
                     <ul className="list-disc list-inside space-y-0.5 text-blue-600">
                       {assignedVehicles.map((v) => (
                         <li key={v._id ?? v.plateNumber}>
                           <span>{v.plateNumber}</span>
                           {v.name ? <span className="text-blue-700"> • {v.name}</span> : null}
                           {v.type ? <span className="text-blue-700"> • {v.type}</span> : null}
-                          {typeof v.capacity === "number"
-                            ? <span className="text-blue-700"> • {v.capacity}</span>
-                            : null}
+                          {typeof v.capacity === "number" ? <span className="text-blue-700"> • {v.capacity}</span> : null}
                         </li>
                       ))}
                     </ul>
@@ -424,19 +387,13 @@ export default function RequestDetails() {
                 )}
                 {assignedSupplies?.length > 0 && (
                   <div className="mt-1.5 text-xs space-y-1">
-                    <p className="text-blue-600 font-medium">
-                      Vật tư mang theo
-                    </p>
+                    <p className="text-blue-600 font-medium">Vật tư mang theo</p>
                     <div className="flex flex-wrap gap-2">
                       {assignedSupplies.map((s) => {
                         const item = inventoryMap[s.inventoryId];
                         return (
-                          <span
-                            key={s.inventoryId}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-blue-200 bg-white/60 text-blue-700"
-                          >
-                            {item?.itemName ?? s.inventoryId}:{" "}
-                            {s.quantity}
+                          <span key={s.inventoryId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-blue-200 bg-white/60 text-blue-700">
+                            {item?.itemName ?? s.inventoryId}: {s.quantity}
                           </span>
                         );
                       })}
@@ -444,6 +401,35 @@ export default function RequestDetails() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* ── Ảnh chứng thực (COMPLETED) ── */}
+          {isCompleted && evidenceImage && (
+            <div className="border border-emerald-100 bg-emerald-50 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-semibold text-emerald-600 uppercase flex items-center gap-1.5">
+                <ShieldCheck size={13} /> Ảnh chứng thực hoàn thành
+              </p>
+              <a
+                href={evidenceImage}
+                target="_blank"
+                rel="noreferrer"
+                className="block rounded-lg overflow-hidden border border-emerald-200 hover:border-emerald-400 hover:scale-[1.02] transition-all w-fit"
+              >
+                <img
+                  src={evidenceImage}
+                  alt="Ảnh chứng thực"
+                  className="max-w-[260px] w-full object-cover rounded-lg"
+                />
+              </a>
+            </div>
+          )}
+
+          {/* ── Lý do hủy (CANCELLED) ── */}
+          {isCancelled && cancelReason && (
+            <div className="border border-red-100 bg-red-50 rounded-xl p-4 space-y-1">
+              <p className="text-xs font-semibold text-red-500 uppercase">Lý do hủy</p>
+              <p className="text-sm text-gray-700">{cancelReason}</p>
             </div>
           )}
 
@@ -502,7 +488,6 @@ export default function RequestDetails() {
               ))}
             </Select>
 
-            {/* Supplies */}
             <div className="border-t border-gray-100 pt-3 space-y-2">
               <p className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
                 <Package size={12} /> Vật tư mang theo
@@ -540,14 +525,12 @@ export default function RequestDetails() {
                     const item = inventoryMap[s.inventoryId];
                     if (!item) return null;
                     return (
-                      <div key={s.inventoryId}
-                        className="flex items-center justify-between px-3 py-2 bg-white text-sm hover:bg-gray-50 transition">
+                      <div key={s.inventoryId} className="flex items-center justify-between px-3 py-2 bg-white text-sm hover:bg-gray-50 transition">
                         <span className="text-gray-700">
                           <span className="font-medium">{item.itemName}</span>
                           <span className="text-gray-400 ml-2">{s.quantity} / {item.quantity}</span>
                         </span>
-                        <button onClick={() => handleRemoveSupply(s.inventoryId)}
-                          className="text-gray-300 hover:text-red-500 transition ml-3">
+                        <button onClick={() => handleRemoveSupply(s.inventoryId)} className="text-gray-300 hover:text-red-500 transition ml-3">
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -592,22 +575,13 @@ export default function RequestDetails() {
         </div>
       </div>
 
-      {/* ══ MAP (full remaining width) ══ */}
+      {/* ══ MAP ══ */}
       <div className="hidden lg:block flex-1">
         {requestPoint ? (
-          <MapContainer
-            center={requestPoint}
-            zoom={13}
-            style={{ width: "100%", height: "100%" }}
-          >
-            <TileLayer
-              attribution="&copy; OpenStreetMap contributors"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+          <MapContainer center={requestPoint} zoom={13} style={{ width: "100%", height: "100%" }}>
+            <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <Marker position={requestPoint} icon={victimIcon}>
-              <Popup>
-                <b>Người cần cứu</b><br />{request.userId?.fullName}
-              </Popup>
+              <Popup><b>Người cần cứu</b><br />{request.userId?.fullName}</Popup>
             </Marker>
             {teamPoints.map(p => (
               <Marker key={p.team._id} position={p.position}>
@@ -616,39 +590,25 @@ export default function RequestDetails() {
             ))}
           </MapContainer>
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            Không có dữ liệu bản đồ
-          </div>
+          <div className="flex items-center justify-center h-full text-gray-500">Không có dữ liệu bản đồ</div>
         )}
       </div>
 
       {/* ── Lightbox ── */}
       {lightbox && createPortal(
-        <div
-          onClick={() => setLightbox(null)}
-          className="fixed inset-0 bg-black/90 flex items-center justify-center"
-          style={{ zIndex: 99999 }}
-        >
-          <button onClick={e => { e.stopPropagation(); setLightbox(null); }}
-            className="fixed top-5 right-5 text-white/70 hover:text-white transition"
-            style={{ zIndex: 100000 }}>
+        <div onClick={() => setLightbox(null)} className="fixed inset-0 bg-black/90 flex items-center justify-center" style={{ zIndex: 99999 }}>
+          <button onClick={e => { e.stopPropagation(); setLightbox(null); }} className="fixed top-5 right-5 text-white/70 hover:text-white transition" style={{ zIndex: 100000 }}>
             <X size={26} />
           </button>
           <button
             onClick={e => { e.stopPropagation(); setLightbox(prev => prev && { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }); }}
-            className="fixed left-5 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition"
-            style={{ zIndex: 100000 }}>
+            className="fixed left-5 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition" style={{ zIndex: 100000 }}>
             <ChevronLeft size={40} />
           </button>
-          <img
-            src={imgUrl(lightbox.images[lightbox.index])}
-            onClick={e => e.stopPropagation()}
-            className="max-h-[82vh] max-w-[88vw] rounded-xl object-contain shadow-2xl"
-          />
+          <img src={imgUrl(lightbox.images[lightbox.index])} onClick={e => e.stopPropagation()} className="max-h-[82vh] max-w-[88vw] rounded-xl object-contain shadow-2xl" />
           <button
             onClick={e => { e.stopPropagation(); setLightbox(prev => prev && { ...prev, index: (prev.index + 1) % prev.images.length }); }}
-            className="fixed right-5 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition"
-            style={{ zIndex: 100000 }}>
+            className="fixed right-5 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition" style={{ zIndex: 100000 }}>
             <ChevronRight size={40} />
           </button>
           <div className="fixed bottom-5 left-1/2 -translate-x-1/2 text-white/50 text-sm" style={{ zIndex: 100000 }}>

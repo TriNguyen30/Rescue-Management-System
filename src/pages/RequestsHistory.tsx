@@ -257,7 +257,7 @@ export default function RequestsHistory() {
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <span className="font-mono text-sm font-semibold text-slate-900">{req.requestCode}</span>
                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusMeta.bg} ${statusMeta.color}`}>{statusMeta.label}</span>
-                                        {req.urgencyLevel && <span className="text-[11px] font-semibold text-red-600 uppercase">{req.urgencyLevel}</span>}
+                                        {req.urgencyLevel && req.status !=="PENDING" && <span className="text-[11px] font-semibold text-red-600 uppercase">{req.urgencyLevel}</span>}
                                         {images.length > 1 && (
                                             <button onClick={() => setLightbox({ images, index: 0 })} className="text-[11px] font-medium text-slate-500 hover:text-blue-600 transition-colors">
                                                 +{images.length - 1} ảnh
