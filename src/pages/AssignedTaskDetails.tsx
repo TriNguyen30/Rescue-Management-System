@@ -322,27 +322,77 @@ export default function AssignedTaskDetails() {
               </div>
 
               {selectedStatus === "COMPLETED" && (
-                <div className="mt-3 space-y-2">
-                  <p className="text-xs font-semibold text-gray-500 uppercase">
+                <div className="mt-4 space-y-3">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Ảnh chứng thực (bắt buộc)
                   </p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0] ?? null;
-                      if (evidencePreview) URL.revokeObjectURL(evidencePreview);
-                      setEvidenceFile(f);
-                      setEvidencePreview(f ? URL.createObjectURL(f) : null);
-                    }}
-                    className="block w-full text-sm text-gray-700"
-                  />
-                  {evidencePreview && (
-                    <img
-                      src={evidencePreview}
-                      alt="Ảnh chứng thực"
-                      className="w-full max-w-[260px] rounded-lg border border-gray-200 object-cover"
+
+                  {/* Upload Box */}
+                  <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-all">
+
+                    {!evidencePreview ? (
+                      <div className="flex flex-col items-center justify-center text-center px-4">
+                        <svg
+                          className="w-8 h-8 mb-2 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+                        </svg>
+                        <p className="text-sm text-gray-600">
+                          <span className="font-semibold text-blue-600">
+                            Click để upload
+                          </span>{" "}
+                          hoặc kéo thả
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          PNG, JPG (tối đa 5MB)
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="relative w-full h-full">
+                        <img
+                          src={evidencePreview}
+                          alt="Ảnh chứng thực"
+                          className="w-full h-full object-cover rounded-2xl"
+                        />
+
+                        {/* Overlay hover */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition flex items-center justify-center rounded-2xl">
+                          <span className="text-white text-sm font-medium">
+                            Đổi ảnh
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        if (evidencePreview) URL.revokeObjectURL(evidencePreview);
+                        setEvidenceFile(f);
+                        setEvidencePreview(f ? URL.createObjectURL(f) : null);
+                      }}
                     />
+                  </label>
+
+                  {/* Nút xoá */}
+                  {evidencePreview && (
+                    <button
+                      onClick={() => {
+                        URL.revokeObjectURL(evidencePreview);
+                        setEvidenceFile(null);
+                        setEvidencePreview(null);
+                      }}
+                      className="text-xs text-red-500 hover:text-red-600 font-medium cursor-pointer"
+                    >
+                      Xoá ảnh
+                    </button>
                   )}
                 </div>
               )}
@@ -474,7 +524,7 @@ export default function AssignedTaskDetails() {
                   </p>
                   <ul className="list-disc list-inside space-y-0.5 text-xs text-gray-700 font-mono">
                     {request.assignedTeamId.vehicles.map((v) => (
-                      <li key={v}>{v}</li>
+                      <li key={v._id}>{v.name} - {v.plateNumber}</li>
                     ))}
                   </ul>
                 </div>
