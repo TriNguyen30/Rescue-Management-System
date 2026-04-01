@@ -120,7 +120,7 @@ export default function CoordinatorDashboard() {
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <span className="font-mono font-semibold text-gray-900">{req.requestCode}</span>
                                                 <StatusBadge status={req.status} />
-                                                <UrgencyBadge level={req.urgencyLevel} />
+                                                {req.status?.toUpperCase() == "PENDING" ? "" : <UrgencyBadge level={req.urgencyLevel} />}
                                             </div>
                                             <p className="text-gray-700">{req.description}</p>
                                             <div className="flex flex-wrap gap-4 text-sm text-gray-500">
