@@ -22,6 +22,7 @@ export type VehicleStatus = "AVAILABLE" | "IN_USE" | "MAINTENANCE";
 
 export interface Vehicle {
     _id: string;
+    name: string;
     plateNumber: string;
     type: VehicleType;
     capacity: number;

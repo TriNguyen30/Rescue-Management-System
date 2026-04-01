@@ -474,7 +474,7 @@ export default function AssignedTaskDetails() {
                   </p>
                   <ul className="list-disc list-inside space-y-0.5 text-xs text-gray-700 font-mono">
                     {request.assignedTeamId.vehicles.map((v) => (
-                      <li key={v}>{v}</li>
+                      <li key={v._id}>{v.name} - {v.plateNumber}</li>
                     ))}
                   </ul>
                 </div>
