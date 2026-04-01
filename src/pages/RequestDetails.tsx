@@ -62,9 +62,9 @@ const URGENCY_LABEL: Record<string, string> = {
 };
 
 const URGENCY_BADGE: Record<string, string> = {
-  LOW:      "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  MEDIUM:   "bg-amber-50  text-amber-700  border border-amber-200",
-  HIGH:     "bg-orange-50 text-orange-700 border border-orange-200",
+  LOW: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  MEDIUM: "bg-amber-50  text-amber-700  border border-amber-200",
+  HIGH: "bg-orange-50 text-orange-700 border border-orange-200",
   CRITICAL: "bg-red-50    text-red-700    border border-red-200"
 };
 
@@ -94,16 +94,16 @@ function Select({ value, onChange, children, className = "", disabled }: {
 function Btn({
   onClick, disabled, variant = "primary", size = "md", children, icon
 }: {
-  onClick?: () => void; disabled?: boolean; variant?: "primary"|"success"|"ghost"|"danger";
-  size?: "sm"|"md"; children: React.ReactNode; icon?: React.ReactNode;
+  onClick?: () => void; disabled?: boolean; variant?: "primary" | "success" | "ghost" | "danger";
+  size?: "sm" | "md"; children: React.ReactNode; icon?: React.ReactNode;
 }) {
   const base = "inline-flex items-center gap-2 font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed";
   const sizes = { sm: "h-8 px-3 text-xs", md: "h-9 px-4 text-sm" };
   const variants = {
     primary: "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500",
     success: "bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-500",
-    ghost:   "bg-gray-100 hover:bg-gray-200 text-gray-700 focus:ring-gray-300",
-    danger:  "bg-red-50 hover:bg-red-100 text-red-600 focus:ring-red-400"
+    ghost: "bg-gray-100 hover:bg-gray-200 text-gray-700 focus:ring-gray-300",
+    danger: "bg-red-50 hover:bg-red-100 text-red-600 focus:ring-red-400"
   };
   return (
     <button onClick={onClick} disabled={disabled} className={`${base} ${sizes[size]} ${variants[variant]}`}>
@@ -118,26 +118,26 @@ export default function RequestDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [request, setRequest]     = useState<RescueRequest | null>(null);
-  const [teams, setTeams]         = useState<RescueTeam[]>([]);
-  const [vehicles, setVehicles]   = useState<VehicleItem[]>([]);
+  const [request, setRequest] = useState<RescueRequest | null>(null);
+  const [teams, setTeams] = useState<RescueTeam[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const [selectedUrgency, setSelectedUrgency] = useState<UrgencyLevel>("HIGH");
-  const [teamId, setTeamId]       = useState("");
+  const [teamId, setTeamId] = useState("");
   const [vehicleId, setVehicleId] = useState("");
 
   const [supplies, setSupplies] =
     useState<{ inventoryId: string; quantity: number }[]>([]);
   const [newSupplyInventoryId, setNewSupplyInventoryId] = useState("");
-  const [newSupplyQuantity, setNewSupplyQuantity]       = useState<number | "">("");
+  const [newSupplyQuantity, setNewSupplyQuantity] = useState<number | "">("");
 
   const [verifying, setVerifying] = useState(false);
   const [assigning, setAssigning] = useState(false);
-  const [lightbox, setLightbox]   = useState<{ images: string[]; index: number } | null>(null);
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
 
   useEffect(() => {
     document.body.style.overflow = lightbox ? "hidden" : "";
@@ -266,6 +266,9 @@ export default function RequestDetails() {
       ? (request.assignedTeamId as NonNullable<RescueRequest["assignedTeamId"]>)
       : null;
   const isAssigned = Boolean(request.assignedTeamId);
+  const isLocked = ["IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(
+    (request.status ?? "").toUpperCase()
+  );
   const assignedVehicles = (() => {
     const r = request as any;
 
@@ -363,10 +366,10 @@ export default function RequestDetails() {
               <p className="font-mono text-xs text-gray-400 mb-0.5">{request.requestCode}</p>
               <p className="font-semibold text-gray-900 leading-snug">{request.description}</p>
             </div>
-            {request.urgencyLevel && (
-              <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${URGENCY_BADGE[request.urgencyLevel] ?? "bg-gray-100 text-gray-600"}`}>
-                {URGENCY_LABEL[request.urgencyLevel] ?? request.urgencyLevel}
-              </span>
+            {request.urgencyLevel && request.status?.toUpperCase() !== "PENDING" && (
+                <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${URGENCY_BADGE[request.urgencyLevel] ?? "bg-gray-100 text-gray-600"}`}>
+                  {URGENCY_LABEL[request.urgencyLevel] ?? request.urgencyLevel}
+                </span>
             )}
           </div>
         </div>
@@ -463,15 +466,19 @@ export default function RequestDetails() {
               </Select>
               <Btn
                 onClick={handleVerify}
-                disabled={verifying || isAssigned}
+                disabled={verifying || isAssigned || isLocked}
                 variant="primary"
-                icon={verifying ? <Loader2 size={13} className="animate-spin"/> : undefined}
+                icon={verifying ? <Loader2 size={13} className="animate-spin" /> : undefined}
               >
                 {verifying ? "Đang xác minh…" : "Xác minh"}
               </Btn>
             </div>
-            {isAssigned && (
-              <p className="text-xs text-gray-400">Yêu cầu đã được điều phối, không thể xác minh nữa.</p>
+            {(isAssigned || isLocked) && (
+              <p className="text-xs text-gray-400">
+                {isLocked
+                  ? "Yêu cầu đã hoàn tất hoặc bị huỷ, không thể thao tác."
+                  : "Yêu cầu đã được điều phối, không thể xác minh nữa."}
+              </p>
             )}
           </div>
 
@@ -498,7 +505,7 @@ export default function RequestDetails() {
             {/* Supplies */}
             <div className="border-t border-gray-100 pt-3 space-y-2">
               <p className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
-                <Package size={12}/> Vật tư mang theo
+                <Package size={12} /> Vật tư mang theo
               </p>
               <div className="flex gap-2 flex-wrap">
                 <Select value={newSupplyInventoryId} onChange={setNewSupplyInventoryId} className="flex-1 min-w-[140px]">
@@ -524,7 +531,7 @@ export default function RequestDetails() {
                   className="h-9 w-20 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700
                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 />
-                <Btn onClick={handleAddSupply} variant="ghost" size="sm" icon={<Plus size={13}/>}>Thêm</Btn>
+                <Btn onClick={handleAddSupply} variant="ghost" size="sm" icon={<Plus size={13} />}>Thêm</Btn>
               </div>
 
               {supplies.length > 0 && (
@@ -541,7 +548,7 @@ export default function RequestDetails() {
                         </span>
                         <button onClick={() => handleRemoveSupply(s.inventoryId)}
                           className="text-gray-300 hover:text-red-500 transition ml-3">
-                          <Trash2 size={13}/>
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     );
@@ -553,9 +560,9 @@ export default function RequestDetails() {
             <div className="pt-1">
               <Btn
                 onClick={handleAssign}
-                disabled={assigning || !teamId}
+                disabled={assigning || !teamId || isLocked}
                 variant="success"
-                icon={assigning ? <Loader2 size={13} className="animate-spin"/> : <Truck size={13}/>}
+                icon={assigning ? <Loader2 size={13} className="animate-spin" /> : <Truck size={13} />}
               >
                 {assigning ? "Đang điều phối…" : "Xác nhận điều phối"}
               </Btn>
@@ -566,7 +573,7 @@ export default function RequestDetails() {
           {images.length > 0 && (
             <div className="border rounded-xl p-4 space-y-3">
               <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1.5">
-                <Package size={13}/> Hình ảnh đính kèm
+                <Package size={13} /> Hình ảnh đính kèm
               </p>
               <div className="flex flex-wrap gap-2">
                 {images.map((img, i) => (
@@ -625,13 +632,13 @@ export default function RequestDetails() {
           <button onClick={e => { e.stopPropagation(); setLightbox(null); }}
             className="fixed top-5 right-5 text-white/70 hover:text-white transition"
             style={{ zIndex: 100000 }}>
-            <X size={26}/>
+            <X size={26} />
           </button>
           <button
             onClick={e => { e.stopPropagation(); setLightbox(prev => prev && { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }); }}
             className="fixed left-5 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition"
             style={{ zIndex: 100000 }}>
-            <ChevronLeft size={40}/>
+            <ChevronLeft size={40} />
           </button>
           <img
             src={imgUrl(lightbox.images[lightbox.index])}
@@ -642,7 +649,7 @@ export default function RequestDetails() {
             onClick={e => { e.stopPropagation(); setLightbox(prev => prev && { ...prev, index: (prev.index + 1) % prev.images.length }); }}
             className="fixed right-5 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition"
             style={{ zIndex: 100000 }}>
-            <ChevronRight size={40}/>
+            <ChevronRight size={40} />
           </button>
           <div className="fixed bottom-5 left-1/2 -translate-x-1/2 text-white/50 text-sm" style={{ zIndex: 100000 }}>
             {lightbox.index + 1} / {lightbox.images.length}

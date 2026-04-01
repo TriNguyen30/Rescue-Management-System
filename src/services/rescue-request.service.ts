@@ -209,3 +209,22 @@ export const getNearbyRescueRequests = async (
         throw error;
     }
 };
+
+/**
+ * [Citizen/Coordinator] Hủy yêu cầu cứu hộ
+ * PATCH /rescue-requests/:id/cancel
+ */
+export const cancelRescueRequest = async (id: string, cancelReason: string): Promise<RescueRequest> => {
+    try {
+        const response = await axiosInstance.patch<RescueRequest | { data: RescueRequest }>(
+            `/rescue-requests/${id}/cancel`,
+            { cancelReason },
+        );
+        const data = response.data;
+        if (data && typeof data === "object" && "data" in (data as any) && (data as any).data) return (data as any).data;
+        return data as RescueRequest;
+    } catch (error) {
+        console.error("Error cancelling rescue request:", error);
+        throw error;
+    }
+};
