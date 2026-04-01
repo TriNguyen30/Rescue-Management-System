@@ -266,7 +266,7 @@ export default function RequestsHistory() {
                                         </span>
                                     </div>
 
-                                    {(req.status === "ASSIGNED" || req.status === "IN_PROGRESS" || req.status === "PENDING") && (
+                                    {/* {(req.status === "ASSIGNED" || req.status === "IN_PROGRESS" || req.status === "PENDING") && (
                                         <div className="pt-2">
                                             <button
                                                 onClick={async () => {
@@ -288,7 +288,7 @@ export default function RequestsHistory() {
                                                 {confirmingId === req._id ? "Đang xác nhận..." : "Xác nhận đã an toàn"}
                                             </button>
                                         </div>
-                                    )}
+                                    )} */}
                                 </div>
                             </div>
                         );
