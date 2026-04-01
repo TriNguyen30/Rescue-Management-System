@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ClipboardCheck, Shield, LogOut, ChevronLeft, ChevronRight, Waves, Menu, X, MapPin } from "lucide-react";
+import { ClipboardCheck, Shield, LogOut, ChevronLeft, ChevronRight, Waves, Menu, X, MapPin, ListCheck } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
@@ -15,6 +15,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
     { key: "tasks", label: "Nhiệm vụ", icon: <ClipboardCheck className="w-4 h-4" />, path: "/rescue-team" },
     { key: "nearby", label: "Gần tôi", icon: <MapPin className="w-4 h-4" />, path: "/rescue-team/nearby" },
+    { key: "status", label: "Cập nhật trạng thái đội", icon: <ListCheck className="w-4 h-4" />, path: "/rescue-team/status" },
 ];
 
 export default function RescueTeamSidebar() {
