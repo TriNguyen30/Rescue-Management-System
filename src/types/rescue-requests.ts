@@ -1,3 +1,5 @@
+import { Vehicle } from "./rescue-teams";
+
 export type UrgencyLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export type RescueRequestStatus =
@@ -50,7 +52,7 @@ export interface RescueRequest {
         currentLocation?: GeoPoint;
         leaderId?: string;
         members?: string[];
-        vehicles?: string[];
+        vehicles?: Vehicle[];
         status?: string;
     };
     urgencyLevel?: UrgencyLevel;

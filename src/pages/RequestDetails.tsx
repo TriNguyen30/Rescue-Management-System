@@ -266,50 +266,73 @@ export default function RequestDetails() {
       ? (request.assignedTeamId as NonNullable<RescueRequest["assignedTeamId"]>)
       : null;
   const isAssigned = Boolean(request.assignedTeamId);
-  const assignedVehiclePlateNumbers = (() => {
+  const assignedVehicles = (() => {
     const r = request as any;
 
-    const candidates: Array<string | undefined> = [];
+    const fromTeam: any[] = Array.isArray(assignedTeam?.vehicles)
+      ? (assignedTeam!.vehicles as any[])
+      : [];
 
-    // Common patterns from backend responses
-    candidates.push(
-      typeof r?.vehicleId === "string" ? r.vehicleId : undefined,
-      typeof r?.assignedVehicleId === "string" ? r.assignedVehicleId : undefined,
-      typeof r?.vehicle?._id === "string" ? r.vehicle._id : undefined,
-      typeof r?.assignedVehicle?._id === "string" ? r.assignedVehicle._id : undefined,
-      typeof r?.assignedVehicleId?._id === "string" ? r.assignedVehicleId._id : undefined,
-      typeof r?.vehicleId?._id === "string" ? r.vehicleId._id : undefined,
-    );
+    const fromRequest: any[] = Array.isArray(r?.vehicles)
+      ? r.vehicles
+      : [];
 
-    // Some APIs return an array
-    if (Array.isArray(r?.vehicles)) {
-      for (const v of r.vehicles) {
-        if (typeof v === "string") candidates.push(v);
-        if (v && typeof v === "object" && typeof v._id === "string") candidates.push(v._id);
-      }
+    // Single vehicle (common patterns)
+    const singleCandidates: any[] = [];
+    if (r?.vehicle) singleCandidates.push(r.vehicle);
+    if (r?.assignedVehicle) singleCandidates.push(r.assignedVehicle);
+    if (r?.vehicleId && typeof r.vehicleId === "object") singleCandidates.push(r.vehicleId);
+    if (r?.assignedVehicleId && typeof r.assignedVehicleId === "object") singleCandidates.push(r.assignedVehicleId);
+
+    // Collect string ids to resolve via vehicleMap
+    const idCandidates: string[] = [];
+    const pushId = (v: any) => {
+      if (!v) return;
+      if (typeof v === "string") idCandidates.push(v);
+      else if (typeof v === "object" && typeof v._id === "string") idCandidates.push(v._id);
+    };
+
+    pushId(r?.vehicleId);
+    pushId(r?.assignedVehicleId);
+    for (const v of fromTeam) pushId(v);
+    for (const v of fromRequest) pushId(v);
+
+    const resolvedById = Array.from(new Set(idCandidates))
+      .map((id) => vehicleMap[id])
+      .filter(Boolean) as any[];
+
+    const merged = [...fromTeam, ...fromRequest, ...singleCandidates, ...resolvedById]
+      .filter(Boolean)
+      .map((v) => {
+        const obj = typeof v === "string" ? vehicleMap[v] : v;
+        if (!obj) return null;
+        return {
+          _id: obj._id || obj.id || (typeof v === "string" ? v : undefined),
+          name: obj.name ?? obj.vehicleName ?? obj.itemName,
+          plateNumber: obj.plateNumber,
+          type: obj.type,
+          capacity: obj.capacity,
+        };
+      })
+      .filter((v) => v && v.plateNumber) as Array<{
+        _id?: string;
+        name?: string;
+        plateNumber: string;
+        type?: string;
+        capacity?: number;
+      }>;
+
+    // unique by plateNumber
+    const seen = new Set<string>();
+    const unique: typeof merged = [];
+    for (const v of merged) {
+      if (seen.has(v.plateNumber)) continue;
+      seen.add(v.plateNumber);
+      unique.push(v);
     }
-
-    // Legacy: sometimes stored under team assignment
-    if (Array.isArray(assignedTeam?.vehicles)) {
-      for (const v of assignedTeam.vehicles as any[]) {
-        if (typeof v === "string") candidates.push(v);
-        if (v && typeof v === "object" && typeof v._id === "string") candidates.push(v._id);
-      }
-    }
-
-    const ids = Array.from(new Set(candidates.filter(Boolean))) as string[];
-
-    const byId = ids
-      .map((id) => vehicleMap[id]?.plateNumber)
-      .filter(Boolean) as string[];
-
-    const direct =
-      (typeof r?.vehicle?.plateNumber === "string" ? [r.vehicle.plateNumber] : [])
-        .concat(typeof r?.assignedVehicle?.plateNumber === "string" ? [r.assignedVehicle.plateNumber] : []);
-
-    return Array.from(new Set([...direct, ...byId]));
+    return unique;
   })();
-  const assignedVehicleCount = assignedVehiclePlateNumbers.length;
+  const assignedVehicleCount = assignedVehicles.length;
 
   const assignedSupplies = (
     (request as any)?.supplies ??
@@ -378,10 +401,23 @@ export default function RequestDetails() {
                 <p className="font-semibold text-blue-800">Đội đã điều phối</p>
                 <p className="text-blue-700">{assignedTeam.teamName}</p>
                 {assignedVehicleCount > 0 && (
-                  <p className="text-xs text-blue-500 mt-0.5">
-                    Phương tiện ({assignedVehicleCount}):{" "}
-                    {assignedVehiclePlateNumbers.join(", ")}
-                  </p>
+                  <div className="text-xs text-blue-500 mt-0.5 space-y-1">
+                    <p>
+                      Phương tiện:
+                    </p>
+                    <ul className="list-disc list-inside space-y-0.5 text-blue-600">
+                      {assignedVehicles.map((v) => (
+                        <li key={v._id ?? v.plateNumber}>
+                          <span>{v.plateNumber}</span>
+                          {v.name ? <span className="text-blue-700"> • {v.name}</span> : null}
+                          {v.type ? <span className="text-blue-700"> • {v.type}</span> : null}
+                          {typeof v.capacity === "number"
+                            ? <span className="text-blue-700"> • {v.capacity}</span>
+                            : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
                 {assignedSupplies?.length > 0 && (
                   <div className="mt-1.5 text-xs space-y-1">
