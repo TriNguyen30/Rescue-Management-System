@@ -13,7 +13,6 @@ import CoordinatorDashboard from "@/pages/CoordinatorDashboard";
 import RescueManagement from "@/pages/RescueManagement";
 import InventoryManagement from "@/pages/InventoryManagement";
 import AdminDashboard from "@/pages/AdminDashboard";
-import AdminSystemSettings from "@/pages/AdminSystemSettings";
 import AdminOperationsReport from "@/pages/AdminOperationsReport";
 import VehicleManagement from "@/pages/VehicleManagement";
 import RescueMap from "@/pages/RescueMap";
@@ -34,6 +33,7 @@ import DonationResult from "@/pages/DonationResult";
 import MyDonation from "@/pages/MyDonation";
 import DonationHistory from "@/pages/DonationHistory";
 import AdminSetting from "@/pages/AdminSetting";
+import RescueTeamStatus from "@/pages/RescueTeamStatus";
 
 
 export default function AppRoutes() {
@@ -154,6 +154,7 @@ export default function AppRoutes() {
         <Route index element={<RescueTeamDashboard />} />
         <Route path="assigned-task/:id" element={<AssignedTaskDetails />} />
         <Route path="nearby" element={<SearchNearbyRequests />} />
+        <Route path="status" element={<RescueTeamStatus />} />
       </Route>
     </Routes>
   );
