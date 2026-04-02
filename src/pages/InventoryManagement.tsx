@@ -266,27 +266,17 @@ function ViewDetailModal({
                                 <p className="text-sm font-semibold text-gray-800">{item.unit || "—"}</p>
                             </div>
                         </div>
-                        <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                            <ShieldAlert className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                            <div>
-                                <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Ngưỡng cảnh báo</p>
-                                <p className="text-sm font-semibold text-gray-800">
-                                    {item.lowStockThreshold != null
-                                        ? `${item.lowStockThreshold.toLocaleString("vi-VN")} ${item.unit}`
-                                        : "Chưa đặt"}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                            {item.isActive !== false
-                                ? <ToggleRight className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                                : <ToggleLeft className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />}
-                            <div>
-                                <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Trạng thái</p>
-                                <p className={`text-sm font-semibold ${item.isActive !== false ? "text-emerald-600" : "text-gray-400"}`}>
-                                    {item.isActive !== false ? "Đang hoạt động" : "Ngừng hoạt động"}
-                                </p>
-                            </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <ShieldAlert className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                        <div>
+                            <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Ngưỡng cảnh báo</p>
+                            <p className="text-sm font-semibold text-gray-800">
+                                {item.lowStockThreshold != null
+                                    ? `${item.lowStockThreshold.toLocaleString("vi-VN")} ${item.unit}`
+                                    : "Chưa đặt"}
+                            </p>
                         </div>
                     </div>
 
@@ -438,13 +428,11 @@ function EditInventoryModal({
                             </select>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Hạn sử dụng (HSD)</label>
                             <input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)}
                                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 focus:bg-white transition" />
                         </div>
-                    </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                             Ngưỡng cảnh báo tồn kho
@@ -938,10 +926,10 @@ export default function InventoryManagement() {
                                                 <td className="px-4 py-3 hidden lg:table-cell">
                                                     {item.expirationDate ? (
                                                         <div className={`inline-flex items-center gap-1.5 text-xs font-medium ${expiryStatus === "expired" || expiryStatus === "critical" ? "text-red-600" :
-                                                                expiryStatus === "warning" ? "text-amber-600" : "text-gray-500"
+                                                            expiryStatus === "warning" ? "text-amber-600" : "text-gray-500"
                                                             }`}>
                                                             <Calendar className={`w-3.5 h-3.5 ${expiryStatus === "expired" || expiryStatus === "critical" ? "text-red-400" :
-                                                                    expiryStatus === "warning" ? "text-amber-400" : "text-gray-300"
+                                                                expiryStatus === "warning" ? "text-amber-400" : "text-gray-300"
                                                                 }`} />
                                                             {new Date(item.expirationDate).toLocaleDateString("vi-VN")}
                                                         </div>
