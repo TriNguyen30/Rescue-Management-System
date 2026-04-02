@@ -165,27 +165,16 @@ function ViewDetailModal({
                 </p>
               </div>
             </div>
-            {vehicle.name && (
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                <FileText className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Tên xe</p>
-                  <p className="text-sm font-semibold text-gray-800">{vehicle.name}</p>
-                </div>
-              </div>
-            )}
+          </div>
+          {vehicle.name && (
             <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
-              {vehicle.isActive !== false
-                ? <ToggleRight className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                : <ToggleLeft className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />}
+              <FileText className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
               <div>
-                <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Hoạt động</p>
-                <p className={`text-sm font-semibold ${vehicle.isActive !== false ? "text-emerald-600" : "text-gray-400"}`}>
-                  {vehicle.isActive !== false ? "Đang hoạt động" : "Ngừng hoạt động"}
-                </p>
+                <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Tên xe</p>
+                <p className="text-sm font-semibold text-gray-800">{vehicle.name}</p>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Timestamps */}
           <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400 pt-1 border-t border-gray-100">

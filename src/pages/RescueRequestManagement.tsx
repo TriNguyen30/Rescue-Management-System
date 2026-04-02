@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
     AlertCircle, Loader2, RefreshCw, Search, X, Eye,
     ShieldAlert, Clock, CheckCircle2, Flame, AlertTriangle,
-    ChevronRight, SlidersHorizontal, Users, Bell
+    SlidersHorizontal, Users, Bell, MapPin, ExternalLink,
 } from "lucide-react";
 import Pagination from "@/components/ui/Pagination";
+import Modal from "@/components/ui/Modal";
 import { PageProvider, usePage } from "@/context/PageContext";
 import { getRescueRequests } from "@/services/rescue-request.service";
-import type { RescueRequest } from "@/types/rescue-requests";
+import type { RescueRequest, RescueRequestStatus } from "@/types/rescue-requests";
 
 // ── Status config ──────────────────────────────────────────────────────────────
 const STATUS_META: Record<RescueRequestStatus, {
@@ -107,6 +107,165 @@ function avatarColor(str: string) {
     return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
 
+// ── Detail modal ───────────────────────────────────────────────────────────────
+function RequestDetailModal({
+    request: r,
+    onClose,
+}: {
+    request: RescueRequest;
+    onClose: () => void;
+}) {
+    const status = STATUS_META[r.status as RescueRequestStatus] || {
+        label: r.status,
+        bg: "bg-gray-50",
+        text: "text-gray-600",
+        border: "border-gray-200",
+        dot: "bg-gray-400",
+        icon: null,
+    };
+    const urgency = r.urgencyLevel ? URGENCY_META[r.urgencyLevel] : null;
+    const initials = getInitials(r.userId?.fullName);
+    const color = avatarColor(r.userId?.fullName || r._id);
+    const coords = r.location?.coordinates;
+    const [lng, lat] = Array.isArray(coords) ? coords : [undefined, undefined];
+    const hasValidCoords =
+        typeof lat === "number" &&
+        typeof lng === "number" &&
+        !Number.isNaN(lat) &&
+        !Number.isNaN(lng);
+    const mapsHref = hasValidCoords
+        ? `https://www.google.com/maps?q=${lat},${lng}`
+        : undefined;
+
+    return (
+        <Modal open title="Chi tiết yêu cầu cứu hộ" onClose={onClose} size="xl">
+            <div className="space-y-5 -mt-1">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Mã yêu cầu</p>
+                        <p className="text-lg font-black text-gray-900 font-mono tracking-tight">{r.requestCode}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {urgency && (
+                            <span
+                                className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border ${urgency.bg} ${urgency.text} ${urgency.border}`}
+                            >
+                                {urgency.icon}
+                                {urgency.label}
+                            </span>
+                        )}
+                        <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border ${status.bg} ${status.text} ${status.border}`}
+                        >
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${status.dot}`} />
+                            {status.label}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 border border-gray-100">
+                    <div className={`w-11 h-11 rounded-full ${color} flex items-center justify-center text-sm font-black shrink-0`}>
+                        {initials}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-sm font-bold text-gray-900">{r.userId?.fullName || "—"}</p>
+                        <p className="text-xs text-gray-500">{r.userId?.phone || "Không có SĐT"}</p>
+                    </div>
+                </div>
+
+                <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Mô tả tình huống</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{r.description || "—"}</p>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-0.5">Vị trí</p>
+                            {hasValidCoords ? (
+                                <>
+                                    <p className="text-sm font-mono text-gray-800">
+                                        {lat.toFixed(5)}, {lng.toFixed(5)}
+                                    </p>
+                                    <a
+                                        href={mapsHref}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 mt-1"
+                                    >
+                                        Mở bản đồ <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                </>
+                            ) : (
+                                <p className="text-sm text-gray-500">Không có tọa độ</p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <Users className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                            <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-0.5">Đội được gán</p>
+                            <p className="text-sm font-semibold text-gray-800">
+                                {r.assignedTeamId?.teamName || "Chưa gán đội"}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {(r.images?.length > 0 || r.evidenceImage) && (
+                    <div>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Hình ảnh</p>
+                        <div className="flex flex-wrap gap-2">
+                            {r.images?.map((url, i) => (
+                                <a
+                                    key={`${url}-${i}`}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Xem ảnh đính kèm"
+                                    className="block w-24 h-24 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 shrink-0 hover:opacity-90 transition-opacity"
+                                >
+                                    <img src={url} alt={`Ảnh ${i + 1}`} className="w-full h-full object-cover" />
+                                </a>
+                            ))}
+                            {r.evidenceImage && !r.images?.includes(r.evidenceImage) && (
+                                <a
+                                    href={r.evidenceImage}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Xem ảnh bằng chứng"
+                                    className="block w-24 h-24 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 shrink-0 hover:opacity-90 transition-opacity"
+                                >
+                                    <img src={r.evidenceImage} alt="Bằng chứng" className="w-full h-full object-cover" />
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {r.cancelReason && (
+                    <div className="rounded-xl border border-red-100 bg-red-50/80 p-3">
+                        <p className="text-[11px] font-bold text-red-600 uppercase tracking-wider mb-1">Lý do hủy</p>
+                        <p className="text-sm text-red-800 whitespace-pre-wrap">{r.cancelReason}</p>
+                    </div>
+                )}
+
+                <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-400 pt-2 border-t border-gray-100">
+                    <span>
+                        <span className="font-semibold text-gray-500">Tạo:</span> {formatDate(r.createdAt)}
+                    </span>
+                    {r.updatedAt && r.updatedAt !== r.createdAt && (
+                        <span>
+                            <span className="font-semibold text-gray-500">Cập nhật:</span> {formatDate(r.updatedAt)}
+                        </span>
+                    )}
+                </div>
+            </div>
+        </Modal>
+    );
+}
+
 // ── Stat Card ──────────────────────────────────────────────────────────────────
 function StatCard({
     label, value, icon, color,
@@ -134,13 +293,13 @@ export default function RTRequestManagement() {
 }
 
 function RTRequestManagementContent() {
-    const navigate = useNavigate();
     const { page, pageSize, setPage, setTotalItems } = usePage();
     const [requests, setRequests] = useState<RescueRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
+    const [detailRequest, setDetailRequest] = useState<RescueRequest | null>(null);
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -156,12 +315,6 @@ function RTRequestManagementContent() {
     };
 
     useEffect(() => { fetchRequests(); }, []);
-
-    const statuses = useMemo(() => {
-        const set = new Set<string>();
-        requests.forEach((r) => r.status && set.add(r.status));
-        return Array.from(set);
-    }, [requests]);
 
     const stats = useMemo(() => ({
         total: requests.length,
@@ -288,6 +441,7 @@ function RTRequestManagementContent() {
                                     type="button"
                                     onClick={() => setSearch("")}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                    aria-label="Xóa tìm kiếm"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
@@ -306,7 +460,7 @@ function RTRequestManagementContent() {
                                                 ? "bg-blue-500 text-white"
                                                 : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"}`}
                                     >
-                                        {s === "ALL" ? "Tất cả" : STATUS_META[s]?.label || s}
+                                        {s === "ALL" ? "Tất cả" : STATUS_META[s as RescueRequestStatus]?.label || s}
                                     </button>
                                 ))}
                             </div>
@@ -354,7 +508,7 @@ function RTRequestManagementContent() {
                                 {/* ── Rows ── */}
                                 <div className="divide-y divide-gray-50">
                                     {paginated.map((r) => {
-                                        const status = STATUS_META[r.status] || {
+                                        const status = STATUS_META[r.status as RescueRequestStatus] || {
                                             label: r.status, bg: "bg-gray-50", text: "text-gray-600",
                                             border: "border-gray-200", dot: "bg-gray-400", icon: null,
                                         };
@@ -420,11 +574,11 @@ function RTRequestManagementContent() {
                                                 <div className="flex justify-end">
                                                     <button
                                                         type="button"
-                                                        onClick={() => navigate(`/manager/requests/${r._id}`)}
-                                                        className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-blue-100 flex items-center justify-center text-gray-400 hover:text-blue-600 transition-all group-hover:bg-blue-50 cursor-pointer"
+                                                        onClick={() => setDetailRequest(r)}
+                                                        className="w-8 h-8 rounded-xl hover:bg-blue-100 flex items-center justify-center text-gray-400 hover:text-blue-600 transition-all group-hover:bg-blue-50 cursor-pointer"
                                                         title="Xem chi tiết"
                                                     >
-                                                        <ChevronRight className="w-4 h-4" />
+                                                        <Eye className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -433,7 +587,7 @@ function RTRequestManagementContent() {
 
                                     {/* ── Mobile cards ── */}
                                     {paginated.map((r) => {
-                                        const status = STATUS_META[r.status] || {
+                                        const status = STATUS_META[r.status as RescueRequestStatus] || {
                                             label: r.status, bg: "bg-gray-50", text: "text-gray-600",
                                             border: "border-gray-200", dot: "bg-gray-400", icon: null,
                                         };
@@ -477,10 +631,11 @@ function RTRequestManagementContent() {
                                                     </div>
                                                     <button
                                                         type="button"
-                                                        onClick={() => navigate(`/manager/requests/${r._id}`)}
+                                                        onClick={() => setDetailRequest(r)}
                                                         className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
                                                     >
-                                                        Chi tiết <ChevronRight className="w-3.5 h-3.5" />
+                                                        <Eye className="w-3.5 h-3.5" />
+                                                        Chi tiết
                                                     </button>
                                                 </div>
                                             </div>
@@ -500,6 +655,13 @@ function RTRequestManagementContent() {
                     </div>
                 </div>
             </div>
+
+            {detailRequest && (
+                <RequestDetailModal
+                    request={detailRequest}
+                    onClose={() => setDetailRequest(null)}
+                />
+            )}
         </>
     );
 }
