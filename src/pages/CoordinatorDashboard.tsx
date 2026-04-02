@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
     AlertCircle, Phone, User, Calendar, MapPin, RefreshCw, Loader2,
     ChevronRight, Flame, ShieldAlert, Clock, CheckCircle2, Search, X,
-    LayoutDashboard, Hourglass, ClipboardList
+    LayoutDashboard, Hourglass, ShieldCheck, Truck, XCircle, BadgeCheck, ClipboardList
 } from "lucide-react";
 import { getRescueRequests } from "@/services/rescue-request.service";
 import type { RescueRequest } from "@/types/rescue-requests";
@@ -13,8 +13,13 @@ const STATUS_META: Record<string, {
     label: string; bg: string; text: string; border: string; dot: string; icon: React.ReactNode;
 }> = {
     PENDING: { label: "Chờ xử lý", bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200", dot: "bg-sky-400", icon: <Hourglass className="w-3 h-3" /> },
+    VERIFIED: { label: "Đã xác minh", bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200", dot: "bg-teal-500", icon: <ShieldCheck className="w-3 h-3" /> },
+    ASSIGNED: { label: "Đã điều phối", bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200", dot: "bg-violet-500", icon: <Truck className="w-3 h-3" /> },
     IN_PROGRESS: { label: "Đang xử lý", bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", dot: "bg-amber-500", icon: <Loader2 className="w-3 h-3 animate-spin" /> },
+    COMPLETED: { label: "Hoàn thành", bg: "bg-green-50", text: "text-green-700", border: "border-green-200", dot: "bg-green-500", icon: <BadgeCheck className="w-3 h-3" /> },
     DONE: { label: "Hoàn thành", bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", dot: "bg-emerald-500", icon: <CheckCircle2 className="w-3 h-3" /> },
+    CANCELLED: { label: "Đã hủy", bg: "bg-red-50", text: "text-red-700", border: "border-red-200", dot: "bg-red-400", icon: <XCircle className="w-3 h-3" /> },
+    RESOLVED: { label: "Đã giải quyết", bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200", dot: "bg-indigo-500", icon: <CheckCircle2 className="w-3 h-3" /> },
 };
 
 const URGENCY_META: Record<string, {
@@ -226,6 +231,8 @@ export default function CoordinatorDashboard() {
         .cd-card:nth-child(5){animation-delay:.20s}.cd-card:nth-child(6){animation-delay:.24s}
         .cd-card:nth-child(7){animation-delay:.28s}.cd-card:nth-child(8){animation-delay:.32s}
         .cd-card:nth-child(9){animation-delay:.36s}.cd-card:nth-child(10){animation-delay:.40s}
+        .cd-scrollbar-none{scrollbar-width:none}
+        .cd-scrollbar-none::-webkit-scrollbar{display:none}
       `}</style>
 
             <div className="cd-root min-h-screen bg-[#f5f6fa] px-4 py-8">
@@ -281,8 +288,9 @@ export default function CoordinatorDashboard() {
 
                     {/* ── Filters ── */}
                     {!loading && requests.length > 0 && (
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-                            <div className="relative flex-1">
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex flex-col gap-2.5">
+                            {/* Search */}
+                            <div className="relative">
                                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <input
                                     value={search}
@@ -296,14 +304,31 @@ export default function CoordinatorDashboard() {
                                     </button>
                                 )}
                             </div>
-                            <div className="flex rounded-xl overflow-hidden border border-gray-200 text-xs font-bold shrink-0">
-                                {(["ALL", "PENDING", "IN_PROGRESS", "DONE"] as const).map((s) => (
-                                    <button key={s} onClick={() => setStatusFilter(s)}
-                                        className={`px-3 py-2.5 transition-colors whitespace-nowrap cursor-pointer
-                      ${statusFilter === s ? "bg-blue-500 text-white" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"}`}>
-                                        {s === "ALL" ? "Tất cả" : STATUS_META[s]?.label ?? s}
-                                    </button>
-                                ))}
+
+                            {/* Scrollable chip strip */}
+                            <div className="overflow-x-auto cd-scrollbar-none -mx-1 px-1">
+                                <div className="flex gap-1.5 w-max">
+                                    {(["ALL", "PENDING", "VERIFIED", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"] as const).map((s) => {
+                                        const meta = s !== "ALL" ? STATUS_META[s] : null;
+                                        const active = statusFilter === s;
+                                        return (
+                                            <button
+                                                key={s}
+                                                onClick={() => setStatusFilter(s)}
+                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold
+                          whitespace-nowrap transition-all cursor-pointer border
+                          ${active
+                                                        ? "bg-blue-500 text-white border-transparent shadow-sm"
+                                                        : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700 hover:bg-gray-50"}`}
+                                            >
+                                                {meta && (
+                                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active ? "bg-white/70" : meta.dot}`} />
+                                                )}
+                                                {s === "ALL" ? "Tất cả" : meta?.label ?? s}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
                     )}
