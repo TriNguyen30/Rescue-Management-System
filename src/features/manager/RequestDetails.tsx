@@ -19,9 +19,7 @@ import {
   Trash2
 } from "lucide-react";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import LocationPickerMap, { type LocationPickerMarker } from "@/features/map/LocationPickerMap";
 
 import { API_BASE_URL } from "@/config/env";
 import { getRescueRequestById, verifyRescueRequest, assignRescueRequest } from "@/services/rescue-request.service";
@@ -33,18 +31,6 @@ import type { RescueRequest, UrgencyLevel } from "@/types/rescue-requests";
 import type { RescueTeam } from "@/types/rescue-teams";
 import type { VehicleItem } from "@/types/vehicle";
 import type { InventoryItem } from "@/types/inventory";
-
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow });
-
-const victimIcon = new L.Icon({
-  iconUrl: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-  iconSize: [32, 32]
-});
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("vi-VN");
@@ -169,6 +155,15 @@ export default function RequestDetails() {
       const [lng, lat] = t.currentLocation.coordinates;
       return { team: t, position: [lat, lng] as [number, number] };
     }), [teams]);
+
+  const extraMarkers = useMemo<LocationPickerMarker[]>(() =>
+    teamPoints.map((p) => ({
+      id: p.team._id,
+      lat: p.position[0],
+      lng: p.position[1],
+      color: "#2563eb",
+      popupHtml: `<strong>🚑 ${escapeHtml(p.team.teamName)}</strong>`,
+    })), [teamPoints]);
 
   const inventoryMap = useMemo(() =>
     inventory.reduce<Record<string, InventoryItem>>((acc, item) => {
@@ -578,17 +573,17 @@ export default function RequestDetails() {
       {/* ══ MAP ══ */}
       <div className="hidden lg:block flex-1">
         {requestPoint ? (
-          <MapContainer center={requestPoint} zoom={13} style={{ width: "100%", height: "100%" }}>
-            <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <Marker position={requestPoint} icon={victimIcon}>
-              <Popup><b>Người cần cứu</b><br />{request.userId?.fullName}</Popup>
-            </Marker>
-            {teamPoints.map(p => (
-              <Marker key={p.team._id} position={p.position}>
-                <Popup>🚑 {p.team.teamName}</Popup>
-              </Marker>
-            ))}
-          </MapContainer>
+          <LocationPickerMap
+            latitude={requestPoint[0]}
+            longitude={requestPoint[1]}
+            extraMarkers={extraMarkers}
+            interactive={false}
+            fill
+            fitTo="markers"
+            showCoordinateChip={false}
+            showFullscreen={false}
+            initialZoom={13}
+          />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500">Không có dữ liệu bản đồ</div>
         )}

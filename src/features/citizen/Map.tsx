@@ -1,38 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
-import 'leaflet/dist/leaflet.css'
-import L from 'leaflet'
-import { RescueRequestPanel } from '@/pages/Citizen'
+import { RescueRequestPanel } from '@/features/citizen/Citizen'
+import LocationPickerMap from '@/features/map/LocationPickerMap'
 import { ListFilter } from 'lucide-react'
 
-const userLocationIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-})
-
-const DEFAULT_CENTER: [number, number] = [21.0278, 105.8342]
+const DEFAULT_CENTER = { lat: 21.0278, lng: 105.8342 }
 
 type Position = { lat: number; lng: number }
-
-function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
-  const map = useMap()
-  useEffect(() => {
-    map.setView(center, zoom)
-  }, [map, center[0], center[1], zoom])
-  return null
-}
-
-function LocationPicker({ onPick }: { onPick: (p: Position) => void }) {
-  useMapEvents({
-    click: (e) => onPick({ lat: e.latlng.lat, lng: e.latlng.lng }),
-  })
-  return null
-}
 
 export default function Map() {
   const [position, setPosition] = useState<Position | null>(null)
@@ -55,14 +28,16 @@ export default function Map() {
     )
   }, [])
 
-  const effective = picked ?? position
-  const center: [number, number] = effective ? [effective.lat, effective.lng] : DEFAULT_CENTER
-  const zoom = effective ? 16 : 13
-
+  const effective = picked ?? position ?? DEFAULT_CENTER
   const panelLocation = useMemo(() => {
-    if (!effective) return null
+    if (!picked && !position) return null
     return { lat: effective.lat, lng: effective.lng }
-  }, [effective?.lat, effective?.lng])
+  }, [picked, position, effective.lat, effective.lng])
+
+  const zoomToLocation = useMemo(
+    () => ({ lat: effective.lat, lng: effective.lng, zoom: picked || position ? 16 : 13 }),
+    [effective.lat, effective.lng, picked, position],
+  )
 
   return (
     <div
@@ -70,7 +45,6 @@ export default function Map() {
       style={{ height: 'calc(100dvh - var(--navbar-height, 64px))' }}
     >
       <div className="flex h-full">
-        {/* Sidebar: Citizen rescue request form */}
         {panelOpen && (
           <aside className="hidden lg:block w-[450px] shrink-0 border-r border-gray-100 bg-gray-50 overflow-y-auto">
             <div className="p-4">
@@ -82,7 +56,7 @@ export default function Map() {
                 <div className="mt-2 flex items-center gap-2">
                   <span className="text-xs text-gray-400">Đang chọn:</span>
                   <span className="text-xs font-mono text-gray-700">
-                    {effective ? `${effective.lat.toFixed(5)}, ${effective.lng.toFixed(5)}` : '—'}
+                    {`${effective.lat.toFixed(5)}, ${effective.lng.toFixed(5)}`}
                   </span>
                   {picked && (
                     <button
@@ -100,16 +74,15 @@ export default function Map() {
           </aside>
         )}
 
-        {/* Map */}
-        <div className="relative flex-1">
-          <div className="absolute bottom-10 right-3 z-[1000] flex items-center gap-2">
+        <div className="relative flex-1 min-w-0">
+          <div className="absolute bottom-10 right-14 z-[1000] flex items-center gap-2">
             <button
               type="button"
               className="p-2 rounded-xl text-sm font-medium shadow-lg border bg-white/90 text-gray-700 border-gray-200 backdrop-blur-sm hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer"
               aria-label={panelOpen ? 'Ẩn form cứu hộ' : 'Hiện form cứu hộ'}
               onClick={() => setPanelOpen((v) => !v)}
             >
-              {panelOpen ? <ListFilter className="w-6 h-6" /> : <ListFilter className="w-6 h-6" />}
+              <ListFilter className="w-6 h-6" />
             </button>
           </div>
           {error && (
@@ -117,19 +90,14 @@ export default function Map() {
               {error}
             </div>
           )}
-          <MapContainer center={center} zoom={zoom} style={{ width: '100%', height: '100%' }}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <LocationPicker onPick={setPicked} />
-            {effective && <ChangeView center={center} zoom={zoom} />}
-            {effective && (
-              <Marker position={center} icon={userLocationIcon}>
-                <Popup>{picked ? '📍 Vị trí bạn chọn' : '📍 Vị trí hiện tại của bạn'}</Popup>
-              </Marker>
-            )}
-          </MapContainer>
+          <LocationPickerMap
+            latitude={effective.lat}
+            longitude={effective.lng}
+            onChange={(lat, lng) => setPicked({ lat, lng })}
+            zoomToLocation={zoomToLocation}
+            fill
+            showFullscreen={false}
+          />
         </div>
       </div>
     </div>

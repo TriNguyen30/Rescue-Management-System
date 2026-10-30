@@ -2,9 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { createRescueRequest } from "@/services/rescue-request.service";
 import { uploadFile } from "@/services/upload.service";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+import LocationPickerMap from "@/features/map/LocationPickerMap";
 import {
     Camera,
     X,
@@ -21,18 +19,6 @@ import {
     SatelliteDish,
     ImagePlus,
 } from "lucide-react";
-
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-// Fix Leaflet default marker icon paths when bundling.
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconUrl: markerIcon,
-    iconRetinaUrl: markerIcon2x,
-    shadowUrl: markerShadow,
-});
 
 interface UploadedImage {
     id: string;
@@ -70,13 +56,6 @@ export function RescueRequestPanel({
 
     const gpsLockedRef = useRef(false);
     const [pickOnMapOpen, setPickOnMapOpen] = useState(false);
-
-    function LocationPicker({ onPick }: { onPick: (p: Position) => void }) {
-        useMapEvents({
-            click: (e) => onPick({ lat: e.latlng.lat, lng: e.latlng.lng }),
-        });
-        return null;
-    }
 
     useEffect(() => {
         // If external location is provided (from map), use it and skip GPS loading
@@ -526,23 +505,14 @@ export function RescueRequestPanel({
                             </div>
 
                             <div style={{ height: "70vh" }}>
-                                <MapContainer
-                                    center={[form.lat ?? DEFAULT_COORD.lat, form.lng ?? DEFAULT_COORD.lng]}
-                                    zoom={16}
-                                    style={{ width: "100%", height: "100%" }}
-                                >
-                                    <TileLayer
-                                        attribution="&copy; OpenStreetMap contributors"
-                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                    />
-                                    <LocationPicker onPick={handlePickOnMap} />
-
-                                    {form.lat != null && form.lng != null && (
-                                        <Marker position={[form.lat, form.lng]}>
-                                            <Popup>📍 Vị trí bạn chọn</Popup>
-                                        </Marker>
-                                    )}
-                                </MapContainer>
+                                <LocationPickerMap
+                                    latitude={form.lat ?? DEFAULT_COORD.lat}
+                                    longitude={form.lng ?? DEFAULT_COORD.lng}
+                                    onChange={(lat, lng) => handlePickOnMap({ lat, lng })}
+                                    fill
+                                    showFullscreen={false}
+                                    initialZoom={16}
+                                />
                             </div>
 
                             <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex justify-end">
