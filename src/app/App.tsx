@@ -1,5 +1,4 @@
-import "./App.css";
-import AppRoute from "@/routes/Router";
+import AppRoute from "@/app/Router.tsx";
 import { BrowserRouter } from "react-router-dom";
 import { ToastProvider } from "@/components/ui/Toast";
 
